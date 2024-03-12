@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class WeightechThemes {
   static final ThemeData lightTheme = ThemeData(
@@ -10,6 +11,7 @@ class WeightechThemes {
         borderRadius: BorderRadius.circular(8)
       )
     ),
-    fontFamily: 'Arial'
+    textTheme: GoogleFonts.openSansTextTheme(),
+    
   );
 }

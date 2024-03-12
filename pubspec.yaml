@@ -11,6 +11,8 @@ dependencies:
   firebase_storage: ^11.6.8
   flutter:
     sdk: flutter
+  google_fonts: ^6.2.1 
+  wakelock: ^0.6.2
 
 dev_dependencies:
   flutter_test:

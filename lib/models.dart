@@ -95,7 +95,7 @@ class CatalogItemTile extends StatelessWidget {
                     fit: BoxFit.fitWidth,
                   ),
               ),
-              Expanded(child: Text(product.name ?? '', textAlign: TextAlign.center,)), // Handle if name is null
+              Expanded(child: Text(product.name ?? '', textAlign: TextAlign.center, style: const TextStyle(fontSize: 16.0, color: Color(0xFF000000)))), // Handle if name is null
               // You can add more widgets to display additional information
             ],
           ),
