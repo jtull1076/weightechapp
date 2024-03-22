@@ -1,4 +1,5 @@
 import 'package:dotted_border/dotted_border.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:weightechapp/models.dart';
@@ -299,7 +300,6 @@ class ListingPage extends StatelessWidget {
         return Scaffold(
           body: Container(
             padding: const EdgeInsets.only(top: 0, bottom: 0),
-            
             child: Stack(
               children: <Widget>[
                 Flex(
@@ -443,79 +443,63 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
 
 
 
-
-
-/// The base class for the different types of items the list can contain.
-abstract class ListItem {
-  /// The title line to show in a list item.
-  Widget buildTitle(BuildContext context);
-
-  /// The subtitle line, if any, to show in a list item.
-  Widget buildSubtitle(BuildContext context);
+abstract class BrochureItem {
+  Widget buildItem(BuildContext context);
 }
 
-class BrochureItem {
-  final BrochureHeader header;
-  final List<BrochureBody> body;
+class BrochureHeader implements BrochureItem {
+  String header;
+  final TextEditingController _controller;
 
-  BrochureItem(this.header, this.body);
+  BrochureHeader({required this.header}) : _controller = TextEditingController(text: header);
 
+  @override
   Widget buildItem(BuildContext context) {
-    return Column(
-      children: [
-        header.buildTitle(context),
-        for (var child in body) child.buildBody(context),
-      ]
+    return ListTile(
+      leading: const Icon(Icons.menu, size: 30,), 
+      title: TextFormField(
+        controller: _controller, 
+        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+      )
     );
   }
+
+  BrochureHeader.basic() : header="New Header", _controller = TextEditingController(text: "New Header");
+
 }
 
+class BrochureSubheader implements BrochureItem {
+  String subheader;
+  final TextEditingController _controller;
 
-class BrochureHeader implements ListItem {
-  final String heading;
-
-  BrochureHeader(this.heading);
+  BrochureSubheader({required this.subheader}) : _controller = TextEditingController(text: subheader);
 
   @override
-  Widget buildTitle(BuildContext context){
-    return Text(
-      heading,
-      style: Theme.of(context).textTheme.headlineSmall,
-    );
+  Widget buildItem(BuildContext context) {
+    return Padding(padding: const EdgeInsets.only(left: 50), child: ListTile(leading: const Icon(Icons.menu, size: 30), title: TextFormField(controller: _controller, textCapitalization: TextCapitalization.words, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold,))));
   }
 
-  @override
-  Widget buildSubtitle(BuildContext context) => const SizedBox.shrink();
+  BrochureSubheader.basic() : subheader="New Subheader", _controller = TextEditingController(text: "New Subheader");
+
 }
 
+class BrochureEntry implements BrochureItem {
+  String entry;
+  final TextEditingController _controller;
 
-class BrochureBody implements ListItem {
-  final String? subheader;
-  final String item;
+  BrochureEntry({required this.entry}) : _controller = TextEditingController(text: entry);
 
-  BrochureBody(this.subheader, this.item);
-
-  Widget buildBody(BuildContext context){
-    return Column(
-      children: [
-        buildTitle(context),
-        buildSubtitle(context),
-      ]
-    );
-  }
+  BrochureEntry.basic() : entry="New Entry", _controller = TextEditingController(text: "New Entry");
 
   @override
-  Widget buildTitle(BuildContext context){
-    if (subheader != null && subheader!.isNotEmpty) {
-      return Text(subheader!);
-    }
-    else {
-      return const SizedBox.shrink();
-    }
+  Widget buildItem(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 100), 
+      child: 
+        ListTile(
+          leading: const Icon(Icons.menu, size: 30), 
+          title: TextFormField(controller: _controller,)));
   }
-
-  @override
-  Widget buildSubtitle(BuildContext context) => Text(item);
 }
 
 
@@ -530,22 +514,18 @@ class AddItemPage extends StatefulWidget {
 
 class _AddItemPageState extends State<AddItemPage> with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
-  var _itemSelection = ItemSelect.category;
-  final List<BrochureItem> _brochure = [];
 
+  var _itemSelection = ItemSelect.category;
+
+  List<BrochureItem> _brochure = [BrochureHeader(header: "Header1"), BrochureSubheader(subheader: "Subheader1"), BrochureEntry(entry: "Entry1"), BrochureEntry(entry: "Entry2"), BrochureHeader(header: "Header2")];
 
   @override
   void deactivate() {
-    if (_controller != null) {
-      _controller!.setVolume(0.0);
-      _controller!.pause();
-    }
     super.deactivate();
   }
 
   @override
   void dispose() {
-    _disposeVideoController();
     super.dispose();
   }
 
@@ -562,39 +542,34 @@ class _AddItemPageState extends State<AddItemPage> with TickerProviderStateMixin
               const Hero(tag: 'divider', child: Divider(color: Color(0xFF224190), height: 2, thickness: 2, indent: 25.0, endIndent: 25.0,)),
               Expanded(
                 child:
-                  SingleChildScrollView(
-                    child: SizedBox(
-                      height: 800,
-                      child: 
-                        Column(
-                          children: [
-                            SizedBox(
-                              width: 250,
-                              child: 
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 20),
-                                  child: 
-                                    SegmentedButton<ItemSelect>(
-                                      style: const ButtonStyle(visualDensity: VisualDensity(horizontal: -2, vertical: -1)),
-                                      segments: const <ButtonSegment<ItemSelect>>[
-                                        ButtonSegment<ItemSelect>(value: ItemSelect.category, label: Text('Category')),
-                                        ButtonSegment<ItemSelect>(value: ItemSelect.product, label: Text("Product"))
-                                      ], 
-                                      selected: <ItemSelect>{_itemSelection},
-                                      onSelectionChanged: (Set<ItemSelect> newSelection) {
-                                        setState(() {
-                                          _itemSelection = newSelection.first;
-                                        });
-                                      },
-                                    ),
-                                )
-                            ),
-                            (_itemSelection == ItemSelect.category)? _categoryForm(productManager) : _productForm(productManager)
-                          ]
-                        )
-                    )
-                  ),
-              )
+                  ListView(
+                    children: [
+                      const SizedBox(height: 20),
+                      Center(
+                        child: 
+                          SizedBox(
+                            width: 300,
+                            child: 
+                              SegmentedButton<ItemSelect>(
+                                style: const ButtonStyle(visualDensity: VisualDensity(horizontal: -2, vertical: -1)),
+                                segments: const <ButtonSegment<ItemSelect>>[
+                                  ButtonSegment<ItemSelect>(value: ItemSelect.category, label: Text('Category')),
+                                  ButtonSegment<ItemSelect>(value: ItemSelect.product, label: Text("Product"))
+                                ], 
+                                selected: <ItemSelect>{_itemSelection},
+                                onSelectionChanged: (Set<ItemSelect> newSelection) {
+                                  setState(() {
+                                    _itemSelection = newSelection.first;
+                                  });
+                                },
+                              ),
+                          )
+                      ),
+                      (_itemSelection == ItemSelect.category)? _categoryForm(productManager) : _productForm(productManager)
+                    ]
+                  )
+                ),
+              const SizedBox(height: 20),
             ]
           )
         );
@@ -602,88 +577,68 @@ class _AddItemPageState extends State<AddItemPage> with TickerProviderStateMixin
     );
   }
 
-  Widget _productForm(productManager) {
-  return Expanded(
-    child: 
-      Form(
-        key: _formKey,
-        child: 
-          Column(
-            children: [
-              const SizedBox(height: 30),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Expanded(
-                    child:
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.only(left: 80, right: 40, bottom: 20),
-                            child:
-                              TextFormField(
-                                decoration: const InputDecoration(
-                                  labelText: "Product Name *"
-                                ),
-                                validator: (String? value) {
-                                  return (value == null) ? 'Name required.' : null;
-                                },
-                              ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.only(left: 80, right: 40, bottom: 30),
-                            child:
-                              TextFormField(
-                                decoration: const InputDecoration(
-                                  labelText: "Product Model Number"
-                                ),
-                              ),
-                          ),
-                          DropdownMenu<ProductCategory>(
-                            label: const Text("Category *"),
-                            initialSelection: productManager.all,
-                            dropdownMenuEntries: productManager.getAllCategories(productManager.all).map<DropdownMenuEntry<ProductCategory>>((ProductCategory category){
-                              return DropdownMenuEntry<ProductCategory>(
-                                value: category,
-                                label: category.name,
-                              );
-                            }).toList(),
-                          ),
-                          const SizedBox(height: 30),
-                          // Divider(color: Theme.of(context).colorScheme.primary, indent: 60, endIndent: 20, height: 2, thickness: 2),
-                          const Padding(
-                            padding: EdgeInsets.only(top: 20, left: 80, right: 40, bottom: 10), 
-                            child: 
-                              Text("Product Description", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.only(left: 80, right: 40, bottom: 20),
-                            child: 
-                              TextFormField(
-                                decoration: const InputDecoration(
-                                  labelText: "Overview"
-                                ),
-                                minLines: 1,
-                                maxLines: null,
-                                keyboardType: TextInputType.multiline,
-                              )
-                          ),
+  int _addBrochureItemIndex = -1; // -1 if not to show add buttons, otherwise represents index of where the buttons should be
 
-                        ]
-                      ),
-                  ),
-                  Expanded(
-                    child: 
-                      Column(
-                        children: <Widget>[
-                          const SizedBox(height: 10),
-                          const SizedBox(
-                            width: 350, 
-                            child: Text("[Insert best-practices for image/video upload here.]")
+  Widget _productForm(productManager) {
+  return Form(
+    key: _formKey,
+    child: 
+      Column(
+        children: [
+          const SizedBox(height: 30),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child:
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(left: 40, right: 40, bottom: 20, top: 20),
+                        child:
+                          TextFormField(
+                            decoration: const InputDecoration(
+                              labelText: "Product Name *"
+                            ),
+                            validator: (String? value) {
+                              return (value == null) ? 'Name required.' : null;
+                            },
                           ),
-                          const SizedBox(height: 10),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 40, right: 40, bottom: 30),
+                        child:
+                          TextFormField(
+                            decoration: const InputDecoration(
+                              labelText: "Product Model Number"
+                            ),
+                          ),
+                      ),
+                      DropdownMenu<ProductCategory>(
+                        label: const Text("Category *"),
+                        initialSelection: productManager.all,
+                        dropdownMenuEntries: productManager.getAllCategories(productManager.all).map<DropdownMenuEntry<ProductCategory>>((ProductCategory category){
+                          return DropdownMenuEntry<ProductCategory>(
+                            value: category,
+                            label: category.name,
+                          );
+                        }).toList(),
+                      ),
+                      const SizedBox(height: 30),
+                    ]
+                  ),
+              ),
+              Expanded(
+                child: 
+                  Column(
+                    children: <Widget>[
+                      const SizedBox(height: 10),
+                      const Text("[Insert best-practices for image/video upload here.]"),
+                      const SizedBox(height: 10),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
                           DottedBorder(
                             borderType: BorderType.RRect,
                             radius: const Radius.circular(8),
@@ -695,8 +650,8 @@ class _AddItemPageState extends State<AddItemPage> with TickerProviderStateMixin
                               borderRadius: const BorderRadius.all(Radius.circular(8)),
                               child: 
                                 Container(
-                                  height: 250,
-                                  width: 300,
+                                  height: 230,
+                                  width: 200,
                                   color: const Color(0x55C9C9CC),
                                   child:
                                     const Column(
@@ -708,9 +663,9 @@ class _AddItemPageState extends State<AddItemPage> with TickerProviderStateMixin
                                         Row(
                                           mainAxisAlignment: MainAxisAlignment.center, 
                                           children: [
-                                            Flexible(flex: 1, child: Divider(color: Colors.black, height: 1, thickness: 1, indent: 70, endIndent: 15)), 
+                                            Expanded(child: Divider(color: Colors.black, height: 1, thickness: 1, indent: 70, endIndent: 15)), 
                                             Text("or"), 
-                                            Flexible(flex: 1, child: Divider(color: Colors.black, height: 1, thickness: 1, indent: 15, endIndent: 70))
+                                            Expanded(child: Divider(color: Colors.black, height: 1, thickness: 1, indent: 15, endIndent: 70))
                                           ]
                                         ),
                                         SizedBox(height: 10),
@@ -722,7 +677,7 @@ class _AddItemPageState extends State<AddItemPage> with TickerProviderStateMixin
                                 )
                             )
                           ),
-                          const SizedBox(height: 20),
+                          const SizedBox(width: 20),
                           DottedBorder(
                             borderType: BorderType.RRect,
                             radius: const Radius.circular(8),
@@ -734,8 +689,8 @@ class _AddItemPageState extends State<AddItemPage> with TickerProviderStateMixin
                               borderRadius: const BorderRadius.all(Radius.circular(8)),
                               child: 
                                 Container(
-                                  height: 250,
-                                  width: 300,
+                                  height: 230,
+                                  width: 200,
                                   color: const Color(0x55C9C9CC),
                                   child:
                                     const Column(
@@ -763,443 +718,290 @@ class _AddItemPageState extends State<AddItemPage> with TickerProviderStateMixin
                           )
                         ]
                       )
+                    ]
                   )
-                ],
               )
             ],
+          ),
+          const Padding(
+            padding: EdgeInsets.only(top: 20, left: 150, right: 150, bottom: 10), 
+            child: 
+              Text("Product Description", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(left: 150, right: 150, bottom: 20),
+            child: 
+              TextFormField(
+                decoration: const InputDecoration(
+                  labelText: "Overview"
+                ),
+                minLines: 1,
+                maxLines: null,
+                keyboardType: TextInputType.multiline,
+              )
+          ),
+          Padding( 
+            padding: const EdgeInsets.symmetric(horizontal: 150),
+            child:
+              Container(
+                alignment: Alignment.centerLeft,
+                child: 
+                  ReorderableListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    buildDefaultDragHandles: false,
+                    itemCount: _brochure.length,
+                    itemBuilder: (context, index) {
+                      final item = _brochure[index];
+                      
+                      if (defaultTargetPlatform==TargetPlatform.macOS || defaultTargetPlatform==TargetPlatform.windows || defaultTargetPlatform==TargetPlatform.linux) {
+                        return MouseRegion(
+                          key: Key('Mouse_$index'),
+                          onEnter: (PointerEnterEvent evt) {
+                            setState((){
+                              _addBrochureItemIndex = index;
+                            });
+                          },
+                          onExit: (PointerExitEvent evt) {
+                            setState((){
+                              _addBrochureItemIndex = -1;
+                            });
+                          },
+                          child:
+                            Column(
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 0),
+                                  child: 
+                                    ReorderableDelayedDragStartListener(
+                                      index: index,
+                                      child:
+                                        item.buildItem(context)
+                                    )
+                                ),
+                                if(_addBrochureItemIndex == index)
+                                  Container(
+                                    width: 400,
+                                    height: 30,
+                                    alignment: Alignment.bottomCenter,
+                                    child:
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: 
+                                              ElevatedButton(
+                                                onPressed: () {
+                                                  setState((){
+                                                    int newItemIndex = index+1;
+                                                    _brochure.insert(newItemIndex, BrochureHeader.basic());
+                                                  });
+                                                }, 
+                                                child: const Text("Header+")
+                                              ),
+                                            ),
+                                            Expanded(
+                                              child: 
+                                                ElevatedButton(
+                                                  onPressed: () {
+                                                    setState((){
+                                                      int newItemIndex = index+1;
+                                                      _brochure.insert(newItemIndex, BrochureSubheader.basic());
+                                                    });
+                                                  }, 
+                                                  child: const Text("Subheader+")
+                                                ),
+                                            ),
+                                            Expanded(
+                                              child:
+                                                ElevatedButton(
+                                                  onPressed: () {
+                                                    setState((){
+                                                      int newItemIndex = index+1;
+                                                      _brochure.insert(newItemIndex, BrochureEntry.basic());
+                                                    });
+                                                  }, 
+                                                  child: const Text("Entry+")
+                                                )
+                                            )
+                                          ]
+                                        )
+                                  )
+                              ]
+                            )
+                        );
+                      }
+                      else {
+                        return 
+                          Column(
+                            key: Key('col_$index'),
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 0),
+                                child: 
+                                  ReorderableDelayedDragStartListener(
+                                    index: index,
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          child: item.buildItem(context),
+                                        ),
+                                        IconButton(
+                                          icon: const Icon(Icons.add),
+                                          onPressed: () => setState(() {
+                                            _addBrochureItemIndex = index;
+                                          })
+                                        )
+                                      ]
+                                    )
+                                  ),
+                              ),
+                              if(_addBrochureItemIndex == index)
+                                TapRegion(
+                                  key: Key('Tap_$index'),
+                                  onTapOutside: (event) {
+                                    setState((){
+                                      _addBrochureItemIndex = -1;
+                                    });
+                                  },
+                                  child:
+                                    Container(
+                                      width: 400,
+                                      height: 30,
+                                      alignment: Alignment.bottomCenter,
+                                      child:
+                                          Row(
+                                            children: [
+                                              Expanded(
+                                                child: 
+                                                ElevatedButton(
+                                                  onPressed: () {
+                                                    setState((){
+                                                      int newItemIndex = index+1;
+                                                      _brochure.insert(newItemIndex, BrochureHeader.basic());
+                                                    });
+                                                  }, 
+                                                  child: const Text("Header+")
+                                                ),
+                                              ),
+                                              Expanded(
+                                                child: 
+                                                  ElevatedButton(
+                                                    onPressed: () {
+                                                      setState((){
+                                                        int newItemIndex = index+1;
+                                                        _brochure.insert(newItemIndex, BrochureSubheader.basic());
+                                                      });
+                                                    }, 
+                                                    child: const Text("Subheader+")
+                                                  ),
+                                              ),
+                                              Expanded(
+                                                child:
+                                                  ElevatedButton(
+                                                    onPressed: () {
+                                                      setState((){
+                                                        int newItemIndex = index+1;
+                                                        _brochure.insert(newItemIndex, BrochureEntry.basic());
+                                                      });
+                                                    }, 
+                                                    child: const Text("Entry+")
+                                                  )
+                                              )
+                                            ]
+                                          )
+                                    )
+                                )
+                            ]
+                          );
+                        }
+                    },
+                    onReorder: (int oldIndex, int newIndex) {
+                      setState(() {
+                        if (oldIndex < newIndex) {
+                          newIndex -= 1;
+                        }
+                        final item = _brochure.removeAt(oldIndex);
+                        _brochure.insert(newIndex, item);
+                      });
+                    },                                                            
+                  )
+              ),
           )
-        )
+        ],
+      )
     );
   }
 
   Widget _categoryForm(productManager) {
-  return Expanded(
+  return Form(
+    key: _formKey,
     child: 
-      Form(
-        key: _formKey,
-        child: 
-          Column(
+      Column(
+        children: [
+          const SizedBox(height: 30),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const SizedBox(height: 30),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Expanded(
-                    child:
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.only(left: 80, right: 40, bottom: 20),
-                            child:
-                              TextFormField(
-                                decoration: const InputDecoration(
-                                  labelText: "Category Name"
-                                ),
-                                validator: (String? value) {
-                                  return (value == null) ? 'Name required.' : null;
-                                },
-                              ),
+              Expanded(
+                child:
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(left: 80, right: 40, bottom: 20),
+                        child:
+                          TextFormField(
+                            decoration: const InputDecoration(
+                              labelText: "Category Name"
+                            ),
+                            validator: (String? value) {
+                              return (value == null) ? 'Name required.' : null;
+                            },
                           ),
-                          DropdownMenu<ProductCategory>(
-                            label: const Text("Parent Category: "),
-                            initialSelection: productManager.all,
-                            dropdownMenuEntries: productManager.getAllCategories(productManager.all).map<DropdownMenuEntry<ProductCategory>>((ProductCategory category){
-                              return DropdownMenuEntry<ProductCategory>(
-                                value: category,
-                                label: category.name,
-                              );
-                            }).toList(),
-                          )
-                        ]
                       ),
-                  ),
-                  Expanded(
-                    child: 
-                      Column(
-                        children: <Widget>[
-                          DottedBorder(
-                            borderType: BorderType.RRect,
-                            radius: const Radius.circular(8),
-                            padding: const EdgeInsets.all(6),
-                            dashPattern: const [6, 3],
-                            color: Colors.black,
-                            strokeWidth: 1,
-                            child: ClipRRect(
-                              borderRadius: const BorderRadius.all(Radius.circular(8)),
-                              child: 
-                                Container(
-                                  alignment: Alignment.center,
-                                  height: 200,
-                                  width: 300,
-                                  color: const Color(0x55C9C9CC)
-                                )
-                            )
-                          )
-                        ]
+                      DropdownMenu<ProductCategory>(
+                        label: const Text("Parent Category: "),
+                        initialSelection: productManager.all,
+                        dropdownMenuEntries: productManager.getAllCategories(productManager.all).map<DropdownMenuEntry<ProductCategory>>((ProductCategory category){
+                          return DropdownMenuEntry<ProductCategory>(
+                            value: category,
+                            label: category.name,
+                          );
+                        }).toList(),
                       )
+                    ]
+                  ),
+              ),
+              Expanded(
+                child: 
+                  Column(
+                    children: <Widget>[
+                      DottedBorder(
+                        borderType: BorderType.RRect,
+                        radius: const Radius.circular(8),
+                        padding: const EdgeInsets.all(6),
+                        dashPattern: const [6, 3],
+                        color: Colors.black,
+                        strokeWidth: 1,
+                        child: ClipRRect(
+                          borderRadius: const BorderRadius.all(Radius.circular(8)),
+                          child: 
+                            Container(
+                              alignment: Alignment.center,
+                              height: 200,
+                              width: 300,
+                              color: const Color(0x55C9C9CC)
+                            )
+                        )
+                      )
+                    ]
                   )
-                ],
               )
             ],
           )
-        )
-      );
-    }
-      
-      
-  //     Center(
-  //       child: !kIsWeb && defaultTargetPlatform == TargetPlatform.android
-  //           ? FutureBuilder<void>(
-  //               future: retrieveLostData(),
-  //               builder: (BuildContext context, AsyncSnapshot<void> snapshot) {
-  //                 switch (snapshot.connectionState) {
-  //                   case ConnectionState.none:
-  //                   case ConnectionState.waiting:
-  //                     return const Text(
-  //                       'You have not yet picked an image.',
-  //                       textAlign: TextAlign.center,
-  //                     );
-  //                   case ConnectionState.done:
-  //                     return _handlePreview();
-  //                   case ConnectionState.active:
-  //                     if (snapshot.hasError) {
-  //                       return Text(
-  //                         'Pick image/video error: ${snapshot.error}}',
-  //                         textAlign: TextAlign.center,
-  //                       );
-  //                     } else {
-  //                       return const Text(
-  //                         'You have not yet picked an image.',
-  //                         textAlign: TextAlign.center,
-  //                       );
-  //                     }
-  //                 }
-  //               },
-  //             )
-  //           : _handlePreview(),
-  //     ),
-  //     floatingActionButton: Column(
-  //       mainAxisAlignment: MainAxisAlignment.end,
-  //       children: <Widget>[
-  //         Semantics(
-  //           label: 'image_picker_example_from_gallery',
-  //           child: FloatingActionButton(
-  //             onPressed: () {
-  //               isVideo = false;
-  //               _onImageButtonPressed(ImageSource.gallery, context: context);
-  //             },
-  //             heroTag: 'image0',
-  //             tooltip: 'Pick Image from Gallery',
-  //             child: const Icon(Icons.photo),
-  //           ),
-  //         ),
-  //         Padding(
-  //           padding: const EdgeInsets.only(top: 16.0),
-  //           child: FloatingActionButton(
-  //             backgroundColor: Colors.red,
-  //             onPressed: () {
-  //               isVideo = true;
-  //               _onImageButtonPressed(ImageSource.gallery, context: context);
-  //             },
-  //             heroTag: 'video0',
-  //             tooltip: 'Pick Video from Gallery',
-  //             child: const Icon(Icons.video_library),
-  //           ),
-  //         ),
-  //       ],
-  //     ),
-  //   );
-  // }
-
-    List<XFile>? _mediaFileList;
-
-    void _setImageFileListFromFile(XFile? value) {
-      _mediaFileList = value == null ? null : <XFile>[value];
-    }
-
-    dynamic _pickImageError;
-    bool isVideo = false;
-
-    VideoPlayerController? _controller;
-    VideoPlayerController? _toBeDisposed;
-    String? _retrieveDataError;
-
-    final ImagePicker _picker = ImagePicker();
-
-    Future<void> _playVideo(XFile? file) async {
-    if (file != null && mounted) {
-      await _disposeVideoController();
-      late VideoPlayerController controller;
-      if (kIsWeb) {
-        controller = VideoPlayerController.networkUrl(Uri.parse(file.path));
-      } else {
-        controller = VideoPlayerController.file(File(file.path));
-      }
-      _controller = controller;
-      // In web, most browsers won't honor a programmatic call to .play
-      // if the video has a sound track (and is not muted).
-      // Mute the video so it auto-plays in web!
-      // This is not needed if the call to .play is the result of user
-      // interaction (clicking on a "play" button, for example).
-      const double volume = 0.0; // kIsWeb ? 0.0 : 1.0;
-      await controller.setVolume(volume);
-      await controller.initialize();
-      await controller.setLooping(true);
-      await controller.play();
-      setState(() {});
-    }
-  }
-
-  Future<void> _onImageButtonPressed(
-    ImageSource source, {
-    required BuildContext context,
-  }) async {
-    if (_controller != null) {
-      await _controller!.setVolume(0.0);
-    }
-    if (context.mounted) {
-      if (isVideo) {
-        final XFile? file = await _picker.pickVideo(
-            source: source, maxDuration: const Duration(seconds: 30));
-        await _playVideo(file);
-      } else {
-          try {
-            final XFile? pickedFile = await _picker.pickImage(
-              source: source,
-            );
-            setState(() {
-              _setImageFileListFromFile(pickedFile);
-            });
-          } catch (e) {
-            setState(() {
-              _pickImageError = e;
-            });
-          }
-      }
-    }
-  }
-
-    Future<void> _disposeVideoController() async {
-    if (_toBeDisposed != null) {
-      await _toBeDisposed!.dispose();
-    }
-    _toBeDisposed = _controller;
-    _controller = null;
-  }
-
-  Widget _previewVideo() {
-    final Text? retrieveError = _getRetrieveErrorWidget();
-    if (retrieveError != null) {
-      return retrieveError;
-    }
-    if (_controller == null) {
-      return const Text(
-        'No video selected.',
-        textAlign: TextAlign.center,
-      );
-    }
-    return Padding(
-      padding: const EdgeInsets.all(10.0),
-      child: AspectRatioVideo(_controller),
+        ],
+      )
     );
   }
-
-  Widget _previewImages() {
-    final Text? retrieveError = _getRetrieveErrorWidget();
-    if (retrieveError != null) {
-      return retrieveError;
-    }
-    if (_mediaFileList != null) {
-      return Semantics(
-        label: 'image_picker_example_picked_images',
-        child: ListView.builder(
-          key: UniqueKey(),
-          itemBuilder: (BuildContext context, int index) {
-            final String? mime = lookupMimeType(_mediaFileList![index].path);
-
-            // Why network for web?
-            // See https://pub.dev/packages/image_picker_for_web#limitations-on-the-web-platform
-            return Semantics(
-              label: 'image_picker_example_picked_image',
-              child: kIsWeb
-                  ? Image.network(_mediaFileList![index].path)
-                  : (mime == null || mime.startsWith('image/')
-                      ? Image.file(
-                          File(_mediaFileList![index].path),
-                          errorBuilder: (BuildContext context, Object error,
-                              StackTrace? stackTrace) {
-                            return const Center(
-                                child:
-                                    Text('This image type is not supported'));
-                          },
-                        )
-                      : _buildInlineVideoPlayer(index)),
-            );
-          },
-          itemCount: _mediaFileList!.length,
-        ),
-      );
-    } else if (_pickImageError != null) {
-      return Text(
-        'Error: $_pickImageError',
-        textAlign: TextAlign.center,
-      );
-    } else {
-      return const Text(
-        'No image selected.',
-        textAlign: TextAlign.center,
-      );
-    }
-  }
-
-  Widget _buildInlineVideoPlayer(int index) {
-    final VideoPlayerController controller =
-        VideoPlayerController.file(File(_mediaFileList![index].path));
-    const double volume = kIsWeb ? 0.0 : 1.0;
-    controller.setVolume(volume);
-    controller.initialize();
-    controller.setLooping(true);
-    controller.play();
-    return Center(child: AspectRatioVideo(controller));
-  }
-
-  Widget _handlePreview() {
-    if (isVideo) {
-      return _previewVideo();
-    } else {
-      return _previewImages();
-    }
-  }
-
-  Future<void> retrieveLostData() async {
-    final LostDataResponse response = await _picker.retrieveLostData();
-    if (response.isEmpty) {
-      return;
-    }
-    if (response.file != null) {
-      if (response.type == RetrieveType.video) {
-        isVideo = true;
-        await _playVideo(response.file);
-      } else {
-        isVideo = false;
-        setState(() {
-          if (response.files == null) {
-            _setImageFileListFromFile(response.file);
-          } else {
-            _mediaFileList = response.files;
-          }
-        });
-      }
-    } else {
-      _retrieveDataError = response.exception!.code;
-    }
-  }
-
-  Text? _getRetrieveErrorWidget() {
-    if (_retrieveDataError != null) {
-      final Text result = Text(_retrieveDataError!);
-      _retrieveDataError = null;
-      return result;
-    }
-    return null;
-  }
 }
-
-typedef OnPickImageCallback = void Function(
-    double? maxWidth, double? maxHeight, int? quality);
-
-class AspectRatioVideo extends StatefulWidget {
-  const AspectRatioVideo(this.controller, {super.key});
-
-  final VideoPlayerController? controller;
-
-  @override
-  AspectRatioVideoState createState() => AspectRatioVideoState();
-}
-
-class AspectRatioVideoState extends State<AspectRatioVideo> {
-  VideoPlayerController? get controller => widget.controller;
-  bool initialized = false;
-
-  void _onVideoControllerUpdate() {
-    if (!mounted) {
-      return;
-    }
-    if (initialized != controller!.value.isInitialized) {
-      initialized = controller!.value.isInitialized;
-      setState(() {});
-    }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    controller!.addListener(_onVideoControllerUpdate);
-  }
-
-  @override
-  void dispose() {
-    controller!.removeListener(_onVideoControllerUpdate);
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (initialized) {
-      return Center(
-        child: AspectRatio(
-          aspectRatio: controller!.value.aspectRatio,
-          child: VideoPlayer(controller!),
-        ),
-      );
-    } else {
-      return Container();
-    }
-  }
-}
-
-
-
-
-
-
-
-
-
-
-  // @override
-  // void initState() {
-  //   super.initState();
-  // }
-
-
-
-
-  // @override
-  // Widget build(BuildContext context) {
-
-  //   return Scaffold(
-  //     body: Column(
-  //       crossAxisAlignment: CrossAxisAlignment.center,
-  //       mainAxisAlignment: MainAxisAlignment.start,
-  //       children: <Widget>[
-  //         const SizedBox(height: 10),
-  //         SegmentedButton<ItemSelect>(
-  //           segments: const <ButtonSegment<ItemSelect>>[
-  //             ButtonSegment<ItemSelect>(value: ItemSelect.category, label: Text('Category')),
-  //             ButtonSegment<ItemSelect>(value: ItemSelect.product, label: Text("Product"))
-  //           ], 
-  //           selected: <ItemSelect>{_itemSelection},
-  //           onSelectionChanged: (Set<ItemSelect> newSelection) {
-  //             setState(() {
-  //               _itemSelection = newSelection.first;
-  //             });
-  //           },
-  //         ),
-
-  //       ]
-  //     )
-  //   );
-  // }
