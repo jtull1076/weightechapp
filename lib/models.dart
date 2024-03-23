@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 
 class ProductManager extends ChangeNotifier {
-  final ProductCategory all = ProductCategory.all();
+  static final ProductCategory all = ProductCategory.all();
 
   ProductManager() {
     all.addCategory(
@@ -15,7 +15,6 @@ class ProductManager extends ChangeNotifier {
     all.addProduct(
       Product(
         name: "Case Weigher",
-        category: "In-Line Weighers",
         imagePath: "assets/product_images/case_weigher_front.png",
         description: "Description of Product 2",
         brochure: {"key1": "value1", "key2": "value2"},
@@ -24,7 +23,6 @@ class ProductManager extends ChangeNotifier {
     all.addProduct(
       Product(
         name: "Sizer System",
-        category: "Sizers",
         imagePath: "assets/product_images/sizer.png",
         description: "Description of Product 2",
         brochure: {"key1": "value1", "key2": "value2"},
@@ -33,7 +31,6 @@ class ProductManager extends ChangeNotifier {
     all.addProduct(
       Product(
         name: "Trimline Station",
-        category: "Trimlines",
         imagePath: "assets/product_images/trimline_station.png",
         description: "Description of Product 2",
         brochure: {"key1": "value1", "key2": "value2"},
@@ -42,7 +39,7 @@ class ProductManager extends ChangeNotifier {
     all.getItemByName("Microweigh Indicators").addProduct(
       Product(
         name: "Microweigh Indicator 2",
-        category: "Indicators",
+        category: all.getItemByName("Indicators"),
         imagePath: "assets/product_images/microweigh_indicators.png",
         description: "Description of Product 2",
         brochure: {"key1": "value1", "key2": "value2"},
@@ -51,7 +48,7 @@ class ProductManager extends ChangeNotifier {
     all.getItemByName("Microweigh Indicators").addProduct(
       Product(
         name: "Microweigh Indicator 3",
-        category: "Indicators",
+        category: all.getItemByName("Indicators"),
         imagePath: "assets/product_images/microweigh_indicators.png",
         description: "Description of Product 2",
         brochure: {"key1": "value1", "key2": "value2"},
@@ -60,7 +57,7 @@ class ProductManager extends ChangeNotifier {
     all.getItemByName("Microweigh Indicators").addProduct(
       Product(
         name: "Microweigh Indicator 4",
-        category: "Indicators",
+        category: all.getItemByName("Indicators"),
         imagePath: "assets/product_images/microweigh_indicators.png",
         description: "Description of Product 2",
         brochure: {"key1": "value1", "key2": "value2"},
@@ -69,7 +66,7 @@ class ProductManager extends ChangeNotifier {
     all.getItemByName("Microweigh Indicators").addProduct(
       Product(
         name: "Microweigh Indicator 5",
-        category: "Indicators",
+        category: all.getItemByName("Indicators"),
         imagePath: "assets/product_images/microweigh_indicators.png",
         description: "Description of Product 2",
         brochure: {"key1": "value1", "key2": "value2"},
@@ -78,7 +75,7 @@ class ProductManager extends ChangeNotifier {
     all.getItemByName("Microweigh Indicators").addProduct(
       Product(
         name: "Microweigh Indicator 6",
-        category: "Indicators",
+        category: all.getItemByName("Indicators"),
         imagePath: "assets/product_images/microweigh_indicators.png",
         description: "Description of Product 2",
         brochure: {"key1": "value1", "key2": "value2"},
@@ -87,7 +84,7 @@ class ProductManager extends ChangeNotifier {
     all.getItemByName("Microweigh Indicators").addProduct(
       Product(
         name: "Microweigh Indicator 7",
-        category: "Indicators",
+        category: all.getItemByName("Indicators"),
         imagePath: "assets/product_images/microweigh_indicators.png",
         description: "Description of Product 2",
         brochure: {"key1": "value1", "key2": "value2"},
@@ -96,7 +93,7 @@ class ProductManager extends ChangeNotifier {
     all.getItemByName("Microweigh Indicators").addProduct(
       Product(
         name: "Microweigh Indicator 8",
-        category: "Indicators",
+        category: all.getItemByName("Indicators"),
         imagePath: "assets/product_images/microweigh_indicators.png",
         description: "Description of Product 2",
         brochure: {"key1": "value1", "key2": "value2"},
@@ -105,7 +102,7 @@ class ProductManager extends ChangeNotifier {
     all.getItemByName("Microweigh Indicators").addProduct(
       Product(
         name: "Microweigh Indicator 9",
-        category: "Indicators",
+        category: all.getItemByName("Indicators"),
         imagePath: "assets/product_images/microweigh_indicators.png",
         description: "Description of Product 2",
         brochure: {"key1": "value1", "key2": "value2"},
@@ -114,7 +111,7 @@ class ProductManager extends ChangeNotifier {
     all.getItemByName("Microweigh Indicators").addProduct(
       Product(
         name: "Microweigh Indicator 10",
-        category: "Indicators",
+        category: all.getItemByName("Indicators"),
         imagePath: "assets/product_images/microweigh_indicators.png",
         description: "Description of Product 2",
         brochure: {"key1": "value1", "key2": "value2"},
@@ -123,7 +120,7 @@ class ProductManager extends ChangeNotifier {
     all.getItemByName("Microweigh Indicators").addProduct(
       Product(
         name: "Microweigh Indicator 11",
-        category: "Indicators",
+        category: all.getItemByName("Indicators"),
         imagePath: "assets/product_images/microweigh_indicators.png",
         description: "Description of Product 2",
         brochure: {"key1": "value1", "key2": "value2"},
@@ -232,7 +229,7 @@ class Product {
   String? name;
   String? modelNumber;
   double? price;
-  String? category;
+  ProductCategory? category;
   String? imagePath;
   String? description;
   Map<String, dynamic>? brochure;
@@ -247,6 +244,33 @@ class Product {
     this.description,
     this.brochure,
   });
+
+  static Map<String, dynamic> mapListToBrochure(List<BrochureItem> brochure) {
+
+    List<String> entries = [];
+    List<dynamic> subheaders = [];
+    final Map<String, dynamic> brochureMap = {};
+
+    for (var item in brochure.reversed) {
+      switch (item.runtimeType) {
+        case BrochureEntry _ : {
+          entries.add((item as BrochureEntry).entry);
+        }
+        case BrochureSubheader _ : {
+          subheaders.add({(item as BrochureSubheader).subheader : entries});
+          entries.clear();
+        }
+        case BrochureHeader _ : {
+          brochureMap[(item as BrochureHeader).header] = [entries, subheaders];
+          subheaders.clear();
+          entries.clear();
+        }
+      }
+    }
+
+    return Map.fromEntries(brochureMap.entries);
+  }
+
 }
 
 
@@ -268,17 +292,20 @@ class CatalogItemTile extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.start,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child:
-                  Image.asset(
-                    item.imagePath?.isNotEmpty ?? false ? item.imagePath! : 'assets/weightech_logo.png', // Handle if imagePath is null
-                    width: double.infinity,
-                    fit: BoxFit.fitWidth,
+              Expanded(
+                child: 
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child:
+                      Image.asset(
+                        item.imagePath?.isNotEmpty ?? false ? item.imagePath! : 'assets/weightech_logo.png', // Handle if imagePath is null
+                        width: double.infinity,
+                        fit: BoxFit.fitWidth,
+                      ),
                   ),
               ),
-              Expanded(child: Text(item.name ?? '', textAlign: TextAlign.center, style: const TextStyle(fontSize: 16.0, color: Colors.black))), // Handle if name is null
-              // You can add more widgets to display additional information
+              Text(item.name ?? '', textAlign: TextAlign.center, style: const TextStyle(fontSize: 16.0, color: Colors.black)), // Handle if name is null
+              const SizedBox(height: 10),
             ],
           ),
           Positioned.fill(
@@ -295,6 +322,94 @@ class CatalogItemTile extends StatelessWidget {
           )
         ]
       )
+    );
+  }
+}
+
+
+abstract class BrochureItem {
+  Widget buildItem(BuildContext context);
+}
+
+class BrochureHeader implements BrochureItem {
+  String header;
+  final TextEditingController controller;
+
+  BrochureHeader({required this.header}) : controller = TextEditingController(text: header);
+  BrochureHeader.basic() : header="New Header", controller = TextEditingController();
+
+  @override
+  Widget buildItem(BuildContext context) {
+    return ListTile(
+      leading: const Icon(Icons.menu, size: 30,), 
+      title: TextFormField(
+        controller: controller, 
+        decoration: 
+          InputDecoration(
+            label: Text(header)
+          ),
+        validator: (String? value) => (value == null) ? 'Cannot be empty.' : null,
+        textCapitalization: TextCapitalization.words,
+        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+      )
+    );
+  }
+
+
+}
+
+class BrochureSubheader implements BrochureItem {
+  String subheader;
+  final TextEditingController controller;
+
+  BrochureSubheader({required this.subheader}) : controller = TextEditingController(text: subheader);
+  BrochureSubheader.basic() : subheader="New Subheader", controller = TextEditingController();
+
+  @override
+  Widget buildItem(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 50), 
+      child: ListTile(
+        leading: const Icon(Icons.menu, size: 30), 
+        title: TextFormField(
+          controller: controller, 
+          decoration: 
+            InputDecoration(
+              label: Text(subheader)
+            ),
+          validator: (String? value) => (value == null) ? 'Cannot be empty.' : null,
+          textCapitalization: TextCapitalization.words, 
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold,)
+        )
+      )
+    );
+  }
+}
+
+class BrochureEntry implements BrochureItem {
+  String entry;
+  final TextEditingController controller;
+
+  BrochureEntry({required this.entry}) : controller = TextEditingController(text: entry);
+
+  BrochureEntry.basic() : entry="New Entry", controller = TextEditingController();
+
+  @override
+  Widget buildItem(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 100), 
+      child: 
+        ListTile(
+          leading: const Icon(Icons.menu, size: 30), 
+          title: TextFormField(
+            controller: controller,
+            decoration: 
+              InputDecoration(
+                label: Text(entry)
+              ),
+            validator: (String? value) => (value == null) ? 'Cannot be empty.' : null,
+          )
+        )
     );
   }
 }
