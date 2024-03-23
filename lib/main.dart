@@ -1,4 +1,5 @@
 import 'package:dotted_border/dotted_border.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -18,8 +19,6 @@ import 'dart:ui';
 import 'dart:io';
 
 Future<void> main() async {
-
-
   WidgetsFlutterBinding.ensureInitialized(); // Initialize Flutter Bindings
 
   debugPrint('...System behavior setup...');
@@ -190,7 +189,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                           child: 
                             GridView.builder(
                               padding: const EdgeInsets.only(top: 110, bottom: 20, left: 20, right: 20),
-                              itemCount: productManager.all.products.length,
+                              itemCount: ProductManager.all.products.length,
                               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                                 crossAxisCount: MediaQuery.of(context).size.width<600 ? 1 : 4,
                                 childAspectRatio: 0.9,
@@ -198,8 +197,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                 mainAxisSpacing: 1,
                               ),
                               itemBuilder: (context, index) => CatalogItemTile(
-                                item: productManager.all.getAllCatalogItems()[index],
-                                onTapCallback: () => catalogNavigation(context, productManager.all.getAllCatalogItems()[index])
+                                item: ProductManager.all.getAllCatalogItems()[index],
+                                onTapCallback: () => catalogNavigation(context, ProductManager.all.getAllCatalogItems()[index])
                               ),
                             )
                         ),
@@ -318,7 +317,7 @@ class ListingPage extends StatelessWidget {
                           ),
                           itemBuilder: (context, index) => CatalogItemTile(
                             item: catalogItems[index],
-                            onTapCallback: () => catalogNavigation(context, productManager.all.products[index])
+                            onTapCallback: () => catalogNavigation(context, catalogItems[index])
                           ),
                         )
                     )],//)
@@ -442,67 +441,6 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
 }
 
 
-
-abstract class BrochureItem {
-  Widget buildItem(BuildContext context);
-}
-
-class BrochureHeader implements BrochureItem {
-  String header;
-  final TextEditingController _controller;
-
-  BrochureHeader({required this.header}) : _controller = TextEditingController(text: header);
-
-  @override
-  Widget buildItem(BuildContext context) {
-    return ListTile(
-      leading: const Icon(Icons.menu, size: 30,), 
-      title: TextFormField(
-        controller: _controller, 
-        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-      )
-    );
-  }
-
-  BrochureHeader.basic() : header="New Header", _controller = TextEditingController(text: "New Header");
-
-}
-
-class BrochureSubheader implements BrochureItem {
-  String subheader;
-  final TextEditingController _controller;
-
-  BrochureSubheader({required this.subheader}) : _controller = TextEditingController(text: subheader);
-
-  @override
-  Widget buildItem(BuildContext context) {
-    return Padding(padding: const EdgeInsets.only(left: 50), child: ListTile(leading: const Icon(Icons.menu, size: 30), title: TextFormField(controller: _controller, textCapitalization: TextCapitalization.words, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold,))));
-  }
-
-  BrochureSubheader.basic() : subheader="New Subheader", _controller = TextEditingController(text: "New Subheader");
-
-}
-
-class BrochureEntry implements BrochureItem {
-  String entry;
-  final TextEditingController _controller;
-
-  BrochureEntry({required this.entry}) : _controller = TextEditingController(text: entry);
-
-  BrochureEntry.basic() : entry="New Entry", _controller = TextEditingController(text: "New Entry");
-
-  @override
-  Widget buildItem(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 100), 
-      child: 
-        ListTile(
-          leading: const Icon(Icons.menu, size: 30), 
-          title: TextFormField(controller: _controller,)));
-  }
-}
-
-
 enum ItemSelect {product, category}
 
 class AddItemPage extends StatefulWidget {
@@ -516,8 +454,14 @@ class _AddItemPageState extends State<AddItemPage> with TickerProviderStateMixin
   final _formKey = GlobalKey<FormState>();
 
   var _itemSelection = ItemSelect.category;
+  ProductCategory _selectedCategory = ProductManager.all;
 
-  List<BrochureItem> _brochure = [BrochureHeader(header: "Header1"), BrochureSubheader(subheader: "Subheader1"), BrochureEntry(entry: "Entry1"), BrochureEntry(entry: "Entry2"), BrochureHeader(header: "Header2")];
+  final TextEditingController _dropdownController = TextEditingController();
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
+  final TextEditingController _modelNumberController = TextEditingController();
+
+  final List<BrochureItem> _brochure = [BrochureHeader(header: "Header1"), BrochureSubheader(subheader: "Subheader1"), BrochureEntry(entry: "Entry1"), BrochureEntry(entry: "Entry2"), BrochureHeader(header: "Header2")];
 
   @override
   void deactivate() {
@@ -531,6 +475,7 @@ class _AddItemPageState extends State<AddItemPage> with TickerProviderStateMixin
 
   @override
   Widget build(BuildContext context) {
+    
     return Consumer<ProductManager>(
       builder: (context, productManager, child) {
         return Scaffold(
@@ -557,7 +502,7 @@ class _AddItemPageState extends State<AddItemPage> with TickerProviderStateMixin
                                   ButtonSegment<ItemSelect>(value: ItemSelect.product, label: Text("Product"))
                                 ], 
                                 selected: <ItemSelect>{_itemSelection},
-                                onSelectionChanged: (Set<ItemSelect> newSelection) {
+                                onSelectionChanged: (newSelection) {
                                   setState(() {
                                     _itemSelection = newSelection.first;
                                   });
@@ -598,6 +543,7 @@ class _AddItemPageState extends State<AddItemPage> with TickerProviderStateMixin
                         padding: const EdgeInsets.only(left: 40, right: 40, bottom: 20, top: 20),
                         child:
                           TextFormField(
+                            controller: _nameController,
                             decoration: const InputDecoration(
                               labelText: "Product Name *"
                             ),
@@ -610,6 +556,7 @@ class _AddItemPageState extends State<AddItemPage> with TickerProviderStateMixin
                         padding: const EdgeInsets.only(left: 40, right: 40, bottom: 30),
                         child:
                           TextFormField(
+                            controller: _modelNumberController,
                             decoration: const InputDecoration(
                               labelText: "Product Model Number"
                             ),
@@ -617,13 +564,19 @@ class _AddItemPageState extends State<AddItemPage> with TickerProviderStateMixin
                       ),
                       DropdownMenu<ProductCategory>(
                         label: const Text("Category *"),
-                        initialSelection: productManager.all,
-                        dropdownMenuEntries: productManager.getAllCategories(productManager.all).map<DropdownMenuEntry<ProductCategory>>((ProductCategory category){
+                        controller: _dropdownController,
+                        initialSelection: ProductManager.all,
+                        dropdownMenuEntries: productManager.getAllCategories(ProductManager.all).map<DropdownMenuEntry<ProductCategory>>((ProductCategory category){
                           return DropdownMenuEntry<ProductCategory>(
                             value: category,
                             label: category.name,
                           );
                         }).toList(),
+                        onSelected: (newValue) {
+                          setState((){
+                            _selectedCategory = newValue!;
+                          });
+                        },
                       ),
                       const SizedBox(height: 30),
                     ]
@@ -732,6 +685,7 @@ class _AddItemPageState extends State<AddItemPage> with TickerProviderStateMixin
             padding: const EdgeInsets.only(left: 150, right: 150, bottom: 20),
             child: 
               TextFormField(
+                controller: _descriptionController,
                 decoration: const InputDecoration(
                   labelText: "Overview"
                 ),
@@ -926,7 +880,23 @@ class _AddItemPageState extends State<AddItemPage> with TickerProviderStateMixin
                     },                                                            
                   )
               ),
-          )
+          ),
+          const SizedBox(height: 20),
+          ElevatedButton(
+            child: const Text('Save & Exit'),
+            onPressed: () {
+                _selectedCategory!.addProduct(
+                  Product(
+                    name: _nameController.text,
+                    modelNumber: _modelNumberController.text,
+                    category: _selectedCategory,
+                    description: _descriptionController.text,
+                    brochure: Product.mapListToBrochure(_brochure),
+                  )
+                );
+                Navigator.pop(context);
+            }
+          ),
         ],
       )
     );
@@ -962,8 +932,8 @@ class _AddItemPageState extends State<AddItemPage> with TickerProviderStateMixin
                       ),
                       DropdownMenu<ProductCategory>(
                         label: const Text("Parent Category: "),
-                        initialSelection: productManager.all,
-                        dropdownMenuEntries: productManager.getAllCategories(productManager.all).map<DropdownMenuEntry<ProductCategory>>((ProductCategory category){
+                        initialSelection: ProductManager.all,
+                        dropdownMenuEntries: productManager.getAllCategories(ProductManager.all).map<DropdownMenuEntry<ProductCategory>>((ProductCategory category){
                           return DropdownMenuEntry<ProductCategory>(
                             value: category,
                             label: category.name,
