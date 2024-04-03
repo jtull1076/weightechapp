@@ -1,0 +1,23 @@
+{
+    "Catalog" : {
+        "Name" : "All", 
+        "Description" : "Lorem Ipsum",
+        "Type" : "Category",
+        "Items" : [
+            {"Microweigh Indicators" : {
+                "Description" : "Lorem Ipsum",
+                "Type" : "Category",
+                "Items" : [
+                    {
+                    "Microweight Indicator 1" : {
+                        "Description" : "Lorem Ipsum 2",
+                        "Type" : "Product",
+                        "Brochure" : {}
+                        }
+                    }
+                ]
+                }
+            }
+        ]
+    }
+}

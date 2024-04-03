@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:weightechapp/models.dart';
 import 'package:weightechapp/themes.dart';
 import 'package:flutter/material.dart';
@@ -14,16 +15,20 @@ import 'package:image_picker/image_picker.dart';
 import 'package:mime/mime.dart';
 import 'package:video_player/video_player.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'dart:async';
 import 'dart:ui';
 import 'dart:io';
+import 'package:simple_rich_text/simple_rich_text.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized(); // Initialize Flutter Bindings
 
   debugPrint('...System behavior setup...');
-  SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky); // Set to full screen
-  Wakelock.enable(); // Enable wakelock to prevent the device from sleeping
+  if (defaultTargetPlatform == TargetPlatform.android || defaultTargetPlatform == TargetPlatform.iOS) {
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky); // Set to full screen
+    Wakelock.enable(); // Enable wakelock to prevent the device from sleeping
+  }
 
   debugPrint('...Initializing Firebase...');
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform); // Initialize Firebase
@@ -164,10 +169,22 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     }
     else if (item is Product) {
       debugPrint('Rerouting to ${item.name} product page.');
-      Navigator.push(context, MaterialPageRoute(builder: (context) => ProductPage(product: item)));
+      Navigator.push(context, 
+        PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) => ProductPage(product: item),
+          transitionsBuilder: (context, animation, secondaryAnimation, child){
+            var begin = 0.0;
+            var end = 1.0;
+            var curve = Curves.fastLinearToSlowEaseIn;
+
+            var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+            return FadeTransition(opacity: animation.drive(tween), child: child);
+          },
+          transitionDuration: const Duration(seconds: 2)
+        )
+      );
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -189,7 +206,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                           child: 
                             GridView.builder(
                               padding: const EdgeInsets.only(top: 110, bottom: 20, left: 20, right: 20),
-                              itemCount: ProductManager.all.products.length,
+                              itemCount: ProductManager.all.products.length + ProductManager.all.subcategories.length,
                               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                                 crossAxisCount: MediaQuery.of(context).size.width<600 ? 1 : 4,
                                 childAspectRatio: 0.9,
@@ -258,17 +275,227 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
 
 
-class ProductPage extends StatelessWidget {
+class ProductPage extends StatefulWidget {
   ProductPage({super.key, required this.product});
 
   final Product product;
 
   @override
+  State<ProductPage> createState() => _ProductPageState();
+}
+
+class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _dividerHeightAnimation;
+  late Animation<double> _fadeAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    
+    _controller = AnimationController(duration : const Duration(seconds: 2), vsync: this);
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _controller, curve: const Interval(0.3, 0.6, curve: Curves.ease)));
+    _dividerHeightAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _controller, curve: const Interval(0.0, 0.6, curve: Curves.ease)));
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(milliseconds: 500), () =>
+      _controller.forward());
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 40,
-      width: 100,
-      child: Text('${product.name}'),
+    return Scaffold(
+      body: Column(
+        children: [
+          GestureDetector(
+            onDoubleTap: (){
+              debugPrint('---Return to Idle Interaction---');
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const IdlePage()));
+            },
+            child: Padding(padding: const EdgeInsets.only(top: 10.0), child: Image.asset('assets/weightech_logo.png', height: 100, alignment: Alignment.center,)),
+          ),
+          const SizedBox(height: 5),
+          //const Divider(color: Color(0xFF224190), height: 1, thickness: 2, indent: 25.0, endIndent: 25.0,),
+          Stack(
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(left: 25.0, right: 25.0),
+                child: Container(
+                  color: const Color(0xFF224190),
+                  height: 2.0
+                )
+              ),
+              Padding(
+                padding: const EdgeInsets.only(left: 25.0, right: 25.0),
+                child: 
+                  SizeTransition(
+                    sizeFactor: _dividerHeightAnimation, 
+                    axis: Axis.vertical, 
+                    child: Container(
+                      alignment: Alignment.topCenter,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF224190),
+                        border: Border.all(color: const Color(0xFF224190))
+                      ),
+                      width: double.infinity,
+                      child: 
+                        Padding(
+                          padding: const EdgeInsets.all(2.0),
+                          child:
+                            Text(widget.product.name, 
+                              textAlign: TextAlign.center, 
+                              style: const TextStyle(fontSize: 36.0, fontWeight: FontWeight.bold, color: Colors.white),
+                            )
+                        )
+                    )
+                  ),
+              ),
+            ]
+          ),
+          Expanded(
+            child:
+              SingleChildScrollView(
+                padding: const EdgeInsets.only(bottom: 30),
+                scrollDirection: Axis.vertical,
+                child: 
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Flexible(
+                        child:
+                          ListView(
+                            padding: const EdgeInsets.only(left: 60, right: 20, top: 30),
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            children: [
+                              widget.product.description?.isNotEmpty ?? false ?
+                                FadeTransition(
+                                  opacity: _fadeAnimation,
+                                  child:
+                                    Align(
+                                      alignment: Alignment.center,
+                                      child: SimpleRichText(widget.product.description!, style: GoogleFonts.openSans(fontSize: 18.0)) 
+                                    )
+                                )
+                              : const SizedBox(height: 50),
+                              const SizedBox(height: 30),
+                              FadeTransition(
+                                opacity: _fadeAnimation,
+                                child:
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child:
+                                      Hero(tag: '${widget.product.name}_htag_0', child: widget.product.image!),
+                                  ),
+                              ),
+                            ]
+                          ),
+                      ),
+                      Flexible(
+                        child:    
+                          FadeTransition(
+                            opacity: _fadeAnimation,
+                            child: 
+                              Padding(
+                                padding: const EdgeInsets.only(left: 40, right: 60, top: 5),
+                                child: 
+                                  ListView.builder(
+                                    shrinkWrap: true,
+                                    padding: const EdgeInsets.only(top: 20),
+                                    physics: const NeverScrollableScrollPhysics(),
+                                    itemCount: widget.product.brochure!.length,
+                                    itemBuilder: (context, index) {
+                                      final headerKey = widget.product.brochure![index].keys.first;
+                                      final headerValue = widget.product.brochure![index][headerKey] as List;
+                                      final headerEntries = headerValue.singleWhere((element) => (element as Map).keys.first == "Entries", orElse: () => <String, List<String>>{})["Entries"];
+                                      final subheaders = List.from(headerValue);
+                                      subheaders.removeWhere((element) => element.keys.first == "Entries");
+
+                                      return Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(headerKey, style: const TextStyle(color: Color(0xFF224190), fontSize: 32.0, fontWeight: FontWeight.bold), softWrap: true,),
+                                          if (headerEntries?.isNotEmpty ?? false)
+                                            ListView.builder(
+                                              padding: const EdgeInsets.only(top: 5.0, left: 5.0),
+                                              shrinkWrap: true,
+                                              physics: const NeverScrollableScrollPhysics(),
+                                              itemCount: headerEntries.length,
+                                              itemBuilder: (context, entryIndex) {
+                                                final entry = headerEntries[entryIndex];
+                                                return Padding(
+                                                  padding: const EdgeInsets.only(top: 5.0),
+                                                  child:
+                                                    Row(
+                                                      crossAxisAlignment: CrossAxisAlignment.start, 
+                                                      children: [
+                                                        const Text("\u2022"),
+                                                        const SizedBox(width: 8),
+                                                        Expanded(child: Text(entry, style: const TextStyle(fontSize: 16.0), softWrap: true,))
+                                                      ]
+                                                    )
+                                                );
+                                              }
+                                            ),
+                                          const SizedBox(height: 10),
+                                          ListView.builder(
+                                            shrinkWrap: true,
+                                            physics: const NeverScrollableScrollPhysics(),
+                                            itemCount: subheaders.length,
+                                            itemBuilder: (context, subIndex) {
+                                              final subheaderKey = subheaders[subIndex].keys.first;
+                                              final subheaderValue = subheaders[subIndex][subheaderKey] as List<String>;
+
+                                              return Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Padding(
+                                                    padding: const EdgeInsets.only(left: 5.0),
+                                                    child: Text(subheaderKey, style: const TextStyle(color: Color(0xFF333333), fontSize: 27.0, fontWeight: FontWeight.w800), softWrap: true,),
+                                                  ),
+                                                  ListView.builder(
+                                                    padding: const EdgeInsets.only(left: 5.0, top: 5.0),
+                                                    shrinkWrap: true,
+                                                    physics: const NeverScrollableScrollPhysics(),
+                                                    itemCount: subheaderValue.length,
+                                                    itemBuilder: (context, entryIndex) {
+                                                      final entry = subheaderValue[entryIndex];
+                                                      return Row(
+                                                        crossAxisAlignment: CrossAxisAlignment.start, 
+                                                        children: [
+                                                          const Text("\u2022"),
+                                                          const SizedBox(width: 5),
+                                                          Expanded(child: Text(entry, style: const TextStyle(fontSize: 16.0), softWrap: true,))
+                                                        ]
+                                                      );
+                                                    }
+                                                  ),
+                                                  const SizedBox(height: 10),
+                                                ],
+                                              );
+                                            },
+                                          )
+                                        ]
+                                      );
+                                    }
+                                  )
+                              )
+                          )
+                      )
+                    ],
+                  )
+                ),
+          ),
+        ]
+      )
     );
   }
 }
@@ -288,7 +515,20 @@ class ListingPage extends StatelessWidget {
     }
     else if (item is Product) {
       debugPrint('Rerouting to ${item.name} product page.');
-      Navigator.push(context, MaterialPageRoute(builder: (context) => ProductPage(product: item)));
+      Navigator.push(context, 
+        PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) => ProductPage(product: item),
+          transitionsBuilder: (context, animation, secondaryAnimation, child){
+            var begin = 0.0;
+            var end = 1.0;
+            var curve = Curves.fastLinearToSlowEaseIn;
+
+            var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+            return FadeTransition(opacity: animation.drive(tween), child: child);
+          },
+          transitionDuration: const Duration(seconds: 2)
+        )
+      );
     }
   }
 
@@ -470,6 +710,10 @@ class _AddItemPageState extends State<AddItemPage> with TickerProviderStateMixin
 
   @override
   void dispose() {
+    _dropdownController.dispose();
+    _nameController.dispose();
+    _descriptionController.dispose();
+    _modelNumberController.dispose();
     super.dispose();
   }
 
@@ -479,6 +723,7 @@ class _AddItemPageState extends State<AddItemPage> with TickerProviderStateMixin
     return Consumer<ProductManager>(
       builder: (context, productManager, child) {
         return Scaffold(
+          resizeToAvoidBottomInset: false,
           body: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             mainAxisAlignment: MainAxisAlignment.start,
@@ -883,9 +1128,10 @@ class _AddItemPageState extends State<AddItemPage> with TickerProviderStateMixin
           ),
           const SizedBox(height: 20),
           ElevatedButton(
+            style: const ButtonStyle(foregroundColor: MaterialStatePropertyAll(Colors.white), backgroundColor: MaterialStatePropertyAll(Color(0xFF224190))),
             child: const Text('Save & Exit'),
             onPressed: () {
-                _selectedCategory!.addProduct(
+                _selectedCategory.addProduct(
                   Product(
                     name: _nameController.text,
                     modelNumber: _modelNumberController.text,
@@ -897,6 +1143,7 @@ class _AddItemPageState extends State<AddItemPage> with TickerProviderStateMixin
                 Navigator.pop(context);
             }
           ),
+        const SizedBox(height: 20)
         ],
       )
     );
