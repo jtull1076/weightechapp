@@ -20,7 +20,10 @@ import 'dart:async';
 import 'dart:ui';
 import 'dart:io';
 import 'package:simple_rich_text/simple_rich_text.dart';
+import 'package:carousel_slider/carousel_slider.dart';
 
+
+//MARK: MAIN
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized(); // Initialize Flutter Bindings
 
@@ -31,13 +34,13 @@ Future<void> main() async {
   }
 
   debugPrint('...Initializing Firebase...');
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform); // Initialize Firebase
+  // await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform); // Initialize Firebase
 
   debugPrint('...App Startup...');
   runApp(WeightechApp());
 }
 
-
+/// A class that defines the widget tree.
 class WeightechApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -56,7 +59,8 @@ class WeightechApp extends StatelessWidget {
   }
 }
 
-
+//MARK: IDLE PAGE
+/// A class defining the stateless [IdlePage]. Used as the landing page (though not called "LandingPage" because "IdlePage" seemed more apt). 
 class IdlePage extends StatelessWidget {
   const IdlePage({super.key});
 
@@ -119,6 +123,13 @@ class IdlePage extends StatelessWidget {
   }
 }
 
+//MARK: HOME PAGE
+
+/// A class defining the stateful HomePage, i.e. the 'All' category listing page. 
+/// 
+/// Defined separately as stateful to handle all animations from [IdlePage]. 
+/// 
+/// See also: [_HomePageState]
 class HomePage extends StatefulWidget {
   HomePage({Key? key}) : super(key: key);
 
@@ -165,10 +176,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   void catalogNavigation(BuildContext context, dynamic item){
     if (item is ProductCategory) {
       debugPrint('Rerouting to ${item.name} listing.');
+      _timer.cancel();
       Navigator.push(context, MaterialPageRoute(builder: (context) => ListingPage(category: item)));
     }
     else if (item is Product) {
       debugPrint('Rerouting to ${item.name} product page.');
+      _timer.cancel();
       Navigator.push(context, 
         PageRouteBuilder(
           pageBuilder: (context, animation, secondaryAnimation) => ProductPage(product: item),
@@ -273,8 +286,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 }
 
+//MARK: PRODUCT PAGE
 
-
+/// A class defining the stateful [ProductPage]. All products use this page as their primary outlet for displaying information. 
+/// 
+/// Stateful for handling [ListingPage] -> [ProductPage] animation
+/// 
+/// See also: [_ProductPageState]
 class ProductPage extends StatefulWidget {
   ProductPage({super.key, required this.product});
 
@@ -288,6 +306,7 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
   late AnimationController _controller;
   late Animation<double> _dividerHeightAnimation;
   late Animation<double> _fadeAnimation;
+  late Timer _timer;
 
   @override
   void initState() {
@@ -298,6 +317,14 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _controller, curve: const Interval(0.3, 0.6, curve: Curves.ease)));
     _dividerHeightAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _controller, curve: const Interval(0.0, 0.6, curve: Curves.ease)));
 
+    _timer = Timer(const Duration(minutes: 10), () {
+      if (mounted){
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const IdlePage()));
+        debugPrint("--Idle Timeout--");
+      }
+    });
+
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Future.delayed(const Duration(milliseconds: 500), () =>
       _controller.forward());
@@ -306,6 +333,7 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
 
   @override
   void dispose() {
+    _timer.cancel();
     _controller.dispose();
     super.dispose();
   }
@@ -318,6 +346,7 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
           GestureDetector(
             onDoubleTap: (){
               debugPrint('---Return to Idle Interaction---');
+              _timer.cancel();
               Navigator.push(context, MaterialPageRoute(builder: (context) => const IdlePage()));
             },
             child: Padding(padding: const EdgeInsets.only(top: 10.0), child: Image.asset('assets/weightech_logo.png', height: 100, alignment: Alignment.center,)),
@@ -382,7 +411,7 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                                   child:
                                     Align(
                                       alignment: Alignment.center,
-                                      child: SimpleRichText(widget.product.description!, style: GoogleFonts.openSans(fontSize: 18.0)) 
+                                      child: SimpleRichText(widget.product.description!, style: GoogleFonts.openSans(color: Colors.black, fontSize: 18.0)) 
                                     )
                                 )
                               : const SizedBox(height: 50),
@@ -501,20 +530,26 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
 }
 
 
+// MARK: LISTING PAGE
 
+/// A class defining the stateless [ListingPage]. These are used to navigate the catalog tree. 
 class ListingPage extends StatelessWidget {
   ListingPage({super.key, required this.category}) : catalogItems = category.getAllCatalogItems();
 
   final ProductCategory category;
   final List<dynamic> catalogItems;
 
+  late final Timer _timer;
+
   void catalogNavigation(BuildContext context, dynamic item){
     if (item is ProductCategory) {
       debugPrint('Rerouting to ${item.name} listing.');
+      _timer.cancel();
       Navigator.push(context, MaterialPageRoute(builder: (context) => ListingPage(category: item)));
     }
     else if (item is Product) {
       debugPrint('Rerouting to ${item.name} product page.');
+      _timer.cancel();
       Navigator.push(context, 
         PageRouteBuilder(
           pageBuilder: (context, animation, secondaryAnimation) => ProductPage(product: item),
@@ -534,6 +569,11 @@ class ListingPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    _timer = Timer(const Duration(minutes: 10), () {
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const IdlePage()));
+      debugPrint("--Idle Timeout--");
+    });
+
     return Consumer<ProductManager>(
       builder: (context, productManager, child) {
         return Scaffold(
@@ -614,16 +654,19 @@ class ListingPage extends StatelessWidget {
   }
 }
 
+//MARK: CONTROL PAGE
 
-
-
+/// A class defining the stateful [ControlPage]. This is used for controlling (obviously) the app settings and editing the catalog. 
+/// 
+/// Stateful for handling [IdlePage] -> [ControlPage] animation
+/// 
+/// See also: [_ControlPageState]
 class ControlPage extends StatefulWidget {
   const ControlPage({super.key});
 
   @override
   State<ControlPage> createState() => _ControlPageState();
 }
-
 
 class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin {
   late AnimationController _controller;
@@ -658,7 +701,25 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
         width: double.infinity,
         child: Column(
           children: <Widget>[
-            Padding(padding: const EdgeInsets.only(top: 10.0, bottom: 5.0), child: Hero(tag: 'main-logo', child: Image.asset('assets/weightech_logo.png', height: 100, alignment: Alignment.center,))),
+            Padding(
+              padding: const EdgeInsets.only(top: 10.0, bottom: 5.0), 
+              child: 
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.home),
+                      onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const IdlePage())),
+                    ),
+                    Hero(
+                      tag: 'main-logo', 
+                      child: Image.asset('assets/weightech_logo.png', 
+                      height: 100, 
+                      alignment: Alignment.center,)
+                    )
+                  ]
+                ),
+            ),
             SizeTransition(sizeFactor: _dividerWidthAnimation, axis: Axis.horizontal, child: FadeTransition(opacity: _fadeAnimation, child: const Hero(tag: 'divider', child: Divider(color: Color(0xFF224190), height: 2, thickness: 2, indent: 25.0, endIndent: 25.0,)))),
             const SizedBox(height: 10),
             FadeTransition(
@@ -680,9 +741,15 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
   }
 }
 
+// MARK: ADDITEM PAGE
 
 enum ItemSelect {product, category}
 
+/// A class defining the stateful [AddItemPage]. This is used for adding new items to the catalog. 
+/// 
+/// Stateful for handling the updating dynamically in response to the user's input. 
+/// 
+/// See also: [_AddItemPageState]
 class AddItemPage extends StatefulWidget {
   const AddItemPage({super.key}); 
 
