@@ -19,11 +19,11 @@ class ProductManager extends ChangeNotifier {
     all.addProduct(
       Product(
         name: "Portion Scale",
-        image: Image.asset(
+        productImages: [Image.asset(
           'assets/product_images/qa-new.jpg',
           width: double.infinity,
           fit: BoxFit.fitWidth,
-        ),
+        )],
         category: all,
         description: "The WeighTech line of Portion Scales is designed to cover a multitude of uses – QA checks, portioning and verifying correct product weights on the production line. Our small scale line comes in a variety of base sizes to meet your weighing requirements.",
         brochure: [
@@ -57,11 +57,11 @@ class ProductManager extends ChangeNotifier {
     all.addProduct(
       Product(
         name: "Sizing System",
-        image: Image.asset(
+        productImages: [Image.asset(
           'assets/product_images/sizer.png',
           width: double.infinity,
           fit: BoxFit.fitWidth,
-        ),
+        )],
         category: all,
         description: "WeighTech’s sizing systems are built with the operator and maintenance personnel in mind. With it’s simplistic yet rigid design and proven controller it requires minimal training. Optional webserver with the ability to check totals from your phone, tablet, or desktop.",
         brochure: [
@@ -92,11 +92,18 @@ class ProductManager extends ChangeNotifier {
     all.addProduct(
       Product(
         name: "Trimline Station",
-        image: Image.asset(
+        productImages: [
+          Image.asset(
           'assets/product_images/trimline_station.png',
           width: double.infinity,
-          fit: BoxFit.fitWidth,
-        ),
+          fit: BoxFit.cover,
+          ),
+          Image.asset(
+          'assets/product_images/trimline_shop.jpg',
+          width: double.infinity,
+          fit: BoxFit.cover,
+          )
+        ],
         category: all,
         description: "WeighTech’s *Trimline Systems* can take care of all your portion control or de-boning needs. Constructed out of polished 304 stainless steel with an emphasis on durability and easy cleaning. Its large cutting stations, easy to read scale displays, and data tracking make for minimal training. The QC station allows for checks throughout each shift with up to ten customizable questions. The totals can be viewed easily with a phone or tablet anytime.",
         brochure: [
@@ -132,11 +139,11 @@ class ProductManager extends ChangeNotifier {
       Product(
         name: "Microweigh Indicator 2",
         category: all.getItemByName("Indicators"),
-        image: Image.asset(
+        productImages: [Image.asset(
           'assets/product_images/microweigh_indicators.png',
           width: double.infinity,
           fit: BoxFit.fitWidth,
-        ),
+        )],
         description: "The patented industry leading electronic indicator for harsh washdown environments. MicroWeigh, the flagship product of the WeighTech line, was designed to outperform and outlast other indicators. This is accomplished through the use of several key features such as its highly durable IP69K housing. Touch sensitive keypads responds to human touch – not to knives or other sharp instruments. Safety issues are also addressed through the use of potted electrical parts for safety when the panel is exposed or taken off. The indicator is used in many applications including scales and processing equipment. MicroWeigh has been tested for compliance with industry standards for protection from water ingress under IP69K (pressure washing), NEMA 4 (hosedown), NEMA 6 (water immersion), IP67 (water immersion), and IP68 (water immersion simulating water pressure over 80-feet deep). MicroWeigh has also satisfied tests for dust resistance under IP6. We know of no other manufacturer of an electronic indicator that has passed all these tests.",
         brochure: [
           {"Header1" : [{"Entries" : ["Entry1" , "Entry2"]}, {"Subheader1" : ["Entry1" , "Entry2"]}]},
@@ -148,11 +155,11 @@ class ProductManager extends ChangeNotifier {
       Product(
         name: "Microweigh Indicator 3",
         category: all.getItemByName("Indicators"),
-        image: Image.asset(
+        productImages: [Image.asset(
           'assets/product_images/microweigh_indicators.png',
           width: double.infinity,
           fit: BoxFit.fitWidth,
-        ),
+        )],
         description: "Description of Product 2",
         brochure: [
           {"Header1" : [{"Entries" : ["Entry1" , "Entry2"]}, {"Subheader1" : ["Entry1" , "Entry2"]}]},
@@ -164,11 +171,11 @@ class ProductManager extends ChangeNotifier {
       Product(
         name: "Microweigh Indicator 4",
         category: all.getItemByName("Indicators"),
-        image: Image.asset(
+        productImages: [Image.asset(
           'assets/product_images/microweigh_indicators.png',
           width: double.infinity,
           fit: BoxFit.fitWidth,
-        ),
+        )],
         description: "Description of Product 2",
         brochure: [
           {"Header1" : [{"Entries" : ["Entry1" , "Entry2"]}, {"Subheader1" : ["Entry1" , "Entry2"]}]},
@@ -180,11 +187,11 @@ class ProductManager extends ChangeNotifier {
       Product(
         name: "Microweigh Indicator 5",
         category: all.getItemByName("Indicators"),
-        image: Image.asset(
+        productImages: [Image.asset(
           'assets/product_images/microweigh_indicators.png',
           width: double.infinity,
           fit: BoxFit.fitWidth,
-        ),
+        )],
         description: "Description of Product 2",
         brochure: [
           {"Header1" : [{"Entries" : ["Entry1" , "Entry2"]}, {"Subheader1" : ["Entry1" , "Entry2"]}]},
@@ -196,11 +203,11 @@ class ProductManager extends ChangeNotifier {
       Product(
         name: "Microweigh Indicator 6",
         category: all.getItemByName("Indicators"),
-        image: Image.asset(
+        productImages: [Image.asset(
           'assets/product_images/microweigh_indicators.png',
           width: double.infinity,
           fit: BoxFit.fitWidth,
-        ),
+        )],
         description: "Description of Product 2",
         brochure: [
           {"Header1" : [{"Entries" : ["Entry1" , "Entry2"]}, {"Subheader1" : ["Entry1" , "Entry2"]}]},
@@ -212,11 +219,11 @@ class ProductManager extends ChangeNotifier {
       Product(
         name: "Microweigh Indicator 7",
         category: all.getItemByName("Indicators"),
-        image: Image.asset(
+        productImages: [Image.asset(
           'assets/product_images/microweigh_indicators.png',
           width: double.infinity,
           fit: BoxFit.fitWidth,
-        ),
+        )],
         description: "Description of Product 2",
         brochure: [
           {"Header1" : [{"Entries" : ["Entry1" , "Entry2"]}, {"Subheader1" : ["Entry1" , "Entry2"]}]},
@@ -228,11 +235,11 @@ class ProductManager extends ChangeNotifier {
       Product(
         name: "Microweigh Indicator 8",
         category: all.getItemByName("Indicators"),
-        image: Image.asset(
+        productImages: [Image.asset(
           'assets/product_images/microweigh_indicators.png',
           width: double.infinity,
           fit: BoxFit.fitWidth,
-        ),
+        )],
         description: "Description of Product 2",
         brochure: [
           {"Header1" : [{"Entries" : ["Entry1" , "Entry2"]}, {"Subheader1" : ["Entry1" , "Entry2"]}]},
@@ -244,11 +251,11 @@ class ProductManager extends ChangeNotifier {
       Product(
         name: "Microweigh Indicator 9",
         category: all.getItemByName("Indicators"),
-        image: Image.asset(
+        productImages: [Image.asset(
           'assets/product_images/microweigh_indicators.png',
           width: double.infinity,
           fit: BoxFit.fitWidth,
-        ),
+        )],
         description: "Description of Product 2",
         brochure: [
           {"Header1" : [{"Entries" : ["Entry1" , "Entry2"]}, {"Subheader1" : ["Entry1" , "Entry2"]}]},
@@ -260,11 +267,11 @@ class ProductManager extends ChangeNotifier {
       Product(
         name: "Microweigh Indicator 10",
         category: all.getItemByName("Indicators"),
-        image: Image.asset(
+        productImages: [Image.asset(
           'assets/product_images/microweigh_indicators.png',
           width: double.infinity,
           fit: BoxFit.fitWidth,
-        ),
+        )],
         description: "Description of Product 2",
         brochure: [
           {"Header1" : [{"Entries" : ["Entry1" , "Entry2"]}, {"Subheader1" : ["Entry1" , "Entry2"]}]},
@@ -276,11 +283,11 @@ class ProductManager extends ChangeNotifier {
       Product(
         name: "Microweigh Indicator 11",
         category: all.getItemByName("Indicators"),
-        image: Image.asset(
+        productImages: [Image.asset(
           'assets/product_images/microweigh_indicators.png',
           width: double.infinity,
           fit: BoxFit.fitWidth,
-        ),
+        )],
         description: "Description of Product 2",
         brochure: [
           {"Header1" : [{"Entries" : ["Entry1" , "Entry2"]}, {"Subheader1" : ["Entry1" , "Entry2"]}]},
@@ -392,6 +399,7 @@ class Product {
   String? modelNumber;
   double? price;
   ProductCategory? category;
+  List<Image>? productImages;
   Image? image;
   String? description;
   List<Map<String, dynamic>>? brochure;
@@ -402,10 +410,10 @@ class Product {
     this.modelNumber,
     this.price,
     this.category,
-    Image? image,
+    List<Image>? productImages,
     this.description,
     this.brochure,
-  }) : image = image ?? Image.asset('assets/weightech_logo.png', width: double.infinity, fit: BoxFit.fitWidth,);
+  }) : productImages = productImages ?? [Image.asset('assets/weightech_logo.png', width: double.infinity, fit: BoxFit.fitWidth,)], image = productImages![0];
 
   static List<Map<String, dynamic>> mapListToBrochure(List<BrochureItem> brochure) {
 

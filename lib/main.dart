@@ -158,9 +158,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       //);
     });
 
-    _timer = Timer(const Duration(minutes: 10), () {
+    _timer = Timer(const Duration(minutes: 10 ), () {
       if (mounted){
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const IdlePage()));
+        Navigator.popUntil(context, (route) => route.isFirst);
         debugPrint("--Idle Timeout--");
       }
     });
@@ -286,6 +286,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 }
 
+
 //MARK: PRODUCT PAGE
 
 /// A class defining the stateful [ProductPage]. All products use this page as their primary outlet for displaying information. 
@@ -303,19 +304,21 @@ class ProductPage extends StatefulWidget {
 }
 
 class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin {
-  late AnimationController _controller;
+  late AnimationController _animationController;
   late Animation<double> _dividerHeightAnimation;
   late Animation<double> _fadeAnimation;
   late Timer _timer;
+  int _current = 0;
+  final CarouselController _carouselController = CarouselController();
 
   @override
   void initState() {
     super.initState();
     
-    _controller = AnimationController(duration : const Duration(seconds: 2), vsync: this);
+    _animationController = AnimationController(duration : const Duration(seconds: 2), vsync: this);
 
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _controller, curve: const Interval(0.3, 0.6, curve: Curves.ease)));
-    _dividerHeightAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _controller, curve: const Interval(0.0, 0.6, curve: Curves.ease)));
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _animationController, curve: const Interval(0.3, 0.6, curve: Curves.ease)));
+    _dividerHeightAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _animationController, curve: const Interval(0.0, 0.6, curve: Curves.ease)));
 
     _timer = Timer(const Duration(minutes: 10), () {
       if (mounted){
@@ -327,14 +330,14 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Future.delayed(const Duration(milliseconds: 500), () =>
-      _controller.forward());
+      _animationController.forward());
     });
   }
 
   @override
   void dispose() {
     _timer.cancel();
-    _controller.dispose();
+    _animationController.dispose();
     super.dispose();
   }
 
@@ -343,13 +346,39 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
     return Scaffold(
       body: Column(
         children: [
-          GestureDetector(
-            onDoubleTap: (){
-              debugPrint('---Return to Idle Interaction---');
-              _timer.cancel();
-              Navigator.push(context, MaterialPageRoute(builder: (context) => const IdlePage()));
-            },
-            child: Padding(padding: const EdgeInsets.only(top: 10.0), child: Image.asset('assets/weightech_logo.png', height: 100, alignment: Alignment.center,)),
+          SizedBox(
+            width: double.infinity,
+            height: 110,
+            child: 
+              Stack(
+                children: [
+                  Center(
+                    child: 
+                      GestureDetector(
+                        onDoubleTap: (){
+                          debugPrint('---Return to Idle Interaction---');
+                          _timer.cancel();
+                          Navigator.push(context, MaterialPageRoute(builder: (context) => const IdlePage()));
+                        },
+                        child: Padding(padding: const EdgeInsets.only(top: 10.0), child: Image.asset('assets/weightech_logo.png', height: 100, alignment: Alignment.center,)),
+                      ),
+                  ),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: 
+                      Padding(
+                        padding: const EdgeInsets.only(left: 30),
+                        child: 
+                          IconButton(
+                            icon: const Icon(Icons.arrow_back),
+                            iconSize: 30,
+                            color: const Color(0xFF224190),
+                            onPressed: () => Navigator.pop(context),
+                          )
+                      )
+                  ),
+                ]
+              ),
           ),
           const SizedBox(height: 5),
           //const Divider(color: Color(0xFF224190), height: 1, thickness: 2, indent: 25.0, endIndent: 25.0,),
@@ -419,12 +448,48 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                               FadeTransition(
                                 opacity: _fadeAnimation,
                                 child:
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(8),
-                                    child:
-                                      Hero(tag: '${widget.product.name}_htag_0', child: widget.product.image!),
+                                  Column(
+                                    children: [
+                                      CarouselSlider.builder(
+                                        options: CarouselOptions(
+                                          enableInfiniteScroll: widget.product.productImages!.length > 1 ? true : false, 
+                                          enlargeCenterPage: true,
+                                          enlargeFactor: 1,
+                                          onPageChanged: (index, reason) {
+                                            setState(() {
+                                              _current = index;
+                                            });
+                                          },
+                                        ),
+                                        itemCount: widget.product.productImages!.length,
+                                        itemBuilder: (BuildContext context, int itemIndex, int pageViewIndex) {
+                                          return ClipRRect(
+                                            borderRadius: BorderRadius.circular(30.0),
+                                            child: widget.product.productImages![itemIndex]
+                                          );
+                                        }
+                                      ),
+                                      const SizedBox(height: 10),
+                                      if (widget.product.productImages!.length > 1)
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: widget.product.productImages!.asMap().entries.map((entry) {
+                                            return Container(
+                                                width: 10.0,
+                                                height: 10.0,
+                                                margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
+                                                decoration: BoxDecoration(
+                                                    shape: BoxShape.circle,
+                                                    color: (Theme.of(context).brightness == Brightness.dark
+                                                            ? const Color(0xFFC9C9CC)
+                                                            : const Color(0xFF224190))
+                                                        .withOpacity(_current == entry.key ? 1 : 0.3)),
+                                              );
+                                          }).toList(),
+                                        ),
+                                    ]
                                   ),
-                              ),
+                              )
                             ]
                           ),
                       ),
@@ -570,7 +635,7 @@ class ListingPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     _timer = Timer(const Duration(minutes: 10), () {
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const IdlePage()));
+      Navigator.popUntil(context, (route) => route.isFirst);
       debugPrint("--Idle Timeout--");
     });
 
@@ -631,12 +696,44 @@ class ListingPage extends StatelessWidget {
                     ),
                     Column(
                       children: [
-                        GestureDetector(
-                          onDoubleTap: (){
-                            debugPrint('---Return to Idle Interaction---');
-                            Navigator.push(context, MaterialPageRoute(builder: (context) => const IdlePage()));
-                          },
-                          child: Padding(padding: const EdgeInsets.only(top: 10.0), child: Hero(tag: 'main-logo', child: Image.asset('assets/weightech_logo.png', height: 100, alignment: Alignment.center,))),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 110,
+                          child: 
+                            Stack(
+                              children: [
+                                Center(
+                                  child: 
+                                    GestureDetector(
+                                      onDoubleTap: (){
+                                        debugPrint('---Return to Idle Interaction---');
+                                        Navigator.push(context, MaterialPageRoute(builder: (context) => const IdlePage()));
+                                      },
+                                      child: Padding(
+                                        padding: const EdgeInsets.only(top: 10.0), 
+                                        child: Hero(
+                                          tag: 'main-logo',
+                                          child: Image.asset('assets/weightech_logo.png', height: 100, alignment: Alignment.center,)
+                                        ),
+                                      )
+                                    ),
+                                ),
+                                Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: 
+                                    Padding(
+                                      padding: const EdgeInsets.only(left: 30),
+                                      child: 
+                                        IconButton(
+                                          icon: const Icon(Icons.arrow_back),
+                                          iconSize: 30,
+                                          color: const Color(0xFF224190),
+                                          onPressed: () => Navigator.pop(context),
+                                        )
+                                    )
+                                ),
+                              ]
+                            ),
                         ),
                         const SizedBox(height: 5),
                         const Hero(tag: 'divider', child: Divider(color: Color(0xFF224190), height: 2, thickness: 2, indent: 25.0, endIndent: 25.0,)),
@@ -696,47 +793,72 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        width: double.infinity,
-        child: Column(
-          children: <Widget>[
-            Padding(
-              padding: const EdgeInsets.only(top: 10.0, bottom: 5.0), 
-              child: 
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.home),
-                      onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const IdlePage())),
-                    ),
-                    Hero(
-                      tag: 'main-logo', 
-                      child: Image.asset('assets/weightech_logo.png', 
-                      height: 100, 
-                      alignment: Alignment.center,)
-                    )
-                  ]
-                ),
-            ),
-            SizeTransition(sizeFactor: _dividerWidthAnimation, axis: Axis.horizontal, child: FadeTransition(opacity: _fadeAnimation, child: const Hero(tag: 'divider', child: Divider(color: Color(0xFF224190), height: 2, thickness: 2, indent: 25.0, endIndent: 25.0,)))),
-            const SizedBox(height: 10),
-            FadeTransition(
-              opacity: _fadeAnimation,
-              child: 
-                ElevatedButton(
-                  style: const ButtonStyle(foregroundColor: MaterialStatePropertyAll<Color>(Color(0xFF000000)),),
-                  onPressed: (){
-                    debugPrint("Product List Updating..."); 
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => const AddItemPage()));
-                  },
-                  child: const Text("Update Catalog")
-                )
-            ) 
-          ]
-        )
-      )
+    return Consumer<ProductManager>(
+      builder: (context, productManager, child) {
+        return Scaffold(
+          body: Column(
+            children: <Widget>[
+              SizedBox(
+                width: double.infinity,
+                height: 110,
+                child: 
+                  Stack(
+                    children: [
+                      Center(
+                        child: 
+                          GestureDetector(
+                            onDoubleTap: (){
+                              debugPrint('---Return to Idle Interaction---');
+                              Navigator.push(context, MaterialPageRoute(builder: (context) => const IdlePage()));
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.only(top: 10.0), 
+                              child: Hero(
+                                tag: 'main-logo',
+                                child: Image.asset('assets/weightech_logo.png', height: 100, alignment: Alignment.center,)
+                              ),
+                            )
+                          ),
+                      ),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: 
+                          Padding(
+                            padding: const EdgeInsets.only(left: 30),
+                            child: 
+                              FadeTransition(
+                                opacity: _fadeAnimation,
+                                child: 
+                                  IconButton(
+                                    icon: const Icon(Icons.arrow_back),
+                                    iconSize: 30,
+                                    color: const Color(0xFF224190),
+                                    onPressed: () => Navigator.pop(context),
+                                  )
+                              )
+                          )
+                      ),
+                    ]
+                  ),
+              ),
+              SizeTransition(sizeFactor: _dividerWidthAnimation, axis: Axis.horizontal, child: FadeTransition(opacity: _fadeAnimation, child: const Hero(tag: 'divider', child: Divider(color: Color(0xFF224190), height: 2, thickness: 2, indent: 25.0, endIndent: 25.0,)))),
+              const SizedBox(height: 10),
+              FadeTransition(
+                opacity: _fadeAnimation,
+                child: 
+                  ElevatedButton(
+                    style: const ButtonStyle(foregroundColor: MaterialStatePropertyAll<Color>(Color(0xFF000000)),),
+                    onPressed: (){
+                      debugPrint("Product List Updating..."); 
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const AddItemPage()));
+                    },
+                    child: const Text("Add Catalog Item")
+                  )
+              ),
+            ]
+          )
+        );
+      }
     );
   }
 }
