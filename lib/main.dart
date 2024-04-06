@@ -70,7 +70,7 @@ class IdlePage extends StatelessWidget {
       body: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () {
-          Navigator.of(context).push(_routeToMainListing());
+          Navigator.of(context).push(_routeToHome());
         },
         onLongPress: () {
           Navigator.of(context).push(_routeToControl());
@@ -91,7 +91,7 @@ class IdlePage extends StatelessWidget {
     );
   }
 
-  Route _routeToMainListing() {
+  Route _routeToHome() {
     return PageRouteBuilder(
       pageBuilder: (context, animation, secondaryAnimation) => HomePage(),
       transitionsBuilder: (context, animation, secondaryAnimation, child){
@@ -177,7 +177,20 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     if (item is ProductCategory) {
       debugPrint('Rerouting to ${item.name} listing.');
       _timer.cancel();
-      Navigator.push(context, MaterialPageRoute(builder: (context) => ListingPage(category: item)));
+      Navigator.push(context, 
+        PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) => ListingPage(category: item),
+          transitionsBuilder: (context, animation, secondaryAnimation, child){
+            var begin = 0.0;
+            var end = 1.0;
+            var curve = Curves.fastLinearToSlowEaseIn;
+
+            var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+            return FadeTransition(opacity: animation.drive(tween),child: child);
+          },
+          transitionDuration: const Duration(milliseconds: 500)
+        )
+      );
     }
     else if (item is Product) {
       debugPrint('Rerouting to ${item.name} product page.');
@@ -206,7 +219,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         return Scaffold(
           body: Container(
             padding: const EdgeInsets.only(top: 0, bottom: 0),
-            
             child: Stack(
               children: <Widget>[
                 Flex(
@@ -219,17 +231,14 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                           child: 
                             GridView.builder(
                               padding: const EdgeInsets.only(top: 110, bottom: 20, left: 20, right: 20),
-                              itemCount: ProductManager.all.products.length + ProductManager.all.subcategories.length,
+                              itemCount: ProductManager.all.catalogItems.length,
                               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                                 crossAxisCount: MediaQuery.of(context).size.width<600 ? 1 : 4,
                                 childAspectRatio: 0.9,
                                 crossAxisSpacing: 1,
                                 mainAxisSpacing: 1,
                               ),
-                              itemBuilder: (context, index) => CatalogItemTile(
-                                item: ProductManager.all.getAllCatalogItems()[index],
-                                onTapCallback: () => catalogNavigation(context, ProductManager.all.getAllCatalogItems()[index])
-                              ),
+                              itemBuilder: (context, index) => ProductManager.all.catalogItems[index].buildCard(() => catalogNavigation(context, ProductManager.all.getAllCatalogItems()[index])),
                             )
                         ),
                     )],//)
@@ -238,7 +247,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   alignment: Alignment.topCenter,
                   children: [
                     SizedBox(
-                      height: 115,
+                      height: 110,
                       width: double.infinity,
                       child: 
                         ClipRect(
@@ -270,8 +279,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                           },
                           child: Padding(padding: const EdgeInsets.only(top: 10.0), child: Hero(tag: 'main-logo', child: Image.asset('assets/weightech_logo.png', height: 100, alignment: Alignment.center,))),
                         ),
-                        const SizedBox(height: 5),
                         SizeTransition(sizeFactor: _dividerWidthAnimation, axis: Axis.horizontal, child: FadeTransition(opacity: _fadeAnimation, child: const Hero(tag: 'divider', child: Divider(color: Color(0xFF224190), height: 2, thickness: 2, indent: 25.0, endIndent: 25.0,)))),
+                        const SizedBox(height: 10),
                       ]
                     )
                   ]
@@ -380,8 +389,6 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                 ]
               ),
           ),
-          const SizedBox(height: 5),
-          //const Divider(color: Color(0xFF224190), height: 1, thickness: 2, indent: 25.0, endIndent: 25.0,),
           Stack(
             children: [
               Padding(
@@ -599,10 +606,10 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
 
 /// A class defining the stateless [ListingPage]. These are used to navigate the catalog tree. 
 class ListingPage extends StatelessWidget {
-  ListingPage({super.key, required this.category}) : catalogItems = category.getAllCatalogItems();
+  ListingPage({super.key, required this.category}) : catalogItems = category.catalogItems;
 
   final ProductCategory category;
-  final List<dynamic> catalogItems;
+  final List<CatalogItem> catalogItems;
 
   late final Timer _timer;
 
@@ -635,7 +642,7 @@ class ListingPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     _timer = Timer(const Duration(minutes: 10), () {
-      Navigator.popUntil(context, (route) => route.isFirst);
+      Navigator.of(context).popUntil((route) => route.isFirst);
       debugPrint("--Idle Timeout--");
     });
 
@@ -660,18 +667,15 @@ class ListingPage extends StatelessWidget {
                             crossAxisSpacing: 1,
                             mainAxisSpacing: 1,
                           ),
-                          itemBuilder: (context, index) => CatalogItemTile(
-                            item: catalogItems[index],
-                            onTapCallback: () => catalogNavigation(context, catalogItems[index])
-                          ),
-                        )
-                    )],//)
+                          itemBuilder: (context, index) => catalogItems[index].buildCard(() => catalogNavigation(context, catalogItems[index])),)
+                    )
+                  ],
                 ),
                 Stack(
                   alignment: Alignment.topCenter,
                   children: [
                     SizedBox(
-                      height: 115,
+                      height: 110,
                       width: double.infinity,
                       child: 
                         ClipRect(
@@ -735,7 +739,6 @@ class ListingPage extends StatelessWidget {
                               ]
                             ),
                         ),
-                        const SizedBox(height: 5),
                         const Hero(tag: 'divider', child: Divider(color: Color(0xFF224190), height: 2, thickness: 2, indent: 25.0, endIndent: 25.0,)),
                       ]
                     )
@@ -769,6 +772,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
   late Animation<double> _dividerWidthAnimation;
+
   @override
   void initState() {
     super.initState();
@@ -855,11 +859,67 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                     child: const Text("Add Catalog Item")
                   )
               ),
+              Center(
+                child: Container(
+                  width: double.infinity,
+                  color: const Color(0xFF224190),
+                  alignment: Alignment.center,
+                  padding: const EdgeInsets.symmetric(vertical: 10, ),
+                  child:
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 130), 
+                      child: Text("Product Catalog", style: TextStyle(color: Colors.white, fontSize: 28.0),)
+                    )
+                )
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 100, vertical: 30),
+                height: MediaQuery.of(context).size.height - 154,
+                child: 
+                  SingleChildScrollView(
+                    child: 
+                      catalogBuilder(ProductManager.all, 0)
+                  )
+              )
             ]
           )
         );
       }
     );
+  }
+
+  Widget catalogBuilder(var item, double leftPadding){
+
+    switch (item) {
+      case ProductCategory _: {
+        return Column (
+          crossAxisAlignment: CrossAxisAlignment.center,
+          key: Key(item.id),
+          children: [
+            if (item.name != 'All') item.buildListTile(),
+            ReorderableListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: item.catalogItems.length,
+              itemBuilder:(context, index) => catalogBuilder(item.catalogItems[index], leftPadding + 10),
+              onReorder: (int oldIndex, int newIndex) {
+                setState(() {
+                  if (oldIndex < newIndex) {
+                    newIndex -= 1;
+                  }
+                  final itemToMove = item.catalogItems.removeAt(oldIndex);
+                  item.catalogItems.insert(newIndex, itemToMove);
+                });
+              },
+            )
+          ]
+        );
+      }
+      case Product _: {
+        return item.buildListTile();
+      }
+    }
+    return const Text("Invalid item encountered.");
   }
 }
 
@@ -1324,7 +1384,7 @@ class _AddItemPageState extends State<AddItemPage> with TickerProviderStateMixin
                   Product(
                     name: _nameController.text,
                     modelNumber: _modelNumberController.text,
-                    category: _selectedCategory,
+                    parentId: _selectedCategory.id,
                     description: _descriptionController.text,
                     brochure: Product.mapListToBrochure(_brochure),
                   )

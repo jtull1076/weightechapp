@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:shortid/shortid.dart';
+import 'dart:convert';
 
 
 class ProductManager extends ChangeNotifier {
@@ -13,7 +15,6 @@ class ProductManager extends ChangeNotifier {
           width: double.infinity,
           fit: BoxFit.fitWidth,
         ),
-        parent: all,
       ),
     );
     all.addProduct(
@@ -24,7 +25,6 @@ class ProductManager extends ChangeNotifier {
           width: double.infinity,
           fit: BoxFit.fitWidth,
         )],
-        category: all,
         description: "The WeighTech line of Portion Scales is designed to cover a multitude of uses – QA checks, portioning and verifying correct product weights on the production line. Our small scale line comes in a variety of base sizes to meet your weighing requirements.",
         brochure: [
           {"Features" : [{"Entries" : [
@@ -62,7 +62,6 @@ class ProductManager extends ChangeNotifier {
           width: double.infinity,
           fit: BoxFit.fitWidth,
         )],
-        category: all,
         description: "WeighTech’s sizing systems are built with the operator and maintenance personnel in mind. With it’s simplistic yet rigid design and proven controller it requires minimal training. Optional webserver with the ability to check totals from your phone, tablet, or desktop.",
         brochure: [
           {"Features" : [{"Entries" : [
@@ -104,7 +103,6 @@ class ProductManager extends ChangeNotifier {
           fit: BoxFit.cover,
           )
         ],
-        category: all,
         description: "WeighTech’s *Trimline Systems* can take care of all your portion control or de-boning needs. Constructed out of polished 304 stainless steel with an emphasis on durability and easy cleaning. Its large cutting stations, easy to read scale displays, and data tracking make for minimal training. The QC station allows for checks throughout each shift with up to ten customizable questions. The totals can be viewed easily with a phone or tablet anytime.",
         brochure: [
           {"Features" : [{"Entries" : [
@@ -138,7 +136,6 @@ class ProductManager extends ChangeNotifier {
     all.getItemByName("Microweigh Indicators").addProduct(
       Product(
         name: "Microweigh Indicator 2",
-        category: all.getItemByName("Indicators"),
         productImages: [Image.asset(
           'assets/product_images/microweigh_indicators.png',
           width: double.infinity,
@@ -154,7 +151,6 @@ class ProductManager extends ChangeNotifier {
     all.getItemByName("Microweigh Indicators").addProduct(
       Product(
         name: "Microweigh Indicator 3",
-        category: all.getItemByName("Indicators"),
         productImages: [Image.asset(
           'assets/product_images/microweigh_indicators.png',
           width: double.infinity,
@@ -170,7 +166,6 @@ class ProductManager extends ChangeNotifier {
     all.getItemByName("Microweigh Indicators").addProduct(
       Product(
         name: "Microweigh Indicator 4",
-        category: all.getItemByName("Indicators"),
         productImages: [Image.asset(
           'assets/product_images/microweigh_indicators.png',
           width: double.infinity,
@@ -186,7 +181,6 @@ class ProductManager extends ChangeNotifier {
     all.getItemByName("Microweigh Indicators").addProduct(
       Product(
         name: "Microweigh Indicator 5",
-        category: all.getItemByName("Indicators"),
         productImages: [Image.asset(
           'assets/product_images/microweigh_indicators.png',
           width: double.infinity,
@@ -202,7 +196,6 @@ class ProductManager extends ChangeNotifier {
     all.getItemByName("Microweigh Indicators").addProduct(
       Product(
         name: "Microweigh Indicator 6",
-        category: all.getItemByName("Indicators"),
         productImages: [Image.asset(
           'assets/product_images/microweigh_indicators.png',
           width: double.infinity,
@@ -218,7 +211,6 @@ class ProductManager extends ChangeNotifier {
     all.getItemByName("Microweigh Indicators").addProduct(
       Product(
         name: "Microweigh Indicator 7",
-        category: all.getItemByName("Indicators"),
         productImages: [Image.asset(
           'assets/product_images/microweigh_indicators.png',
           width: double.infinity,
@@ -234,7 +226,6 @@ class ProductManager extends ChangeNotifier {
     all.getItemByName("Microweigh Indicators").addProduct(
       Product(
         name: "Microweigh Indicator 8",
-        category: all.getItemByName("Indicators"),
         productImages: [Image.asset(
           'assets/product_images/microweigh_indicators.png',
           width: double.infinity,
@@ -250,7 +241,6 @@ class ProductManager extends ChangeNotifier {
     all.getItemByName("Microweigh Indicators").addProduct(
       Product(
         name: "Microweigh Indicator 9",
-        category: all.getItemByName("Indicators"),
         productImages: [Image.asset(
           'assets/product_images/microweigh_indicators.png',
           width: double.infinity,
@@ -266,7 +256,6 @@ class ProductManager extends ChangeNotifier {
     all.getItemByName("Microweigh Indicators").addProduct(
       Product(
         name: "Microweigh Indicator 10",
-        category: all.getItemByName("Indicators"),
         productImages: [Image.asset(
           'assets/product_images/microweigh_indicators.png',
           width: double.infinity,
@@ -282,7 +271,6 @@ class ProductManager extends ChangeNotifier {
     all.getItemByName("Microweigh Indicators").addProduct(
       Product(
         name: "Microweigh Indicator 11",
-        category: all.getItemByName("Indicators"),
         productImages: [Image.asset(
           'assets/product_images/microweigh_indicators.png',
           width: double.infinity,
@@ -295,8 +283,13 @@ class ProductManager extends ChangeNotifier {
         ],
       )
     );
-  }
 
+    Map<String, dynamic> testJson = all.toJson();
+
+    CatalogItem testCat = CatalogItem.fromJson(testJson);
+
+    debugPrint('Done');
+  }
 
   List<ProductCategory> getAllCategories(ProductCategory? category) {
     final ProductCategory root = category ?? all;
@@ -307,8 +300,10 @@ class ProductManager extends ChangeNotifier {
       allCategories.add(category); // Add the current category to the list
 
       // Traverse subcategories recursively
-      for (var subcategory in category.subcategories) {
-        traverseCategories(subcategory);
+      for (var item in category.catalogItems) {
+        if (item.runtimeType == ProductCategory) {
+          traverseCategories(item as ProductCategory);
+        }
       }
     }
 
@@ -317,54 +312,122 @@ class ProductManager extends ChangeNotifier {
     return allCategories;
   }
 
+
 }
 
-
-class ProductCategory {
+sealed class CatalogItem {
+  late String id;
   late String name;
-  ProductCategory? parent;
-  late List<ProductCategory> subcategories;
-  late List<Product> products;
-  Image? image;
+  late String? parentId;
+  late Image? image;
+
+  CatalogItem({required this.name, this.parentId, String? id, Image? image}) 
+  : id = id ?? shortid.generate(), 
+    image = image ?? Image.asset('assets/weightech_logo.png', width: double.infinity, fit: BoxFit.fitWidth );
+
+  Widget buildCard(VoidCallback onTapCallback) {
+    return Card(
+      surfaceTintColor: Colors.white,
+      shadowColor: const Color(0xAA000000),
+      margin: const EdgeInsets.only(left: 10.0, right: 10.0, bottom: 10.0, top: 30.0),
+      child: Stack( 
+        children: [
+          Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: 
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child:
+                      Hero(tag: '${name}_htag', child: image!),
+                  ),
+              ),
+              Text(name, textAlign: TextAlign.center, style: const TextStyle(fontSize: 16.0, color: Colors.black)), // Handle if name is null
+              const SizedBox(height: 10),
+            ],
+          ),
+          Positioned.fill(
+            child: 
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () {
+                    debugPrint('Item tapped: $name');
+                    onTapCallback();
+                  }
+                )
+              )
+          )
+        ]
+      )
+    );
+  }
+
+  Widget buildListTile() {
+    return ListTile(title: Text(name));
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'parentId': parentId,
+      'image': image?.toString(),
+    };
+  }
+
+  static CatalogItem fromJson(Map<String, dynamic> json) {
+    if (json['catalogItems'] != null) {
+      return ProductCategory.fromJson(json);
+    }
+    else {
+      return Product.fromJson(json);
+    }
+  }
+}
+
+class ProductCategory extends CatalogItem {
+  late List<CatalogItem> catalogItems;
   static const String buttonRoute = '/listing';
 
   ProductCategory({
-    required this.name,
-    required parent,
-    List<ProductCategory>? subcategories,
-    List<Product>? products,
-    Image? image,
-  }) : subcategories = subcategories ?? [], products = products ?? [], image = image ?? Image.asset('assets/weightech_logo.png', width: double.infinity, fit: BoxFit.fitWidth );
+    required super.name,
+    super.id,
+    super.parentId,
+    super.image,
+    List<CatalogItem>? catalogItems,
+  }) : catalogItems = catalogItems ?? [];
 
-  ProductCategory.all() : name='All', subcategories = [], products = [];
+  ProductCategory.all() : catalogItems = [], super(name: 'All');
 
-  // Function to add a product to the list
+  // Function to add a product to the list1
   void addProduct(Product product) {
-    products.add(product);
+    product.parentId = id;
+    catalogItems.add(product);
   }
 
   void addCategory(ProductCategory category){
-    subcategories.add(category);
+    category.parentId = id;
+    catalogItems.add(category);
   }
 
   // Function to remove a product from the list
   void removeProduct(Product product) {
-    products.remove(product);
+    catalogItems.remove(product);
   }
 
   void removeCategory(ProductCategory category){
-    subcategories.remove(category);
+    catalogItems.remove(category);
   }
 
   // Function to get all products
   List<Product> getAllProducts() {
-    return products;
+    return catalogItems.where((item) => item.runtimeType == Product).toList() as List<Product>;
   }
 
   List<dynamic> getAllCatalogItems() {
-    List<dynamic> catalogItems = [];
-    catalogItems.addAll(subcategories);
-    catalogItems.addAll(products);
     return catalogItems;
   }
 
@@ -375,45 +438,61 @@ class ProductCategory {
     }
 
     // Check if the item exists in subcategories
-    for (var category in subcategories) {
-      if (category.name == name) {
-        return category;
-      }
-    }
-
-    // Check if it exists in products
-    for (var product in products) {
-      if (product.name == name) {
-        return product;
+    for (var item in catalogItems) {
+      if (item.name == name) {
+        return item;
       }
     }
 
     // If the item is not found in subcategories or products, return null
     return null;
   }
+
+  @override 
+  Widget buildListTile() {
+    return ListTile(key: Key(id), title: Text(name, style: const TextStyle(color: Colors.black, fontSize: 14.0)));
+  }
+
+  @override
+  Map<String, dynamic> toJson() {
+    Map<String, dynamic> json = super.toJson();
+    json['catalogItems'] = catalogItems.map((item) => item.toJson()).toList();
+    return json;
+  }
+
+  factory ProductCategory.fromJson(Map<String, dynamic> json) {
+    // debugPrint("Converting the following JSON to a ProductCategory. Here's the JSON:");
+    // debugPrint("------");
+    // debugPrint((const JsonEncoder.withIndent('   ')).convert(json));
+    // debugPrint("------");
+    return ProductCategory(
+      name: json['name'],
+      id: json['id'],
+      parentId: json['parentId'],
+      catalogItems: (json['catalogItems'] as List<dynamic>).map((itemJson) => CatalogItem.fromJson(itemJson)).toList()
+    );
+  }
+
 }
 
-
-class Product {
-  String name;
+class Product extends CatalogItem {
   String? modelNumber;
-  double? price;
-  ProductCategory? category;
-  List<Image>? productImages;
-  Image? image;
+  List<Image> productImages;
   String? description;
   List<Map<String, dynamic>>? brochure;
   static const String buttonRoute = '/product';
 
   Product({
-    required this.name,
-    this.modelNumber,
-    this.price,
-    this.category,
+    required super.name,
+    super.parentId,
+    super.id,
     List<Image>? productImages,
+    this.modelNumber,
     this.description,
     this.brochure,
-  }) : productImages = productImages ?? [Image.asset('assets/weightech_logo.png', width: double.infinity, fit: BoxFit.fitWidth,)], image = productImages![0];
+  }) 
+  : productImages = productImages ??= [Image.asset('assets/weightech_logo.png', width: double.infinity, fit: BoxFit.fitWidth,)], 
+    super(image: productImages[0]);
 
   static List<Map<String, dynamic>> mapListToBrochure(List<BrochureItem> brochure) {
 
@@ -423,10 +502,10 @@ class Product {
 
     for (var item in brochure.reversed) {
       switch (item.runtimeType) {
-        case BrochureEntry : {
+        case BrochureEntry _: {
           entries.add((item as BrochureEntry).entry);
         }
-        case BrochureSubheader : {
+        case BrochureSubheader _: {
           subheaders.add(
             {
               (item as BrochureSubheader).subheader : List<String>.from(entries.reversed)
@@ -434,7 +513,7 @@ class Product {
           );
           entries.clear();
         }
-        case BrochureHeader : {
+        case BrochureHeader _: {
           if (entries.isNotEmpty && subheaders.isNotEmpty){
             brochureMap.add({(item as BrochureHeader).header : [{"Entries" : entries}, subheaders]});
           }
@@ -455,59 +534,39 @@ class Product {
 
     return brochureMap;
   }
-}
 
-
-class CatalogItemTile extends StatelessWidget {
-  final dynamic item;
-  final VoidCallback onTapCallback;
-
-  const CatalogItemTile({super.key, required this.item, required this.onTapCallback});
+  @override 
+  Widget buildListTile() {
+    return ListTile(key: Key(id), title: Text(name, style: const TextStyle(color: Colors.black, fontSize: 14.0)));
+  }
 
   @override
-  Widget build(BuildContext context) {
-    return Card(
-      surfaceTintColor: Colors.white,
-      shadowColor: const Color(0xAA000000),
-      margin: const EdgeInsets.only(left: 10.0, right: 10.0, bottom: 10.0, top: 30.0),
-      child: Stack( 
-        children: [
-          Column(
-            mainAxisAlignment: MainAxisAlignment.start,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: 
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child:
-                      Hero(tag: '${item.name}_htag', child: item.image),
-                  ),
-              ),
-              Text(item.name ?? '', textAlign: TextAlign.center, style: const TextStyle(fontSize: 16.0, color: Colors.black)), // Handle if name is null
-              const SizedBox(height: 10),
-            ],
-          ),
-          Positioned.fill(
-            child: 
-              Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: () {
-                    debugPrint('Item tapped: ${item.name}');
-                    onTapCallback();
-                  }
-                )
-              )
-          )
-        ]
-      )
+  Map<String, dynamic> toJson() {
+    Map<String, dynamic> json = super.toJson();
+    json['modelNumber'] = modelNumber;
+    json['productImages'] = productImages?.map((image) => image.toString()).toList();
+    json['description'] = description;
+    json['brochure'] = brochure;
+    return json;
+  }
+
+  factory Product.fromJson(Map<String, dynamic> json) {
+    // debugPrint("Converting the following JSON to a Product. Here's the JSON:");
+    // debugPrint("------");
+    // debugPrint((const JsonEncoder.withIndent('   ')).convert(json));
+    // debugPrint("------");
+    return Product(
+      name: json['name'],
+      id: json['id'],
+      modelNumber: json['modelNumber'],
+      description: json['description'],
+      brochure: json['brochure'],
     );
   }
 }
 
 
-abstract class BrochureItem {
+sealed class BrochureItem {
   Widget buildItem(BuildContext context);
 }
 
