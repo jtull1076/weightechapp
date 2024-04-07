@@ -312,7 +312,37 @@ class ProductManager extends ChangeNotifier {
     return allCategories;
   }
 
+  static CatalogItem? getItemById(String id, {ProductCategory? category}) {
+    final ProductCategory root = category ?? all;
 
+    CatalogItem? result;
+
+    void traverseItems(ProductCategory category) {
+      if (category.id == id) {
+        result = category;
+        return;
+      }
+      for (var item in category.catalogItems) {
+        switch (item) {
+          case ProductCategory _: {
+            traverseItems(item);
+            if (result != null) {
+              return;
+            }
+          }
+          case Product _: {
+            if (item.id == id) {
+              result = item;
+            }
+          }
+        }
+      }
+    }
+
+    traverseItems(root);
+
+    return result;
+  }
 }
 
 sealed class CatalogItem {
@@ -365,7 +395,7 @@ sealed class CatalogItem {
     );
   }
 
-  Widget buildListTile() {
+  Widget buildListTile({int? index}) {
     return ListTile(title: Text(name));
   }
 
@@ -385,6 +415,14 @@ sealed class CatalogItem {
     else {
       return Product.fromJson(json);
     }
+  }
+
+  ProductCategory? getParentById() {
+    if (parentId != null) {
+      return ProductManager.getItemById(parentId!) as ProductCategory;
+    }
+    debugPrint("Parent doesn't exist");
+    return null;
   }
 }
 
@@ -448,9 +486,43 @@ class ProductCategory extends CatalogItem {
     return null;
   }
 
+  void addProductByParentId(Product newProduct) {
+    if (id == newProduct.parentId) {
+      addProduct(newProduct);
+      debugPrint('${newProduct.name} (id: ${newProduct.id}) added to $name (id: $id)');
+      return;
+    }
+    for (var item in catalogItems) {
+      if (item is ProductCategory && item.id == newProduct.parentId) {
+        item.addProduct(newProduct);
+        debugPrint('${newProduct.name} (id: ${newProduct.id}) added to ${item.name} (id: ${item.id})');
+        return;
+      }
+    }
+    // If not found in the current category, recursively search in subcategories
+    for (var item in catalogItems) {
+      if (item is ProductCategory) {
+        item.addProductByParentId(newProduct); // Recursively search in subcategories
+      }
+    }
+    debugPrint('Parent category with ID ${newProduct.parentId} not found in category $name (id: $id).');
+  }
+
   @override 
-  Widget buildListTile() {
-    return ListTile(key: Key(id), title: Text(name, style: const TextStyle(color: Colors.black, fontSize: 14.0)));
+  Widget buildListTile({int? index, VoidCallback? onTapCallback}) {
+    return ListTile(
+      key: Key(id), 
+      title: Text(name, style: const TextStyle(color: Colors.black, fontSize: 14.0)),
+      trailing: SizedBox(
+        width: 200,
+        child: Row(
+          children: [
+            (onTapCallback != null) ? IconButton(icon: const Icon(Icons.arrow_right), onPressed: () => onTapCallback(),) : const SizedBox(),
+            (index != null) ? ReorderableDelayedDragStartListener(index: index, child: const Icon(Icons.drag_handle)) : const SizedBox(),
+          ]
+        )
+      )    
+    );
   }
 
   @override
@@ -494,6 +566,11 @@ class Product extends CatalogItem {
   : productImages = productImages ??= [Image.asset('assets/weightech_logo.png', width: double.infinity, fit: BoxFit.fitWidth,)], 
     super(image: productImages[0]);
 
+  //
+  // Maps the list of brochure items to the brochure json structure. 
+  //
+  // TODO: This needs to be rewritten after the BrochureItem update. It's really inefficient code. -JT
+  //
   static List<Map<String, dynamic>> mapListToBrochure(List<BrochureItem> brochure) {
 
     List<String> entries = [];
@@ -501,30 +578,30 @@ class Product extends CatalogItem {
     final List<Map<String, dynamic>> brochureMap = [];
 
     for (var item in brochure.reversed) {
-      switch (item.runtimeType) {
+      switch (item) {
         case BrochureEntry _: {
-          entries.add((item as BrochureEntry).entry);
+          entries.add(item.entry);
         }
         case BrochureSubheader _: {
           subheaders.add(
             {
-              (item as BrochureSubheader).subheader : List<String>.from(entries.reversed)
+              item.subheader : List<String>.from(entries.reversed)
             }
           );
           entries.clear();
         }
         case BrochureHeader _: {
           if (entries.isNotEmpty && subheaders.isNotEmpty){
-            brochureMap.add({(item as BrochureHeader).header : [{"Entries" : entries}, subheaders]});
+            brochureMap.add({item.header : [{"Entries" : List.from(entries.reversed)}, List.from(subheaders.reversed)]});
           }
           else if (entries.isNotEmpty) {
-            brochureMap.add({(item as BrochureHeader).header : {"Entries" : entries}});
+            brochureMap.add({item.header : {"Entries" : List.from(entries.reversed)}});
           }
           else if (subheaders.isNotEmpty) {
-            brochureMap.add({(item as BrochureHeader).header : subheaders});
+            brochureMap.add({item.header : List.from(subheaders.reversed)});
           }
           else {
-            brochureMap.add({(item as BrochureHeader).header : []});
+            brochureMap.add({item.header : []});
           }
           subheaders.clear();
           entries.clear();
@@ -535,18 +612,82 @@ class Product extends CatalogItem {
     return brochureMap;
   }
 
+  List<BrochureItem> retrieveBrochureList() {
+    List<BrochureItem> brochureList = [];
+
+    if (brochure == null) {
+      return brochureList;
+    }
+    else {
+      for (var mapItem in brochure!) {
+        String key = mapItem.keys.first;
+        brochureList.add(BrochureHeader(header: key));
+        if (mapItem[key] is List) {
+          for (var item in mapItem[key]) {
+            item.forEach((key, value) {
+              if (key == "Entries") {
+                for (var entry in value) {
+                  brochureList.add(BrochureEntry(entry: entry));
+                }
+              }
+              else {
+                String subKey = key;
+                brochureList.add(BrochureSubheader(subheader: subKey));
+                for (var entry in item[subKey]) {
+                  brochureList.add(BrochureEntry(entry: entry));
+                }
+              }
+            });
+          }
+        }
+        else if (mapItem[key] is Map) {
+          mapItem[key].forEach((key, value) {
+            if (key == "Entries") {
+              for (var entry in value) {
+                brochureList.add(BrochureEntry(entry: entry));
+              }
+            }
+            else {
+              String subKey = key;
+              brochureList.add(BrochureSubheader(subheader: subKey));
+              for (var entry in mapItem[key][subKey]) {
+                brochureList.add(BrochureEntry(entry: entry));
+              }
+            }
+          });
+        }
+      }
+    }
+
+    return brochureList;
+  }
+
   @override 
-  Widget buildListTile() {
-    return ListTile(key: Key(id), title: Text(name, style: const TextStyle(color: Colors.black, fontSize: 14.0)));
+  Widget buildListTile({int? index, VoidCallback? onTapCallback}) {
+    return ListTile(
+      key: Key(id), 
+      title: Text(name, style: const TextStyle(color: Colors.black, fontSize: 14.0)), 
+      trailing: SizedBox(
+        width: 200,
+        child: 
+          Row(
+            children: [
+              (onTapCallback != null) ? IconButton(icon: const Icon(Icons.edit), onPressed: () => onTapCallback(),) : const SizedBox(),
+              (index != null) ? ReorderableDelayedDragStartListener(index: index, child: const Icon(Icons.drag_handle)) : const SizedBox(),
+            ]
+          )
+      )
+    );
   }
 
   @override
   Map<String, dynamic> toJson() {
     Map<String, dynamic> json = super.toJson();
     json['modelNumber'] = modelNumber;
-    json['productImages'] = productImages?.map((image) => image.toString()).toList();
+    json['productImages'] = productImages.map((image) => image.toString()).toList();
     json['description'] = description;
     json['brochure'] = brochure;
+    json['parentId'] = parentId;
     return json;
   }
 
@@ -561,11 +702,12 @@ class Product extends CatalogItem {
       modelNumber: json['modelNumber'],
       description: json['description'],
       brochure: json['brochure'],
+      parentId: json['parentId']
     );
   }
 }
 
-
+// TODO: Do better :/
 sealed class BrochureItem {
   Widget buildItem(BuildContext context);
 }
@@ -584,8 +726,8 @@ class BrochureHeader implements BrochureItem {
       title: TextFormField(
         controller: controller, 
         decoration: 
-          InputDecoration(
-            label: Text(header)
+          const InputDecoration(
+            label: Text("Header")
           ),
         validator: (String? value) => (value == null) ? 'Cannot be empty.' : null,
         textCapitalization: TextCapitalization.words,
@@ -593,8 +735,6 @@ class BrochureHeader implements BrochureItem {
       )
     );
   }
-
-
 }
 
 class BrochureSubheader implements BrochureItem {
@@ -609,17 +749,17 @@ class BrochureSubheader implements BrochureItem {
     return Padding(
       padding: const EdgeInsets.only(left: 50), 
       child: ListTile(
-        leading: const Icon(Icons.menu, size: 30), 
+        leading: const Icon(Icons.drag_handle, size: 30), 
         title: TextFormField(
           controller: controller, 
           decoration: 
-            InputDecoration(
-              label: Text(subheader)
+            const InputDecoration(
+              label: Text("Subheader")
             ),
           validator: (String? value) => (value == null) ? 'Cannot be empty.' : null,
           textCapitalization: TextCapitalization.words, 
           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold,)
-        )
+        ),
       )
     );
   }
@@ -643,8 +783,8 @@ class BrochureEntry implements BrochureItem {
           title: TextFormField(
             controller: controller,
             decoration: 
-              InputDecoration(
-                label: Text(entry)
+              const InputDecoration(
+                label: Text("Entry")
               ),
             validator: (String? value) => (value == null) ? 'Cannot be empty.' : null,
           )

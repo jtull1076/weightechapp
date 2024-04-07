@@ -1,6 +1,7 @@
 import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -158,9 +159,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       //);
     });
 
-    _timer = Timer(const Duration(minutes: 10 ), () {
+    _timer = Timer(const Duration(minutes: 10), () {
       if (mounted){
-        Navigator.popUntil(context, (route) => route.isFirst);
+        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => const IdlePage()));
         debugPrint("--Idle Timeout--");
       }
     });
@@ -188,7 +189,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
             return FadeTransition(opacity: animation.drive(tween),child: child);
           },
-          transitionDuration: const Duration(milliseconds: 500)
+          transitionDuration: const Duration(seconds: 2)
         )
       );
     }
@@ -275,7 +276,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                         GestureDetector(
                           onDoubleTap: (){
                             debugPrint('---Return to Idle Interaction---');
-                            Navigator.push(context, MaterialPageRoute(builder: (context) => const IdlePage()));
+                            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const IdlePage()));
                           },
                           child: Padding(padding: const EdgeInsets.only(top: 10.0), child: Hero(tag: 'main-logo', child: Image.asset('assets/weightech_logo.png', height: 100, alignment: Alignment.center,))),
                         ),
@@ -304,9 +305,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 /// 
 /// See also: [_ProductPageState]
 class ProductPage extends StatefulWidget {
-  ProductPage({super.key, required this.product});
+  ProductPage({super.key, required this.product, this.animateDivider = true});
 
   final Product product;
+  final bool animateDivider;
 
   @override
   State<ProductPage> createState() => _ProductPageState();
@@ -318,17 +320,15 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
   late Animation<double> _fadeAnimation;
   late Timer _timer;
   int _current = 0;
-  final CarouselController _carouselController = CarouselController();
 
   @override
   void initState() {
     super.initState();
     
     _animationController = AnimationController(duration : const Duration(seconds: 2), vsync: this);
-
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _animationController, curve: const Interval(0.3, 0.6, curve: Curves.ease)));
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _animationController, curve: Interval(widget.animateDivider ? 0.3 : 0.1, widget.animateDivider ? 0.6 : 0.4, curve: Curves.ease)));
     _dividerHeightAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _animationController, curve: const Interval(0.0, 0.6, curve: Curves.ease)));
-
+    
     _timer = Timer(const Duration(minutes: 10), () {
       if (mounted){
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const IdlePage()));
@@ -367,7 +367,7 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                         onDoubleTap: (){
                           debugPrint('---Return to Idle Interaction---');
                           _timer.cancel();
-                          Navigator.push(context, MaterialPageRoute(builder: (context) => const IdlePage()));
+                          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const IdlePage()));
                         },
                         child: Padding(padding: const EdgeInsets.only(top: 10.0), child: Image.asset('assets/weightech_logo.png', height: 100, alignment: Alignment.center,)),
                       ),
@@ -401,10 +401,29 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
               Padding(
                 padding: const EdgeInsets.only(left: 25.0, right: 25.0),
                 child: 
-                  SizeTransition(
-                    sizeFactor: _dividerHeightAnimation, 
-                    axis: Axis.vertical, 
-                    child: Container(
+                  widget.animateDivider ?
+                    SizeTransition(
+                      sizeFactor: _dividerHeightAnimation, 
+                      axis: Axis.vertical, 
+                      child: Container(
+                        alignment: Alignment.topCenter,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF224190),
+                          border: Border.all(color: const Color(0xFF224190))
+                        ),
+                        width: double.infinity,
+                        child: 
+                          Padding(
+                            padding: const EdgeInsets.all(2.0),
+                            child:
+                              Text(widget.product.name, 
+                                textAlign: TextAlign.center, 
+                                style: const TextStyle(fontSize: 36.0, fontWeight: FontWeight.bold, color: Colors.white),
+                              )
+                          )
+                      )
+                    )
+                  : Container(
                       alignment: Alignment.topCenter,
                       decoration: BoxDecoration(
                         color: const Color(0xFF224190),
@@ -415,13 +434,16 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                         Padding(
                           padding: const EdgeInsets.all(2.0),
                           child:
-                            Text(widget.product.name, 
-                              textAlign: TextAlign.center, 
-                              style: const TextStyle(fontSize: 36.0, fontWeight: FontWeight.bold, color: Colors.white),
+                            FadeTransition(
+                              opacity: _fadeAnimation,
+                              child: 
+                                Text(widget.product.name, 
+                                  textAlign: TextAlign.center, 
+                                  style: const TextStyle(fontSize: 36.0, fontWeight: FontWeight.bold, color: Colors.white),
+                                )
                             )
                         )
-                    )
-                  ),
+                      )
               ),
             ]
           ),
@@ -605,26 +627,48 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
 // MARK: LISTING PAGE
 
 /// A class defining the stateless [ListingPage]. These are used to navigate the catalog tree. 
-class ListingPage extends StatelessWidget {
+class ListingPage extends StatefulWidget {
   ListingPage({super.key, required this.category}) : catalogItems = category.catalogItems;
 
   final ProductCategory category;
   final List<CatalogItem> catalogItems;
 
+  @override
+  State<ListingPage> createState() => _ListingPageState();
+}
+
+class _ListingPageState extends State<ListingPage> with TickerProviderStateMixin {
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+  late Animation<double> _dividerHeightAnimation;
+  
   late final Timer _timer;
 
   void catalogNavigation(BuildContext context, dynamic item){
     if (item is ProductCategory) {
       debugPrint('Rerouting to ${item.name} listing.');
       _timer.cancel();
-      Navigator.push(context, MaterialPageRoute(builder: (context) => ListingPage(category: item)));
+      Navigator.push(context, 
+        PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) => ListingPage(category: item),
+          transitionsBuilder: (context, animation, secondaryAnimation, child){
+            var begin = 0.0;
+            var end = 1.0;
+            var curve = Curves.fastLinearToSlowEaseIn;
+
+            var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+            return FadeTransition(opacity: animation.drive(tween),child: child);
+          },
+          transitionDuration: const Duration(seconds: 2)
+        )
+      );
     }
     else if (item is Product) {
       debugPrint('Rerouting to ${item.name} product page.');
       _timer.cancel();
       Navigator.push(context, 
         PageRouteBuilder(
-          pageBuilder: (context, animation, secondaryAnimation) => ProductPage(product: item),
+          pageBuilder: (context, animation, secondaryAnimation) => ProductPage(product: item, animateDivider: false,),
           transitionsBuilder: (context, animation, secondaryAnimation, child){
             var begin = 0.0;
             var end = 1.0;
@@ -633,19 +677,43 @@ class ListingPage extends StatelessWidget {
             var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
             return FadeTransition(opacity: animation.drive(tween), child: child);
           },
-          transitionDuration: const Duration(seconds: 2)
+          transitionDuration: const Duration(seconds: 1)
         )
       );
     }
   }
 
   @override
-  Widget build(BuildContext context) {
+  void initState() {
+    super.initState();
+    
+    _animationController = AnimationController(duration : const Duration(seconds: 2), vsync: this);
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _animationController, curve: const Interval(0.2, 0.5, curve: Curves.ease)));
+    _dividerHeightAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _animationController, curve: const Interval(0.0, 0.6, curve: Curves.ease)));
+
     _timer = Timer(const Duration(minutes: 10), () {
-      Navigator.of(context).popUntil((route) => route.isFirst);
-      debugPrint("--Idle Timeout--");
+      if (mounted){
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const IdlePage()));
+        debugPrint("--Idle Timeout--");
+      }
     });
 
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(milliseconds: 500), () =>
+      _animationController.forward());
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Consumer<ProductManager>(
       builder: (context, productManager, child) {
         return Scaffold(
@@ -658,16 +726,20 @@ class ListingPage extends StatelessWidget {
                   children: <Widget>[
                     Flexible(
                       child: 
-                        GridView.builder(
-                          padding: const EdgeInsets.only(top: 110, bottom: 20, left: 20, right: 20),
-                          itemCount: catalogItems.length,
-                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: MediaQuery.of(context).size.width<600 ? 1 : 4,
-                            childAspectRatio: 0.9,
-                            crossAxisSpacing: 1,
-                            mainAxisSpacing: 1,
-                          ),
-                          itemBuilder: (context, index) => catalogItems[index].buildCard(() => catalogNavigation(context, catalogItems[index])),)
+                        FadeTransition(
+                          opacity: _fadeAnimation,
+                          child: 
+                            GridView.builder(
+                              padding: const EdgeInsets.only(top: 165, bottom: 20, left: 20, right: 20),
+                              itemCount: widget.catalogItems.length,
+                              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: MediaQuery.of(context).size.width<600 ? 1 : 4,
+                                childAspectRatio: 0.9,
+                                crossAxisSpacing: 1,
+                                mainAxisSpacing: 1,
+                              ),
+                              itemBuilder: (context, index) => widget.catalogItems[index].buildCard(() => catalogNavigation(context, widget.catalogItems[index])),)
+                        )
                     )
                   ],
                 ),
@@ -711,7 +783,7 @@ class ListingPage extends StatelessWidget {
                                     GestureDetector(
                                       onDoubleTap: (){
                                         debugPrint('---Return to Idle Interaction---');
-                                        Navigator.push(context, MaterialPageRoute(builder: (context) => const IdlePage()));
+                                        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const IdlePage()));
                                       },
                                       child: Padding(
                                         padding: const EdgeInsets.only(top: 10.0), 
@@ -739,7 +811,42 @@ class ListingPage extends StatelessWidget {
                               ]
                             ),
                         ),
-                        const Hero(tag: 'divider', child: Divider(color: Color(0xFF224190), height: 2, thickness: 2, indent: 25.0, endIndent: 25.0,)),
+                        Stack(
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.only(left: 25.0, right: 25.0),
+                              child: Container(
+                                color: const Color(0xFF224190),
+                                height: 2.0
+                              )
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.only(left: 25.0, right: 25.0),
+                              child: 
+                                SizeTransition(
+                                  sizeFactor: _dividerHeightAnimation, 
+                                  axis: Axis.vertical, 
+                                  child: Container(
+                                    alignment: Alignment.topCenter,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF224190),
+                                      border: Border.all(color: const Color(0xFF224190))
+                                    ),
+                                    width: double.infinity,
+                                    child: 
+                                      Padding(
+                                        padding: const EdgeInsets.all(2.0),
+                                        child:
+                                          Text(widget.category.name, 
+                                            textAlign: TextAlign.center, 
+                                            style: const TextStyle(fontSize: 36.0, fontWeight: FontWeight.bold, color: Colors.white),
+                                          )
+                                      )
+                                  )
+                                ),
+                            ),
+                          ]
+                        ),                      
                       ]
                     )
                   ]
@@ -772,15 +879,19 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
   late Animation<double> _dividerWidthAnimation;
+  late CatalogItem _catalogCopy;
+  late CatalogItem _categoryToDisplay;
 
   @override
   void initState() {
     super.initState();
     
     _controller = AnimationController(duration : const Duration(seconds: 5), vsync: this);
-
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _controller, curve: const Interval(0.4, 0.7, curve: Curves.ease)));
     _dividerWidthAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _controller, curve: const Interval(0.4, 1.0, curve: Curves.ease)));
+
+    _catalogCopy = CatalogItem.fromJson(ProductManager.all.toJson());
+    _categoryToDisplay = _catalogCopy;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       //Future.delayed(const Duration(seconds: 5), () =>
@@ -853,34 +964,34 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                   ElevatedButton(
                     style: const ButtonStyle(foregroundColor: MaterialStatePropertyAll<Color>(Color(0xFF000000)),),
                     onPressed: (){
-                      debugPrint("Product List Updating..."); 
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => const AddItemPage()));
+                      debugPrint("Product List Updating...");
+                      _navigateToAddItem(context: context);
                     },
                     child: const Text("Add Catalog Item")
                   )
               ),
-              Center(
-                child: Container(
-                  width: double.infinity,
-                  color: const Color(0xFF224190),
-                  alignment: Alignment.center,
-                  padding: const EdgeInsets.symmetric(vertical: 10, ),
-                  child:
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 130), 
-                      child: Text("Product Catalog", style: TextStyle(color: Colors.white, fontSize: 28.0),)
-                    )
+              const SizedBox(height: 20),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 100),
+                child: Column(
+                  children: [
+                    Container(
+                      width: double.infinity,
+                      alignment: Alignment.center,
+                      color: const Color(0xFF224190),
+                      child: const Text("Product Catalog", style: TextStyle(color: Colors.white, fontSize: 28.0),)
+                    ),
+                    Container(
+                        decoration: BoxDecoration(border: Border.all(color: const Color(0xFF224190))),
+                        alignment: Alignment.center,
+                        height: MediaQuery.of(context).size.height - 253,
+                        child: SingleChildScrollView(
+                          child: catalogBuilder(item: _categoryToDisplay)
+                          )
+                        )
+                  ]
                 )
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 100, vertical: 30),
-                height: MediaQuery.of(context).size.height - 154,
-                child: 
-                  SingleChildScrollView(
-                    child: 
-                      catalogBuilder(ProductManager.all, 0)
-                  )
-              )
             ]
           )
         );
@@ -888,38 +999,49 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
     );
   }
 
-  Widget catalogBuilder(var item, double leftPadding){
+  Widget catalogBuilder({var item}){
+    return ReorderableListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      buildDefaultDragHandles: false,
+      itemCount: item.catalogItems.length,
+      itemBuilder: (context, index) {
+        var subItem = item.catalogItems[index];
+        switch (subItem) {
+          case ProductCategory _: {
+            return subItem.buildListTile(index: index, onTapCallback: () => setState(() => _categoryToDisplay = item));
+          }
+          case Product _: {
+            return subItem.buildListTile(index: index, onTapCallback: () => _navigateToAddItem(context: context, item: subItem));
+          }
+        }
+        return const Text("Invalid item encountered during build of ReorderableListView.");
+      },
+      onReorder: (int oldIndex, int newIndex) {
+        setState(() {
+          if (oldIndex < newIndex) {
+            newIndex -= 1;
+          }
+          final catalogItem = item.catalogItems.removeAt(oldIndex);
+          item.catalogItems.insert(newIndex, catalogItem);
+        });
+      },
+    );
+  }
 
-    switch (item) {
-      case ProductCategory _: {
-        return Column (
-          crossAxisAlignment: CrossAxisAlignment.center,
-          key: Key(item.id),
-          children: [
-            if (item.name != 'All') item.buildListTile(),
-            ReorderableListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: item.catalogItems.length,
-              itemBuilder:(context, index) => catalogBuilder(item.catalogItems[index], leftPadding + 10),
-              onReorder: (int oldIndex, int newIndex) {
-                setState(() {
-                  if (oldIndex < newIndex) {
-                    newIndex -= 1;
-                  }
-                  final itemToMove = item.catalogItems.removeAt(oldIndex);
-                  item.catalogItems.insert(newIndex, itemToMove);
-                });
-              },
-            )
-          ]
-        );
+  Future<void> _navigateToAddItem({required BuildContext context, CatalogItem? item}) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => AddItemPage(item: item))
+    );
+
+    if (!context.mounted) return;
+
+    setState(() {
+      if (result != null) {
+        (_catalogCopy as ProductCategory).addProductByParentId(result);
       }
-      case Product _: {
-        return item.buildListTile();
-      }
-    }
-    return const Text("Invalid item encountered.");
+    });
   }
 }
 
@@ -933,7 +1055,9 @@ enum ItemSelect {product, category}
 /// 
 /// See also: [_AddItemPageState]
 class AddItemPage extends StatefulWidget {
-  const AddItemPage({super.key}); 
+  final ItemSelect defaultType;
+  final CatalogItem? item;
+  const AddItemPage({super.key, this.item}) : defaultType = (item is Product) ? ItemSelect.product : ItemSelect.category; 
 
   @override
   State<AddItemPage> createState() => _AddItemPageState();
@@ -942,15 +1066,32 @@ class AddItemPage extends StatefulWidget {
 class _AddItemPageState extends State<AddItemPage> with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
 
-  var _itemSelection = ItemSelect.category;
-  ProductCategory _selectedCategory = ProductManager.all;
+  late ItemSelect _itemSelection;
+
+  late ProductCategory _selectedCategory;
+  late List<BrochureItem> _brochure;
 
   final TextEditingController _dropdownController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _modelNumberController = TextEditingController();
 
-  final List<BrochureItem> _brochure = [BrochureHeader(header: "Header1"), BrochureSubheader(subheader: "Subheader1"), BrochureEntry(entry: "Entry1"), BrochureEntry(entry: "Entry2"), BrochureHeader(header: "Header2")];
+
+  @override
+  void initState() {
+    super.initState();
+    _itemSelection = widget.defaultType;
+    _selectedCategory = ProductManager.all;
+    if (widget.item != null && widget.item is Product) {
+      _brochure = (widget.item as Product).retrieveBrochureList();
+      _nameController.text = widget.item!.name;
+      _descriptionController.text = (widget.item as Product).description ?? '';
+      _modelNumberController.text = (widget.item as Product).modelNumber ?? '';
+    }
+    else {
+      _brochure = [BrochureHeader(header: "Header1"), BrochureSubheader(subheader: "Subheader1"), BrochureEntry(entry: "Entry1"), BrochureEntry(entry: "Entry2"), BrochureHeader(header: "Header2")]; 
+    }
+  }
 
   @override
   void deactivate() {
@@ -1042,7 +1183,7 @@ class _AddItemPageState extends State<AddItemPage> with TickerProviderStateMixin
                               labelText: "Product Name *"
                             ),
                             validator: (String? value) {
-                              return (value == null) ? 'Name required.' : null;
+                              return (value == null || value == '') ? 'Name required.' : null;
                             },
                           ),
                       ),
@@ -1059,7 +1200,7 @@ class _AddItemPageState extends State<AddItemPage> with TickerProviderStateMixin
                       DropdownMenu<ProductCategory>(
                         label: const Text("Category *"),
                         controller: _dropdownController,
-                        initialSelection: ProductManager.all,
+                        initialSelection: widget.item?.getParentById() ?? ProductManager.all,
                         dropdownMenuEntries: productManager.getAllCategories(ProductManager.all).map<DropdownMenuEntry<ProductCategory>>((ProductCategory category){
                           return DropdownMenuEntry<ProductCategory>(
                             value: category,
@@ -1224,7 +1365,7 @@ class _AddItemPageState extends State<AddItemPage> with TickerProviderStateMixin
                                     ReorderableDelayedDragStartListener(
                                       index: index,
                                       child:
-                                        item.buildItem(context)
+                                        Row(children: [Expanded(child: item.buildItem(context)), IconButton(icon: const Icon(Icons.delete), onPressed: () => setState(()=> _brochure.removeAt(index)) )])
                                     )
                                 ),
                                 if(_addBrochureItemIndex == index)
@@ -1380,19 +1521,30 @@ class _AddItemPageState extends State<AddItemPage> with TickerProviderStateMixin
             style: const ButtonStyle(foregroundColor: MaterialStatePropertyAll(Colors.white), backgroundColor: MaterialStatePropertyAll(Color(0xFF224190))),
             child: const Text('Save & Exit'),
             onPressed: () {
-                _selectedCategory.addProduct(
-                  Product(
-                    name: _nameController.text,
-                    modelNumber: _modelNumberController.text,
-                    parentId: _selectedCategory.id,
-                    description: _descriptionController.text,
-                    brochure: Product.mapListToBrochure(_brochure),
-                  )
-                );
-                Navigator.pop(context);
+              if (_formKey.currentState!.validate()) {
+                if (widget.item != null && widget.item is Product) {
+                  widget.item!.name = _nameController.text;
+                  (widget.item! as Product).modelNumber = _modelNumberController.text;
+                  (widget.item! as Product).parentId = _selectedCategory.id;
+                  (widget.item! as Product).description = _modelNumberController.text;
+                  (widget.item! as Product).brochure = Product.mapListToBrochure(_brochure);
+                  Navigator.pop(context);
+                }
+                else {
+                  Navigator.pop(
+                    context,                   
+                    Product(
+                      name: _nameController.text,
+                      modelNumber: _modelNumberController.text,
+                      parentId: _selectedCategory.id,
+                      description: _descriptionController.text,
+                      brochure: Product.mapListToBrochure(_brochure),
+                    )
+                  );
+                }
+              }
             }
           ),
-        const SizedBox(height: 20)
         ],
       )
     );
