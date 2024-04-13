@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shortid/shortid.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'dart:convert';
 import 'dart:math' as math;
 
@@ -663,28 +664,31 @@ class Product extends CatalogItem {
 
 
 sealed class EItem {
+  late int rank;
+  EItem({required this.rank});
+
   static ECategory createEditorCatalog(ProductCategory catalogCopy) {
 
-    ECategory traverseCategory(category) {
+    ECategory traverseCategory(category, rank) {
       List<EItem> editorItems = [];
 
       for (var item in category.catalogItems) {
         switch (item) {
           case ProductCategory _ : {
-            ECategory newItem = traverseCategory(item);
+            ECategory newItem = traverseCategory(item, rank+1);
             editorItems.add(newItem);
           }
           case Product _ : {
-            editorItems.add(EProduct(product: item));
+            editorItems.add(EProduct(product: item, rank: rank));
           }
         }
       }
 
-      return ECategory(category: category, editorItems: editorItems);
+      return ECategory(category: category, editorItems: editorItems, rank: rank-1);
     }
 
 
-    return traverseCategory(catalogCopy);
+    return traverseCategory(catalogCopy, 0);
   }
 
   static EItem? getItemById({required root, required id}) {
@@ -717,7 +721,7 @@ sealed class EItem {
     return result;
   }
 
-  ECategory? getParentById({required root});
+  ECategory? getParent({required root});
 }
 
 class ECategory extends EItem {
@@ -726,13 +730,13 @@ class ECategory extends EItem {
   final String? parentId;
   late List<EItem> editorItems;
   bool showChildren = false;
-  ECategory({required this.category, required this.editorItems}) : id = category.id, parentId = category.parentId;
+  ECategory({required this.category, required this.editorItems, required super.rank}) : id = category.id, parentId = category.parentId;
 
   bool open = false;
   bool previousOpen = false; 
 
   
-  Widget buildListTile({int? index, VoidCallback? onArrowCallback, VoidCallback? onEditCallback, TickerProvider? ticker}) {
+  Widget buildListTile({int? index, VoidCallback? onArrowCallback, VoidCallback? onEditCallback, VoidCallback? onDragStarted, VoidCallback? onDragCompleted, TickerProvider? ticker}) {
     Tween<double>? closeTween;
     Tween<double>? openTween;
     AnimationController? controller; 
@@ -745,55 +749,92 @@ class ECategory extends EItem {
       controller.forward();
     }
 
-    return InkWell(
-      key: Key(id),
-      onTap: () {
-        previousOpen = open;
-        if (onEditCallback != null) {onEditCallback();}
+    return DragTarget<EItem>(
+      onWillAcceptWithDetails: (details) {
+        return (!editorItems.contains(details.data) && details.data != this);
       },
-      child: ListTile(
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (onArrowCallback != null) 
-              open ?
-                InkWell(
-                  onTap: () {
-                    open = false;
-                    previousOpen = true;
-                    onArrowCallback();
-                  }, 
-                  child: (open == previousOpen) ? 
-                    const Icon(Icons.keyboard_arrow_down)
-                    : (openTween != null) ? 
-                      RotationTransition(turns: openTween.animate(controller!), child: const Icon(Icons.keyboard_arrow_down)) 
-                      : const Icon(Icons.keyboard_arrow_down)
-                )
-                : InkWell(
-                  onTap: () {
-                    open = true; 
-                    previousOpen = false;
-                    onArrowCallback();
-                  },
-                  child: (open == previousOpen) ? 
-                    Transform.rotate(angle: -math.pi/2, child: const Icon(Icons.keyboard_arrow_down))
-                    : (closeTween != null) ? 
-                      RotationTransition(turns: closeTween.animate(controller!), child: const Icon(Icons.keyboard_arrow_down)) 
-                      : const Icon(Icons.keyboard_arrow_down),
-                ),
-            const Icon(Icons.folder_outlined, size: 20),
-            const SizedBox(width: 5),
-            Expanded(child: Text(category.name, style: const TextStyle(color: Colors.black, fontSize: 14.0))),
-          ]
-        ),
-        //subtitle: const Text("Category", style: TextStyle(fontSize: 12.0, fontStyle: FontStyle.italic)),
-        trailing: (index != null) ? ReorderableDelayedDragStartListener(index: index, child: const Icon(Icons.drag_handle)) : const SizedBox(),
-      )
+      onAcceptWithDetails: (details) {
+        details.data.rank += 1;
+        editorItems.add(details.data);
+      },
+      builder: (context, accepted, rejected) {
+        return Draggable<EItem> (
+          data: this,
+          onDragStarted: () {
+            if (onDragStarted != null) onDragStarted();
+          },
+          onDragCompleted: () {
+            if (onDragCompleted != null) onDragCompleted();
+          },
+          feedback: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border.all(color: Colors.black, width: 1.0),
+              borderRadius: BorderRadius.circular(8.0),
+            ),
+            padding: const EdgeInsets.all(10),
+            child: Material(
+              color: Colors.transparent,
+              child: Row(
+                children: [
+                  const Icon(Icons.move_up),
+                  const SizedBox(width: 5),
+                  Text(category.name)
+                ]
+              )
+            )
+          ),
+          child: InkWell(
+            onTap: () {
+              previousOpen = open;
+              if (onEditCallback != null) {onEditCallback();}
+            },
+            child: ListTile(
+              title: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (onArrowCallback != null) 
+                    open ?
+                      InkWell(
+                        onTap: () {
+                          open = false;
+                          previousOpen = true;
+                          onArrowCallback();
+                        }, 
+                        child: (open == previousOpen) ? 
+                          const Icon(Icons.keyboard_arrow_down)
+                          : (openTween != null) ? 
+                            RotationTransition(turns: openTween.animate(controller!), child: const Icon(Icons.keyboard_arrow_down)) 
+                            : const Icon(Icons.keyboard_arrow_down)
+                      )
+                      : InkWell(
+                        onTap: () {
+                          open = true; 
+                          previousOpen = false;
+                          onArrowCallback();
+                        },
+                        child: (open == previousOpen) ? 
+                          Transform.rotate(angle: -math.pi/2, child: const Icon(Icons.keyboard_arrow_down))
+                          : (closeTween != null) ? 
+                            RotationTransition(turns: closeTween.animate(controller!), child: const Icon(Icons.keyboard_arrow_down)) 
+                            : const Icon(Icons.keyboard_arrow_down),
+                      ),
+                  const Icon(Icons.folder_outlined, size: 20),
+                  const SizedBox(width: 5),
+                  Expanded(child: Text(category.name, style: const TextStyle(color: Colors.black, fontSize: 14.0))),
+                ]
+              ),
+              //subtitle: const Text("Category", style: TextStyle(fontSize: 12.0, fontStyle: FontStyle.italic)),
+              trailing: (index != null) ? ReorderableDelayedDragStartListener(index: index, child: const Icon(Icons.drag_handle)) : const SizedBox(),
+            )
+          )
+        );
+      }
     );
   }
 
   @override
-  ECategory? getParentById({required root}) {
+  ECategory? getParent({required root}) {
     return EItem.getItemById(root: root, id: parentId) as ECategory;
   }
 
@@ -821,34 +862,59 @@ class EProduct extends EItem {
   final Product product;
   final String id;
   final String? parentId;
-  EProduct({required this.product}) : id = product.id, parentId = product.parentId;
+  EProduct({required this.product, required super.rank}) : id = product.id, parentId = product.parentId;
 
 
-  Widget buildListTile({int? index, VoidCallback? onEditCallback}) {
-    return InkWell(
-      key: Key(id),
-      onTap: () {
-        if (onEditCallback != null) {onEditCallback();}
+  Widget buildListTile({int? index, VoidCallback? onEditCallback, VoidCallback? onDragCompleted}) {
+    return Draggable<EItem> (
+      data: this,
+      onDragCompleted: () {
+        if (onDragCompleted != null) onDragCompleted();
       },
-      child: ListTile(
-        title: Row(
-          children: [
-            const Icon(Icons.conveyor_belt, size: 20,),
-            const SizedBox(width: 10),
-            Expanded(child: Text(product.name, style: const TextStyle(color: Colors.black, fontSize: 14.0))), 
-          ]  
+      feedback: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(color: Colors.black, width: 1.0),
+          borderRadius: BorderRadius.circular(8.0),
         ),
-        // subtitle: const Padding(
-        //   padding: EdgeInsets.only(left: 30), 
-        //   child: Text("Product", style: TextStyle(fontSize: 12.0, fontStyle: FontStyle.italic)),
-        // ),
-        trailing: (index != null) ? ReorderableDelayedDragStartListener(index: index, child: const Icon(Icons.drag_handle)) : const SizedBox(),
-      )
+        padding: const EdgeInsets.all(10),
+        child: Material(
+          color: Colors.transparent,
+          child: Row(
+            children: [
+              const Icon(Icons.move_up),
+              const SizedBox(width: 5),
+              Text(product.name)
+            ]
+          )
+        )
+      ),
+      dragAnchorStrategy: pointerDragAnchorStrategy,
+      child: 
+        InkWell(
+          onTap: () {
+            if (onEditCallback != null) {onEditCallback();}
+          },
+          child: ListTile(
+            title: Row(
+              children: [
+                const Icon(Icons.conveyor_belt, size: 20,),
+                const SizedBox(width: 10),
+                Expanded(child: Text(product.name, style: const TextStyle(color: Colors.black, fontSize: 14.0))), 
+              ]  
+            ),
+            // subtitle: const Padding(
+            //   padding: EdgeInsets.only(left: 30), 
+            //   child: Text("Product", style: TextStyle(fontSize: 12.0, fontStyle: FontStyle.italic)),
+            // ),
+            trailing: (index != null) ? ReorderableDelayedDragStartListener(index: index, child: const Icon(Icons.drag_handle)) : const SizedBox(),
+          )
+        )
     );
   }
 
   @override
-  ECategory? getParentById({required root}) {
+  ECategory? getParent({required root}) {
     return EItem.getItemById(root: root, id: parentId) as ECategory;
   }
 }

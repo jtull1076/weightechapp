@@ -1082,6 +1082,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
     _catalogCopy = CatalogItem.fromJson(ProductManager.all.toJson()) as ProductCategory;
 
     _editorAll = EItem.createEditorCatalog(ProductManager.all);
+    _editorAll.showChildren = true;
     
     _itemsToDisplay = _editorAll.editorItems;
     _selectedCategory = _editorAll;
@@ -1105,12 +1106,12 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
         _nameController.text = focusItem.product.name;
         _descriptionController.text = focusItem.product.description ?? '';
         _modelNumberController.text = focusItem.product.modelNumber ?? '';
-        _selectedCategory = focusItem.getParentById(root: _editorAll) ?? _editorAll;
+        _selectedCategory = focusItem.getParent(root: _editorAll) ?? _editorAll;
         _itemSelection = ItemSelect.product;
       }
       case ECategory _ : {
         _nameController.text = focusItem.category.name;
-        _selectedCategory = focusItem.getParentById(root: _editorAll) ?? _editorAll;
+        _selectedCategory = focusItem.getParent(root: _editorAll) ?? _editorAll;
       }
       case null : {
       }
@@ -1261,289 +1262,310 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
     );
   }
 
+  Widget catalogBuilder({required ECategory item}) {
+    return Column(
+      children: [
+        buildItemsList(item: item),
+        const SizedBox(height: 20),
+        ElevatedButton(
+          style: const ButtonStyle(
+            backgroundColor: MaterialStatePropertyAll<Color>(Color(0xFFCCCCCC)),
+          ),
+          onPressed: () {
 
-  Widget catalogBuilder({var item}){
-    return ReorderableListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      buildDefaultDragHandles: false,
-      itemCount: item.editorItems.length,
-      itemBuilder: (context, index) {
-        var subItem = item.editorItems[index];
-        switch (subItem) {
-          case ECategory _: {
-            return Column(
-              key: Key('col_${subItem.id}'),
-              children: [
-                subItem.buildListTile(
-                  index: index, 
-                  onArrowCallback: () => setState(() => toggleDisplayItems(subItem.editorItems, index+1)),
-                  onEditCallback: () => toggleEditorItem(subItem),
-                  ticker: this,
-                ),
-                const Divider(color: Colors.black, thickness: 0.25, height: 0.25, endIndent: 10.0, indent: 10.0),
-              ]
-            );
+          }, 
+          child: const Icon(Icons.add, color: Color(0xFF222222))
+        ),
+        const SizedBox(height: 20),
+      ]
+    );
+  }
+
+  Widget buildItemsList({required ECategory item}) {
+    return Column(
+      children: [
+        ReorderableListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          buildDefaultDragHandles: false,
+          itemCount: item.editorItems.length, 
+          itemBuilder: (context, index) {
+            var subItem = item.editorItems[index];
+            switch (subItem) {
+              case ECategory _ : {
+                return Padding(
+                  key: Key(subItem.id),
+                  padding: EdgeInsets.only(left: subItem.rank*20),
+                  child: Column(
+                    children: [
+                      subItem.buildListTile(
+                        index: index, 
+                        onArrowCallback: () => setState(() => subItem.showChildren = !subItem.showChildren), 
+                        onEditCallback: () => toggleEditorItem(subItem),
+                        onDragStarted: () => setState(() => subItem.showChildren = false),
+                        onDragCompleted: () => subItem.getParent(root: _editorAll)?.editorItems.remove(subItem),
+                        ticker: this,
+                      ),
+                      const Divider(color: Colors.grey, indent: 20, endIndent: 20, height: 1, thickness: 1),
+                      if (subItem.showChildren) buildItemsList(item: subItem),
+                    ]
+                  )
+                );
+              }
+              case EProduct _ : {
+                return Padding(
+                  key: Key(subItem.id),
+                  padding: EdgeInsets.only(left: subItem.rank*20),
+                  child: Column(
+                    children: [
+                      subItem.buildListTile(
+                        index: index, 
+                        onEditCallback: () => toggleEditorItem(subItem),
+                        onDragCompleted: () => setState(() => subItem.getParent(root: _editorAll)?.editorItems.remove(subItem)),
+                      ),
+                      const Divider(color: Colors.grey, indent: 30, endIndent: 30, height: 1, thickness: 1,)
+                    ]
+                  )
+                );
+              }
+            }
+          }, 
+          onReorder: (int oldIndex, int newIndex) {
+            var dragItem = item.editorItems.removeAt(oldIndex);
+            item.editorItems.insert(newIndex, dragItem);
           }
-          case EProduct _: {
-            return Column(
-              key: Key('col_${subItem.id}'),
-              children: [
-                subItem.buildListTile(
-                  index: index, 
-                  onEditCallback: () => toggleEditorItem(subItem)
-                ),
-                const Divider(color: Colors.black, thickness: 0.25, height: 0.25, endIndent: 10.0, indent: 10.0),
-              ]
-            );
-          }
-        }
-        return const Text("Invalid item encountered during build of ReorderableListView.");
-      },
-      onReorder: (int oldIndex, int newIndex) {
-        setState(() {
-          final editorItem = item.editorItems.removeAt(oldIndex);
-          item.editorItems.insert(newIndex, editorItem);
-        });
-      },
+        ),
+      ]
     );
   }
 
   Widget productEditor({EProduct? product}) {
-    return Consumer<ProductManager>(
-      builder : (context, productManager, child) {
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(width: 25),
-            Flexible(
-              child: 
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(width: 25),
+        Flexible(
+          child: 
+            Column(
+              children: [
+                const SizedBox(height: 25),
+                TextFormField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(
+                    labelText: "Product Name *"
+                  ),
+                  validator: (String? value) {
+                    return (value == null || value == '') ? "Name required." : null;
+                  }
+                ),
+                TextFormField(
+                  controller: _modelNumberController,
+                  decoration: const InputDecoration(
+                    labelText: "Product Model Number"
+                  ),
+                ),
+                const SizedBox(height: 20),
+                DropdownMenu<ECategory>(
+                  label: const Text("Category *"),
+                  controller: _dropdownController,
+                  initialSelection: _focusItem?.getParent(root: _editorAll) ?? _editorAll,
+                  dropdownMenuEntries: _editorAll.getSubCategories().map<DropdownMenuEntry<ECategory>>((ECategory category){
+                    return DropdownMenuEntry<ECategory>(
+                      value: category,
+                      label: category.category.name,
+                    );
+                  }).toList(),
+                  onSelected: (newValue) {
+                    setState((){
+                      _selectedCategory = newValue!;
+                    });
+                  },
+                ),
+              ]
+            )
+        ),
+        Flexible(
+          child:
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 40),
+              child:
                 Column(
                   children: [
-                    const SizedBox(height: 25),
-                    TextFormField(
-                      controller: _nameController,
-                      decoration: const InputDecoration(
-                        labelText: "Product Name *"
-                      ),
-                      validator: (String? value) {
-                        return (value == null || value == '') ? "Name required." : null;
-                      }
-                    ),
-                    TextFormField(
-                      controller: _modelNumberController,
-                      decoration: const InputDecoration(
-                        labelText: "Product Model Number"
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    DropdownMenu<ECategory>(
-                      label: const Text("Category *"),
-                      controller: _dropdownController,
-                      initialSelection: _focusItem?.getParentById(root: _editorAll) ?? _editorAll,
-                      dropdownMenuEntries: _editorAll.getSubCategories().map<DropdownMenuEntry<ECategory>>((ECategory category){
-                        return DropdownMenuEntry<ECategory>(
-                          value: category,
-                          label: category.category.name,
-                        );
-                      }).toList(),
-                      onSelected: (newValue) {
-                        setState((){
-                          _selectedCategory = newValue!;
+                    DropTarget(
+                      onDragDone: (detail) async {
+                        List<String> paths = [];
+
+                        for (var file in detail.files) {
+                          String extension = file.path.substring(file.path.length - 4);
+                          if (extension == ".jpg" || extension == ".png") {
+                            debugPrint("Image added to paths: ${file.path}");
+                            paths.add(file.path);
+                          }
+                          else if (file.path.substring(file.path.length - 5) == ".jpeg") {
+                            debugPrint("Image added to paths: ${file.path}");
+                            paths.add(file.path);
+                          }
+                          else {
+                            debugPrint("Invalid file type: File type $extension not supported.");
+                          }
+                        }
+
+                        setState(() {
+                          _imagePaths.addAll(paths);
                         });
                       },
-                    ),
-                  ]
-                )
-            ),
-            Flexible(
-              child:
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 40),
-                  child:
-                    Column(
-                      children: [
-                        DropTarget(
-                          onDragDone: (detail) async {
-                            List<String> paths = [];
-
-                            for (var file in detail.files) {
-                              String extension = file.path.substring(file.path.length - 4);
-                              if (extension == ".jpg" || extension == ".png") {
-                                debugPrint("Image added to paths: ${file.path}");
-                                paths.add(file.path);
-                              }
-                              else if (file.path.substring(file.path.length - 5) == ".jpeg") {
-                                debugPrint("Image added to paths: ${file.path}");
-                                paths.add(file.path);
-                              }
-                              else {
-                                debugPrint("Invalid file type: File type $extension not supported.");
-                              }
-                            }
-
-                            setState(() {
-                              _imagePaths.addAll(paths);
-                            });
-                          },
-                          onDragEntered: (details) => setState(() => _fileDragging = true),
-                          onDragExited: (details) => setState(() => _fileDragging = false),
-                          child: Container(
-                            width: 400,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: Colors.black),
-                            ),
-                            padding: const EdgeInsets.all(10.0),
-                            child: Container(
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(10),
-                                color: _fileDragging ? const Color(0x22224190) : const Color(0x55C9C9CC),
-                              ),
-                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 20),
-                              child: 
-                                Column(
+                      onDragEntered: (details) => setState(() => _fileDragging = true),
+                      onDragExited: (details) => setState(() => _fileDragging = false),
+                      child: Container(
+                        width: 400,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.black),
+                        ),
+                        padding: const EdgeInsets.all(10.0),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(10),
+                            color: _fileDragging ? const Color(0x22224190) : const Color(0x55C9C9CC),
+                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 20),
+                          child: 
+                            Column(
+                              mainAxisAlignment: MainAxisAlignment.center, 
+                              children: [
+                                const Icon(Icons.image, size: 70),
+                                const Text("Drag and drop file here", style: TextStyle(fontWeight: FontWeight.bold)),
+                                const SizedBox(height: 10),
+                                const Row(
                                   mainAxisAlignment: MainAxisAlignment.center, 
                                   children: [
-                                    const Icon(Icons.image, size: 70),
-                                    const Text("Drag and drop file here", style: TextStyle(fontWeight: FontWeight.bold)),
-                                    const SizedBox(height: 10),
-                                    const Row(
-                                      mainAxisAlignment: MainAxisAlignment.center, 
-                                      children: [
-                                        Expanded(child: Divider(color: Colors.black, height: 1, thickness: 1, indent: 70, endIndent: 15)), 
-                                        Text("or"), 
-                                        Expanded(child: Divider(color: Colors.black, height: 1, thickness: 1, indent: 15, endIndent: 70))
-                                      ]
-                                    ),
-                                    const SizedBox(height: 10),
-                                    OutlinedButton(                          
-                                      onPressed: () async {
-                                        FilePickerResult? result = await FilePicker.platform.pickFiles(allowMultiple: true, type: FileType.image, allowedExtensions: ['png', 'jpg']);
-                                        if (result != null) {
-                                          List<String> paths = [];
-
-                                          for (var path in result.paths) {
-                                            if (path != null) {
-                                              paths.add(path);
-                                            }
-                                          }
-
-                                          setState(() => _imagePaths.addAll(paths));
-                                          debugPrint("File upload successful: ${result.files.first.path}");
-                                        }
-                                        else {
-                                          debugPrint("File upload aborted/failed.");
-                                        }
-                                      },
-                                      child: const Text("Browse Files")
-                                    ),
-                                    const SizedBox(height: 10),
-                                    const Text("File must be .jpg or .png", style: TextStyle(fontSize: 12.0, fontStyle: FontStyle.italic))
+                                    Expanded(child: Divider(color: Colors.black, height: 1, thickness: 1, indent: 70, endIndent: 15)), 
+                                    Text("or"), 
+                                    Expanded(child: Divider(color: Colors.black, height: 1, thickness: 1, indent: 15, endIndent: 70))
                                   ]
-                                )
-                            ),
-                          ), 
-                        ),
-                        const SizedBox(height: 10),
-                        ListView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: _imagePaths.length,
-                          itemBuilder:(context, index) {
-                            File image = File(_imagePaths[index]);
-                            return Row(
-                              children: [
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Image.file(image, height: 50),
                                 ),
-                                Expanded(
-                                  child:
-                                    Text(image.uri.pathSegments.last, overflow: TextOverflow.ellipsis)
-                                )
-                              ],
-                            );
-                          },
-                        )
-                      ]
+                                const SizedBox(height: 10),
+                                OutlinedButton(                          
+                                  onPressed: () async {
+                                    FilePickerResult? result = await FilePicker.platform.pickFiles(allowMultiple: true, type: FileType.image, allowedExtensions: ['png', 'jpg']);
+                                    if (result != null) {
+                                      List<String> paths = [];
+
+                                      for (var path in result.paths) {
+                                        if (path != null) {
+                                          paths.add(path);
+                                        }
+                                      }
+
+                                      setState(() => _imagePaths.addAll(paths));
+                                      debugPrint("File upload successful: ${result.files.first.path}");
+                                    }
+                                    else {
+                                      debugPrint("File upload aborted/failed.");
+                                    }
+                                  },
+                                  child: const Text("Browse Files")
+                                ),
+                                const SizedBox(height: 10),
+                                const Text("File must be .jpg or .png", style: TextStyle(fontSize: 12.0, fontStyle: FontStyle.italic))
+                              ]
+                            )
+                        ),
+                      ), 
+                    ),
+                    const SizedBox(height: 10),
+                    ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: _imagePaths.length,
+                      itemBuilder:(context, index) {
+                        File image = File(_imagePaths[index]);
+                        return Row(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.file(image, height: 50),
+                            ),
+                            Expanded(
+                              child:
+                                Text(image.uri.pathSegments.last, overflow: TextOverflow.ellipsis)
+                            )
+                          ],
+                        );
+                      },
                     )
+                  ]
                 )
             )
-          ]
-        );
-      }
+        )
+      ]
     );
   }
 
   Widget categoryEditor({ECategory? category}) {
-    return Consumer<ProductManager>(
-      builder : (context, productManager, child) {
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(width: 25),
-            Flexible(
-              child: 
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(width: 25),
+        Flexible(
+          child: 
+            Column(
+              children: [
+                const SizedBox(height: 25),
+                TextFormField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(
+                    labelText: "Category Name *"
+                  ),
+                  validator: (String? value) {
+                    return (value == null || value == '') ? "Name required." : null;
+                  }
+                ),
+                const SizedBox(height: 20),
+                DropdownMenu<ECategory>(
+                  label: const Text("Category *"),
+                  controller: _dropdownController,
+                  initialSelection: _focusItem?.getParent(root: _editorAll) ?? _editorAll,
+                  dropdownMenuEntries: _editorAll.getSubCategories().map<DropdownMenuEntry<ECategory>>((ECategory category){
+                    return DropdownMenuEntry<ECategory>(
+                      value: category,
+                      label: category.category.name,
+                    );
+                  }).toList(),
+                  onSelected: (newValue) {
+                    setState((){
+                      _selectedCategory = newValue!;
+                    });
+                  },
+                ),
+              ]
+            )
+        ),
+        Flexible(
+          child:
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 100, vertical: 40),
+              child:
                 Column(
                   children: [
-                    const SizedBox(height: 25),
-                    TextFormField(
-                      controller: _nameController,
-                      decoration: const InputDecoration(
-                        labelText: "Category Name *"
-                      ),
-                      validator: (String? value) {
-                        return (value == null || value == '') ? "Name required." : null;
-                      }
-                    ),
-                    const SizedBox(height: 20),
-                    DropdownMenu<ECategory>(
-                      label: const Text("Category *"),
-                      controller: _dropdownController,
-                      initialSelection: _focusItem?.getParentById(root: _editorAll) ?? _editorAll,
-                      dropdownMenuEntries: _editorAll.getSubCategories().map<DropdownMenuEntry<ECategory>>((ECategory category){
-                        return DropdownMenuEntry<ECategory>(
-                          value: category,
-                          label: category.category.name,
-                        );
-                      }).toList(),
-                      onSelected: (newValue) {
-                        setState((){
-                          _selectedCategory = newValue!;
-                        });
+                    ElevatedButton(
+                      child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [Text("Upload", style: TextStyle(color: Colors.black)), Icon(Icons.upload)]), 
+                      onPressed: () async {
+                        FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.image, allowedExtensions: ['png', 'jpg']);
+                        if (result != null) {
+                          // setState(() => _mainImagePath = result.files.first.path!);
+                          debugPrint("File upload successful: ${result.files.first.path}");
+                        }
+                        else {
+                          debugPrint("File upload aborted/failed.");
+                        }
                       },
-                    ),
+                    )
                   ]
                 )
-            ),
-            Flexible(
-              child:
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 100, vertical: 40),
-                  child:
-                    Column(
-                      children: [
-                        ElevatedButton(
-                          child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [Text("Upload", style: TextStyle(color: Colors.black)), Icon(Icons.upload)]), 
-                          onPressed: () async {
-                            FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.image, allowedExtensions: ['png', 'jpg']);
-                            if (result != null) {
-                              // setState(() => _mainImagePath = result.files.first.path!);
-                              debugPrint("File upload successful: ${result.files.first.path}");
-                            }
-                            else {
-                              debugPrint("File upload aborted/failed.");
-                            }
-                          },
-                        )
-                      ]
-                    )
-                )
             )
-          ]
-        );
-      }
+        )
+      ]
     );
   }
 
