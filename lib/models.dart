@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:shortid/shortid.dart';
 import 'dart:convert';
+import 'dart:math' as math;
 
 
 class ProductManager extends ChangeNotifier {
-  static final ProductCategory all = ProductCategory.all();
+  static ProductCategory all = ProductCategory.all();
 
   ProductManager() {
     all.addCategory(
       ProductCategory(
         name: "Microweigh Indicators",
         image: Image.asset(
-          'assets/product_images/microweigh_indicators.png',
+          'assets/product_images/microweigh_indicator.png',
           width: double.infinity,
           fit: BoxFit.fitWidth,
         ),
@@ -90,7 +91,7 @@ class ProductManager extends ChangeNotifier {
     );
     all.addProduct(
       Product(
-        name: "Trimline Station",
+        name: "Trimline Systems",
         productImages: [
           Image.asset(
           'assets/product_images/trimline_station.png',
@@ -137,7 +138,7 @@ class ProductManager extends ChangeNotifier {
       Product(
         name: "Microweigh Indicator 2",
         productImages: [Image.asset(
-          'assets/product_images/microweigh_indicators.png',
+          'assets/product_images/microweigh_indicator.png',
           width: double.infinity,
           fit: BoxFit.fitWidth,
         )],
@@ -152,7 +153,7 @@ class ProductManager extends ChangeNotifier {
       Product(
         name: "Microweigh Indicator 3",
         productImages: [Image.asset(
-          'assets/product_images/microweigh_indicators.png',
+          'assets/product_images/microweigh_indicator.png',
           width: double.infinity,
           fit: BoxFit.fitWidth,
         )],
@@ -167,7 +168,7 @@ class ProductManager extends ChangeNotifier {
       Product(
         name: "Microweigh Indicator 4",
         productImages: [Image.asset(
-          'assets/product_images/microweigh_indicators.png',
+          'assets/product_images/microweigh_indicator.png',
           width: double.infinity,
           fit: BoxFit.fitWidth,
         )],
@@ -182,7 +183,7 @@ class ProductManager extends ChangeNotifier {
       Product(
         name: "Microweigh Indicator 5",
         productImages: [Image.asset(
-          'assets/product_images/microweigh_indicators.png',
+          'assets/product_images/microweigh_indicator.png',
           width: double.infinity,
           fit: BoxFit.fitWidth,
         )],
@@ -197,7 +198,7 @@ class ProductManager extends ChangeNotifier {
       Product(
         name: "Microweigh Indicator 6",
         productImages: [Image.asset(
-          'assets/product_images/microweigh_indicators.png',
+          'assets/product_images/microweigh_indicator.png',
           width: double.infinity,
           fit: BoxFit.fitWidth,
         )],
@@ -212,7 +213,7 @@ class ProductManager extends ChangeNotifier {
       Product(
         name: "Microweigh Indicator 7",
         productImages: [Image.asset(
-          'assets/product_images/microweigh_indicators.png',
+          'assets/product_images/microweigh_indicator.png',
           width: double.infinity,
           fit: BoxFit.fitWidth,
         )],
@@ -227,7 +228,7 @@ class ProductManager extends ChangeNotifier {
       Product(
         name: "Microweigh Indicator 8",
         productImages: [Image.asset(
-          'assets/product_images/microweigh_indicators.png',
+          'assets/product_images/microweigh_indicator.png',
           width: double.infinity,
           fit: BoxFit.fitWidth,
         )],
@@ -242,7 +243,7 @@ class ProductManager extends ChangeNotifier {
       Product(
         name: "Microweigh Indicator 9",
         productImages: [Image.asset(
-          'assets/product_images/microweigh_indicators.png',
+          'assets/product_images/microweigh_indicator.png',
           width: double.infinity,
           fit: BoxFit.fitWidth,
         )],
@@ -257,7 +258,7 @@ class ProductManager extends ChangeNotifier {
       Product(
         name: "Microweigh Indicator 10",
         productImages: [Image.asset(
-          'assets/product_images/microweigh_indicators.png',
+          'assets/product_images/microweigh_indicator.png',
           width: double.infinity,
           fit: BoxFit.fitWidth,
         )],
@@ -272,7 +273,7 @@ class ProductManager extends ChangeNotifier {
       Product(
         name: "Microweigh Indicator 11",
         productImages: [Image.asset(
-          'assets/product_images/microweigh_indicators.png',
+          'assets/product_images/microweigh_indicator.png',
           width: double.infinity,
           fit: BoxFit.fitWidth,
         )],
@@ -283,12 +284,6 @@ class ProductManager extends ChangeNotifier {
         ],
       )
     );
-
-    Map<String, dynamic> testJson = all.toJson();
-
-    CatalogItem testCat = CatalogItem.fromJson(testJson);
-
-    debugPrint('Done');
   }
 
   List<ProductCategory> getAllCategories(ProductCategory? category) {
@@ -508,23 +503,7 @@ class ProductCategory extends CatalogItem {
     debugPrint('Parent category with ID ${newProduct.parentId} not found in category $name (id: $id).');
   }
 
-  @override 
-  Widget buildListTile({int? index, VoidCallback? onTapCallback}) {
-    return ListTile(
-      key: Key(id), 
-      title: Text(name, style: const TextStyle(color: Colors.black, fontSize: 14.0)),
-      trailing: SizedBox(
-        width: 200,
-        child: Row(
-          children: [
-            (onTapCallback != null) ? IconButton(icon: const Icon(Icons.arrow_right), onPressed: () => onTapCallback(),) : const SizedBox(),
-            (index != null) ? ReorderableDelayedDragStartListener(index: index, child: const Icon(Icons.drag_handle)) : const SizedBox(),
-          ]
-        )
-      )    
-    );
-  }
-
+  
   @override
   Map<String, dynamic> toJson() {
     Map<String, dynamic> json = super.toJson();
@@ -580,28 +559,25 @@ class Product extends CatalogItem {
     for (var item in brochure.reversed) {
       switch (item) {
         case BrochureEntry _: {
-          entries.add(item.entry);
+          entries.insert(0, item.entry);
         }
         case BrochureSubheader _: {
-          subheaders.add(
-            {
-              item.subheader : List<String>.from(entries.reversed)
-            }
+          subheaders.insert(0, {item.subheader : List<String>.from(entries)}
           );
           entries.clear();
         }
         case BrochureHeader _: {
           if (entries.isNotEmpty && subheaders.isNotEmpty){
-            brochureMap.add({item.header : [{"Entries" : List.from(entries.reversed)}, List.from(subheaders.reversed)]});
+            brochureMap.insert(0, {item.header : [{"Entries" : List.from(entries)}, List.from(subheaders)]});
           }
           else if (entries.isNotEmpty) {
-            brochureMap.add({item.header : {"Entries" : List.from(entries.reversed)}});
+            brochureMap.insert(0, {item.header : [{"Entries" : List.from(entries)}]});
           }
           else if (subheaders.isNotEmpty) {
-            brochureMap.add({item.header : List.from(subheaders.reversed)});
+            brochureMap.insert(0, {item.header : List.from(subheaders)});
           }
           else {
-            brochureMap.add({item.header : []});
+            brochureMap.insert(0, {item.header : []});
           }
           subheaders.clear();
           entries.clear();
@@ -662,24 +638,6 @@ class Product extends CatalogItem {
     return brochureList;
   }
 
-  @override 
-  Widget buildListTile({int? index, VoidCallback? onTapCallback}) {
-    return ListTile(
-      key: Key(id), 
-      title: Text(name, style: const TextStyle(color: Colors.black, fontSize: 14.0)), 
-      trailing: SizedBox(
-        width: 200,
-        child: 
-          Row(
-            children: [
-              (onTapCallback != null) ? IconButton(icon: const Icon(Icons.edit), onPressed: () => onTapCallback(),) : const SizedBox(),
-              (index != null) ? ReorderableDelayedDragStartListener(index: index, child: const Icon(Icons.drag_handle)) : const SizedBox(),
-            ]
-          )
-      )
-    );
-  }
-
   @override
   Map<String, dynamic> toJson() {
     Map<String, dynamic> json = super.toJson();
@@ -692,10 +650,6 @@ class Product extends CatalogItem {
   }
 
   factory Product.fromJson(Map<String, dynamic> json) {
-    // debugPrint("Converting the following JSON to a Product. Here's the JSON:");
-    // debugPrint("------");
-    // debugPrint((const JsonEncoder.withIndent('   ')).convert(json));
-    // debugPrint("------");
     return Product(
       name: json['name'],
       id: json['id'],
@@ -707,17 +661,210 @@ class Product extends CatalogItem {
   }
 }
 
-// TODO: Do better :/
+
+sealed class EItem {
+  static ECategory createEditorCatalog(ProductCategory catalogCopy) {
+
+    ECategory traverseCategory(category) {
+      List<EItem> editorItems = [];
+
+      for (var item in category.catalogItems) {
+        switch (item) {
+          case ProductCategory _ : {
+            ECategory newItem = traverseCategory(item);
+            editorItems.add(newItem);
+          }
+          case Product _ : {
+            editorItems.add(EProduct(product: item));
+          }
+        }
+      }
+
+      return ECategory(category: category, editorItems: editorItems);
+    }
+
+
+    return traverseCategory(catalogCopy);
+  }
+
+  static EItem? getItemById({required root, required id}) {
+    EItem? result;
+
+    void traverseItems(ECategory category) {
+      if (category.id == id) {
+        result = category;
+        return;
+      }
+      for (var item in category.editorItems) {
+        switch (item) {
+          case ECategory _: {
+            traverseItems(item);
+            if (result != null) {
+              return;
+            }
+          }
+          case EProduct _: {
+            if (item.id == id) {
+              result = item;
+            }
+          }
+        }
+      }
+    }
+
+    traverseItems(root);
+
+    return result;
+  }
+
+  ECategory? getParentById({required root});
+}
+
+class ECategory extends EItem {
+  final ProductCategory category;
+  final String id;
+  final String? parentId;
+  late List<EItem> editorItems;
+  bool showChildren = false;
+  ECategory({required this.category, required this.editorItems}) : id = category.id, parentId = category.parentId;
+
+  bool open = false;
+  bool previousOpen = false; 
+
+  
+  Widget buildListTile({int? index, VoidCallback? onArrowCallback, VoidCallback? onEditCallback, TickerProvider? ticker}) {
+    Tween<double>? closeTween;
+    Tween<double>? openTween;
+    AnimationController? controller; 
+
+
+    if (ticker != null) {
+      closeTween = Tween<double>(begin: 1, end: 0.75);
+      openTween = Tween<double>(begin: 0.75, end: 1);
+      controller = AnimationController(vsync: ticker, duration: const Duration(milliseconds: 100));
+      controller.forward();
+    }
+
+    return InkWell(
+      key: Key(id),
+      onTap: () {
+        previousOpen = open;
+        if (onEditCallback != null) {onEditCallback();}
+      },
+      child: ListTile(
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (onArrowCallback != null) 
+              open ?
+                InkWell(
+                  onTap: () {
+                    open = false;
+                    previousOpen = true;
+                    onArrowCallback();
+                  }, 
+                  child: (open == previousOpen) ? 
+                    const Icon(Icons.keyboard_arrow_down)
+                    : (openTween != null) ? 
+                      RotationTransition(turns: openTween.animate(controller!), child: const Icon(Icons.keyboard_arrow_down)) 
+                      : const Icon(Icons.keyboard_arrow_down)
+                )
+                : InkWell(
+                  onTap: () {
+                    open = true; 
+                    previousOpen = false;
+                    onArrowCallback();
+                  },
+                  child: (open == previousOpen) ? 
+                    Transform.rotate(angle: -math.pi/2, child: const Icon(Icons.keyboard_arrow_down))
+                    : (closeTween != null) ? 
+                      RotationTransition(turns: closeTween.animate(controller!), child: const Icon(Icons.keyboard_arrow_down)) 
+                      : const Icon(Icons.keyboard_arrow_down),
+                ),
+            const Icon(Icons.folder_outlined, size: 20),
+            const SizedBox(width: 5),
+            Expanded(child: Text(category.name, style: const TextStyle(color: Colors.black, fontSize: 14.0))),
+          ]
+        ),
+        //subtitle: const Text("Category", style: TextStyle(fontSize: 12.0, fontStyle: FontStyle.italic)),
+        trailing: (index != null) ? ReorderableDelayedDragStartListener(index: index, child: const Icon(Icons.drag_handle)) : const SizedBox(),
+      )
+    );
+  }
+
+  @override
+  ECategory? getParentById({required root}) {
+    return EItem.getItemById(root: root, id: parentId) as ECategory;
+  }
+
+  List<ECategory> getSubCategories() {
+    List<ECategory> subCategories = [];
+
+    void traverseCategories(ECategory category) {
+      subCategories.add(category); // Add the current category to the list
+
+      // Traverse subcategories recursively
+      for (var item in category.editorItems) {
+        if (item is ECategory) {
+          traverseCategories(item);
+        }
+      }
+    }
+
+    traverseCategories(this);
+
+    return subCategories;
+  }
+}
+
+class EProduct extends EItem {
+  final Product product;
+  final String id;
+  final String? parentId;
+  EProduct({required this.product}) : id = product.id, parentId = product.parentId;
+
+
+  Widget buildListTile({int? index, VoidCallback? onEditCallback}) {
+    return InkWell(
+      key: Key(id),
+      onTap: () {
+        if (onEditCallback != null) {onEditCallback();}
+      },
+      child: ListTile(
+        title: Row(
+          children: [
+            const Icon(Icons.conveyor_belt, size: 20,),
+            const SizedBox(width: 10),
+            Expanded(child: Text(product.name, style: const TextStyle(color: Colors.black, fontSize: 14.0))), 
+          ]  
+        ),
+        // subtitle: const Padding(
+        //   padding: EdgeInsets.only(left: 30), 
+        //   child: Text("Product", style: TextStyle(fontSize: 12.0, fontStyle: FontStyle.italic)),
+        // ),
+        trailing: (index != null) ? ReorderableDelayedDragStartListener(index: index, child: const Icon(Icons.drag_handle)) : const SizedBox(),
+      )
+    );
+  }
+
+  @override
+  ECategory? getParentById({required root}) {
+    return EItem.getItemById(root: root, id: parentId) as ECategory;
+  }
+}
+
+
 sealed class BrochureItem {
   Widget buildItem(BuildContext context);
 }
 
 class BrochureHeader implements BrochureItem {
   String header;
+  List<BrochureItem> items;
   final TextEditingController controller;
 
-  BrochureHeader({required this.header}) : controller = TextEditingController(text: header);
-  BrochureHeader.basic() : header="New Header", controller = TextEditingController();
+  BrochureHeader({required this.header}) : controller = TextEditingController(text: header), items = [];
+  BrochureHeader.basic() : header="New Header", controller = TextEditingController(), items = [];
 
   @override
   Widget buildItem(BuildContext context) {
@@ -739,10 +886,11 @@ class BrochureHeader implements BrochureItem {
 
 class BrochureSubheader implements BrochureItem {
   String subheader;
+  List<BrochureEntry> entries;
   final TextEditingController controller;
 
-  BrochureSubheader({required this.subheader}) : controller = TextEditingController(text: subheader);
-  BrochureSubheader.basic() : subheader="New Subheader", controller = TextEditingController();
+  BrochureSubheader({required this.subheader}) : controller = TextEditingController(text: subheader), entries = [];
+  BrochureSubheader.basic() : subheader="New Subheader", controller = TextEditingController(), entries = [];
 
   @override
   Widget buildItem(BuildContext context) {

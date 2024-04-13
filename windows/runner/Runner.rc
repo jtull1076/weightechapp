@@ -95,7 +95,7 @@ BEGIN
             VALUE "InternalName", "weightechapp" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2024 com.example. All rights reserved." "\0"
             VALUE "OriginalFilename", "weightechapp.exe" "\0"
-            VALUE "ProductName", "weightechapp" "\0"
+            VALUE "ProductName", "WeighTech Inc. Sales" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

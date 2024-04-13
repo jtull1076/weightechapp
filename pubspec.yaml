@@ -8,19 +8,24 @@ environment:
 
 dependencies:
   carousel_slider: ^4.2.1
+  desktop_drop: ^0.4.4
   dotted_border: ^2.1.0
+  file_picker: ^5.2.10
   firebase_core: ^2.26.0
   firebase_storage: ^11.6.8
   flutter:
     sdk: flutter
+  flutter_launcher_icons: ^0.13.1
   flutter_markdown: ^0.6.22+1
   google_fonts: ^6.2.1 
   image_picker: ^1.0.7
+  path_provider: ^2.1.2
   provider: ^6.1.2
   shortid: ^0.1.2
   simple_rich_text: ^2.0.49
   video_player: ^2.8.3
   wakelock: ^0.6.2
+  window_manager: ^0.3.8
 
 dev_dependencies:
   flutter_test:
@@ -32,3 +37,14 @@ flutter:
   assets:
     - assets/weightech_logo.png
     - assets/product_images/
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path_ios: "assets/icon/apple_icon.png"
+  remove_alpha_ios: true
+  image_path: "assets/icon/icon.png"
+  windows:
+    generate: true
+    image_path: "path/to/image.png"
+    icon_size: 48
