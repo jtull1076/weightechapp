@@ -1,5 +1,6 @@
 import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/painting.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
@@ -11,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:weightechapp/firebase_options.dart';
+import 'package:weightechapp/extra_widgets.dart';
 import 'package:wakelock/wakelock.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:mime/mime.dart';
@@ -19,6 +21,7 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import 'dart:async';
 import 'dart:ui';
 import 'dart:io';
+import 'dart:math' as math;
 import 'package:simple_rich_text/simple_rich_text.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:path_provider/path_provider.dart';
@@ -376,7 +379,7 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                           _timer.cancel();
                           Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const IdlePage()));
                         },
-                        child: Padding(padding: const EdgeInsets.only(top: 10.0), child: Image.asset('assets/weightech_logo.png', height: 100, alignment: Alignment.center,)),
+                        child: Padding(padding: const EdgeInsets.only(top: 10.0), child: Image.asset('assets/weightech_logo.png', height: 100, cacheHeight: 150, cacheWidth: 394, alignment: Alignment.center,)),
                       ),
                   ),
                   Align(
@@ -961,7 +964,7 @@ class _ListingPageState extends State<ListingPage> with TickerProviderStateMixin
                                         padding: const EdgeInsets.only(top: 10.0), 
                                         child: Hero(
                                           tag: 'main-logo',
-                                          child: Image.asset('assets/weightech_logo.png', height: 100, alignment: Alignment.center,)
+                                          child: Image.asset('assets/weightech_logo.png', height: 100, cacheHeight: 150, cacheWidth: 394, alignment: Alignment.center,)
                                         ),
                                       )
                                     ),
@@ -976,7 +979,7 @@ class _ListingPageState extends State<ListingPage> with TickerProviderStateMixin
                                           icon: const Icon(Icons.arrow_back),
                                           iconSize: 30,
                                           color: const Color(0xFF224190),
-                                          onPressed: () => Navigator.pop(context),
+                                          onPressed: () {}
                                         )
                                     )
                                 ),
@@ -1061,15 +1064,22 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
   late ECategory _editorAll;
 
   EItem? _focusItem;
+  late bool _addingItem;
+  late bool _dragging;
   late List<EItem> _itemsToDisplay;
 
   final TextEditingController _dropdownController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _modelNumberController = TextEditingController();
+  late int _brochureActiveIndex;
+
+  final ScrollController _scrollController = ScrollController();
 
   late List<String> _imagePaths;
   late bool _fileDragging;
+  late bool _hoverOnAll;
+  late bool _hoverOnDelete;
 
   @override
   void initState() {
@@ -1087,10 +1097,16 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
     _itemsToDisplay = _editorAll.editorItems;
     _selectedCategory = _editorAll;
 
+    _addingItem = false;
+    _dragging = false;
+    _hoverOnAll = false;
+    _hoverOnDelete = false;
+
+    _brochureActiveIndex = -1;
     _imagePaths = [];
     _fileDragging = false;
 
-    initEditor(_focusItem);
+    toggleEditorItem(_focusItem);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       //Future.delayed(const Duration(seconds: 5), () =>
@@ -1098,26 +1114,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
       //);
     });
   }
-
-  void initEditor(EItem? focusItem) {
-    switch (focusItem) {
-      case EProduct _ : {
-        _brochure = focusItem.product.retrieveBrochureList();
-        _nameController.text = focusItem.product.name;
-        _descriptionController.text = focusItem.product.description ?? '';
-        _modelNumberController.text = focusItem.product.modelNumber ?? '';
-        _selectedCategory = focusItem.getParent(root: _editorAll) ?? _editorAll;
-        _itemSelection = ItemSelect.product;
-      }
-      case ECategory _ : {
-        _nameController.text = focusItem.category.name;
-        _selectedCategory = focusItem.getParent(root: _editorAll) ?? _editorAll;
-      }
-      case null : {
-      }
-    }
-  }
-
+  
   @override
   void dispose() {
     _animationController.dispose();
@@ -1133,10 +1130,16 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
     return Consumer<ProductManager>(
       builder: (context, productManager, child) {
         return Scaffold(
-          floatingActionButton: FloatingActionButton(child: const Text("Save & Exit"), onPressed: () {
-            ProductManager.all.catalogItems = _catalogCopy.catalogItems;
-            Navigator.pop(context); 
-          }),
+          floatingActionButton: FloatingActionButton.extended(
+            backgroundColor: const Color(0xFF7E7E80),
+            foregroundColor: Colors.white,
+            hoverColor: const Color(0xFF224190),
+            label: const Text("Save & Exit"),
+            onPressed: () {
+              ProductManager.all.catalogItems = _catalogCopy.catalogItems;
+              Navigator.of(context).pop();
+            }
+          ),
           body: Column(
             children: <Widget>[
               SizedBox(
@@ -1174,7 +1177,12 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                     icon: const Icon(Icons.arrow_back),
                                     iconSize: 30,
                                     color: const Color(0xFF224190),
-                                    onPressed: () => Navigator.pop(context),
+                                    onPressed: () async {
+                                      bool confirm = await _showExitDialog(context);
+                                      if (confirm && context.mounted) {
+                                        Navigator.of(context).pop();
+                                      }
+                                    },
                                   )
                               )
                           )
@@ -1219,38 +1227,176 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                   children: [
                     Flexible(
                       flex: 2,
-                      child: 
-                        Column(
-                          children: [
-                            Container(
-                              decoration: const BoxDecoration(
-                                color: Color(0x99C9C9CC),
-                                border: Border(
-                                  right: BorderSide(color: Color(0xFF224190), width: 2.0),
-                                  left: BorderSide(color: Color(0xFF224190), width: 2.0),
-                                  bottom: BorderSide(color: Color(0xFF224190), width: 2.0),
-                                )
-                              ),
-                              height: MediaQuery.of(context).size.height - 158,
-                              width: double.infinity,
-                              child: SingleChildScrollView(
-                                child: catalogBuilder(item: _editorAll)
+                      child: Listener(
+                        onPointerMove: (PointerMoveEvent event) {
+                          if (_dragging) {
+                            if ((event.position.dy > MediaQuery.of(context).size.height - 50)) {
+                              _scrollController.animateTo(
+                                math.min(_scrollController.offset + 20, _scrollController.position.maxScrollExtent),
+                                duration: const Duration(milliseconds: 10),
+                                curve: Curves.linear,
+                              );
+                            }
+                          }
+                        },
+                        child: Container(
+                            decoration: const BoxDecoration(
+                              color: Color(0x99C9C9CC),
+                              border: Border(
+                                right: BorderSide(color: Color(0xFF224190), width: 2.0),
+                                left: BorderSide(color: Color(0xFF224190), width: 2.0),
+                                bottom: BorderSide(color: Color(0xFF224190), width: 2.0),
                               )
                             ),
-                          ]
-                        )
+                            height: MediaQuery.of(context).size.height - 158,
+                            width: double.infinity,
+                            child: Stack(
+                              children: [
+                                SingleChildScrollView(
+                                  controller: _scrollController,
+                                  child: catalogBuilder(item: _editorAll)
+                                ),
+                                if (_dragging)
+                                  Positioned(
+                                    bottom: 20,
+                                    left: 20,
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        InkWell(
+                                          onTap: () {},
+                                          onHover: (isHovering) {
+                                            if (isHovering) {
+                                              setState(() => _hoverOnAll = true);
+                                            }
+                                            else {
+                                              setState(() => _hoverOnAll = false);
+                                            }
+                                          },
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
+                                            alignment: Alignment.center,
+                                            child: ClipRRect(
+                                              borderRadius: BorderRadius.circular(8.0),
+                                              child: DragTarget<EItem>(
+                                                onWillAcceptWithDetails: (details) {
+                                                  return (!_editorAll.editorItems.contains(details.data));
+                                                },
+                                                onAcceptWithDetails: (details) {
+                                                  ECategory parent = details.data.getParent(root: _editorAll)!;
+                                                  parent.editorItems.remove(details.data);
+
+                                                  details.data.rank = 0;
+                                                  details.data.parentId = _editorAll.id;
+                                                  _editorAll.editorItems.add(details.data);
+                                                },
+                                                builder: (context, accepted, rejected) {
+                                                  return AnimatedContainer(
+                                                    alignment: Alignment.center,
+                                                    duration: const Duration(milliseconds: 100),
+                                                    transformAlignment: Alignment.center,
+                                                    color: _hoverOnAll ? const Color(0xFF224190) : const Color(0xFF808082),
+                                                    width: _hoverOnAll ? 120 : 80,
+                                                    height: _hoverOnAll ? 60 : 40,
+                                                    child: const Icon(Icons.vertical_align_top, color: Colors.white)
+                                                  );
+                                                }
+                                              )
+                                            )
+                                          )
+                                        ),
+                                        const SizedBox(height: 20),
+                                        InkWell(
+                                          onTap: () {},
+                                          onHover: (isHovering) {
+                                            if (isHovering) {
+                                              setState(() => _hoverOnDelete = true);
+                                            }
+                                            else {
+                                              setState(() => _hoverOnDelete = false);
+                                            }
+                                          },
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
+                                            child: ClipRRect(
+                                              borderRadius: BorderRadius.circular(8.0),
+                                              child: DragTarget<EItem>(
+                                                onWillAcceptWithDetails: (details) {
+                                                  return true;
+                                                },
+                                                onAcceptWithDetails: (details) async {
+                                                  bool confirm = await _showAlertDialog(context, details.data);
+                                                  if (confirm) {
+                                                    ECategory parent = details.data.getParent(root: _editorAll)!;
+                                                    parent.editorItems.remove(details.data);
+                                                    setState(() {});
+                                                  }
+                                                },
+                                                builder: (context, accepted, rejected) {
+                                                  return AnimatedContainer(
+                                                    alignment: Alignment.center,
+                                                    duration: const Duration(milliseconds: 100),
+                                                    transformAlignment: Alignment.center,
+                                                    width: _hoverOnDelete ? 120 : 80,
+                                                    height: _hoverOnDelete ? 60 : 40,
+                                                    color: _hoverOnDelete ? const Color(0xFFC3291B) : const Color(0xFF808082),
+                                                    child: const Icon(Icons.delete, color: Colors.white)
+                                                  );
+                                                }
+                                              )
+                                            )
+                                          )
+                                        ),
+                                      ]
+                                    ),
+                                  ),
+                                ExpandableFab(
+                                  distance: 60,
+                                  children: [
+                                    ActionButton(
+                                      onPressed: () => setState(() {
+                                        _focusItem = null;
+                                        toggleEditorItem(_focusItem);
+                                        _addingItem = true;
+                                        _itemSelection = ItemSelect.category;
+                                      }),
+                                      icon: const Icon(Icons.folder),
+                                    ),
+                                    ActionButton(
+                                      onPressed: () {
+                                        setState(() {
+                                          _focusItem = null;
+                                          toggleEditorItem(_focusItem);
+                                          _addingItem = true;
+                                          _itemSelection = ItemSelect.product;
+                                        });
+                                      },
+                                      icon: const Icon(Icons.conveyor_belt),
+                                    ),
+                                  ],
+                                )
+                              ]
+                            )
+                          )
+                      )
                     ),
-                    Expanded(
+                    Flexible(
                       flex: 5,
-                      child: switch(_focusItem) {
-                        EProduct _ => productEditor(product : _focusItem as EProduct),
-                        ECategory _ => categoryEditor(category : _focusItem as ECategory),
-                        null => Container(
-                          alignment: Alignment.center,
-                          height: MediaQuery.of(context).size.height - 158,
-                          child: const Text("To begin, select a product/category to the left, or select '+' to add a new item.", textAlign: TextAlign.center, style: TextStyle(fontSize: 16))
-                        )
-                      }
+                      child: 
+                        switch(_focusItem) {
+                          EProduct _ => productEditor(product : _focusItem as EProduct),
+                          ECategory _ => categoryEditor(category : _focusItem as ECategory),
+                          null => _addingItem ?
+                            switch(_itemSelection) {
+                              ItemSelect.category => categoryEditor(),
+                              ItemSelect.product => productEditor(),
+                            }
+                            : Container(
+                              alignment: Alignment.center,
+                              height: MediaQuery.of(context).size.height - 158,
+                              child: const Text("To begin, select a product/category to the left, or select '+' to add a new item.", textAlign: TextAlign.center, style: TextStyle(fontSize: 16))
+                          )
+                        }
                     )
                   ]
                 )
@@ -1266,17 +1412,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
     return Column(
       children: [
         buildItemsList(item: item),
-        const SizedBox(height: 20),
-        ElevatedButton(
-          style: const ButtonStyle(
-            backgroundColor: MaterialStatePropertyAll<Color>(Color(0xFFCCCCCC)),
-          ),
-          onPressed: () {
-
-          }, 
-          child: const Icon(Icons.add, color: Color(0xFF222222))
-        ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 100),
       ]
     );
   }
@@ -1302,8 +1438,20 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                         index: index, 
                         onArrowCallback: () => setState(() => subItem.showChildren = !subItem.showChildren), 
                         onEditCallback: () => toggleEditorItem(subItem),
-                        onDragStarted: () => setState(() => subItem.showChildren = false),
-                        onDragCompleted: () => subItem.getParent(root: _editorAll)?.editorItems.remove(subItem),
+                        onDragStarted: () => setState(() {
+                          subItem.showChildren = false; 
+                          _dragging = true;
+                        }),
+                        onDragCompleted: () => setState(() {
+                          _dragging = false;
+                          _hoverOnAll = false;
+                          _hoverOnDelete = false;
+                        }),
+                        onDragCanceled: () => setState(() {
+                          _dragging = false;
+                          _hoverOnAll = false;
+                          _hoverOnDelete = false;
+                        }),                       
                         ticker: this,
                       ),
                       const Divider(color: Colors.grey, indent: 20, endIndent: 20, height: 1, thickness: 1),
@@ -1321,7 +1469,19 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                       subItem.buildListTile(
                         index: index, 
                         onEditCallback: () => toggleEditorItem(subItem),
-                        onDragCompleted: () => setState(() => subItem.getParent(root: _editorAll)?.editorItems.remove(subItem)),
+                        onDragCompleted: () => setState(() {
+                          _dragging = false;
+                          _hoverOnAll = false;
+                          _hoverOnDelete = false;
+                        }),
+                        onDragStarted: () => setState(() {
+                          _dragging = true;
+                        }),
+                        onDragCanceled: () => setState(() {
+                          _dragging = false;
+                          _hoverOnAll = false;
+                          _hoverOnDelete = false;
+                        })
                       ),
                       const Divider(color: Colors.grey, indent: 30, endIndent: 30, height: 1, thickness: 1,)
                     ]
@@ -1340,251 +1500,745 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
   }
 
   Widget productEditor({EProduct? product}) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(width: 25),
-        Flexible(
+    return SizedBox(
+      height: MediaQuery.of(context).size.height - 158,
+      width: double.infinity,
+      child:
+        SingleChildScrollView(
           child: 
             Column(
               children: [
-                const SizedBox(height: 25),
-                TextFormField(
-                  controller: _nameController,
-                  decoration: const InputDecoration(
-                    labelText: "Product Name *"
-                  ),
-                  validator: (String? value) {
-                    return (value == null || value == '') ? "Name required." : null;
-                  }
-                ),
-                TextFormField(
-                  controller: _modelNumberController,
-                  decoration: const InputDecoration(
-                    labelText: "Product Model Number"
-                  ),
+                Container(
+                  constraints: const BoxConstraints(minHeight: 360),
+                  child: 
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(width: 25),
+                        Flexible(
+                          flex: 2,
+                          child: Container(
+                            padding: const EdgeInsets.only(left: 20),
+                            alignment: Alignment.center,
+                            height: 340,
+                            child: 
+                              Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  TextFormField(
+                                    controller: _nameController,
+                                    decoration: const InputDecoration(
+                                      labelText: "Product Name *"
+                                    ),
+                                    validator: (String? value) {
+                                      return (value == null || value == '') ? "Name required." : null;
+                                    }
+                                  ),
+                                  TextFormField(
+                                    controller: _modelNumberController,
+                                    decoration: const InputDecoration(
+                                      labelText: "Product Model Number"
+                                    ),
+                                  ),
+                                  const SizedBox(height: 20),
+                                  DropdownMenu<ECategory>(
+                                    label: const Text("Category *"),
+                                    controller: _dropdownController,
+                                    initialSelection: _focusItem?.getParent(root: _editorAll) ?? _editorAll,
+                                    dropdownMenuEntries: _editorAll.getSubCategories().map<DropdownMenuEntry<ECategory>>((ECategory category){
+                                      return DropdownMenuEntry<ECategory>(
+                                        value: category,
+                                        label: category.category.name,
+                                      );
+                                    }).toList(),
+                                    onSelected: (newValue) {
+                                      setState((){
+                                        _selectedCategory = newValue!;
+                                      });
+                                    },
+                                  ),
+                                ]
+                              )
+                          )
+                        ),
+                        Flexible(
+                          flex: 3,
+                          child:
+                            Container(
+                              padding: const EdgeInsets.only(left: 50, right: 50, top: 60),
+                              child:
+                                Column(
+                                  children: [
+                                    DropTarget(
+                                      onDragDone: (detail) async {
+                                        List<String> paths = [];
+
+                                        for (var file in detail.files) {
+                                          if (_imagePaths.contains(file.path)) {
+                                            debugPrint("Image already assigned to item.");
+                                            continue;
+                                          }
+                                          String extension = file.path.substring(file.path.length - 4);
+                                          if (extension == ".jpg" || extension == ".png") {
+                                            debugPrint("Image added to paths: ${file.path}");
+                                            paths.add(file.path);
+                                          }
+                                          else if (file.path.substring(file.path.length - 5) == ".jpeg") {
+                                            debugPrint("Image added to paths: ${file.path}");
+                                            paths.add(file.path);
+                                          }
+                                          else {
+                                            debugPrint("Invalid file type: File type $extension not supported.");
+                                          }
+                                        }
+
+                                        setState(() {
+                                          _imagePaths.addAll(paths);
+                                        });
+                                      },
+                                      onDragEntered: (details) => setState(() => _fileDragging = true),
+                                      onDragExited: (details) => setState(() => _fileDragging = false),
+                                      child: AnimatedContainer(
+                                        duration: const Duration(milliseconds: 150),
+                                        padding: EdgeInsets.symmetric(horizontal: _fileDragging ? 0 : 15, vertical: _fileDragging ? 0 : 15),
+                                        width: 400,
+                                        height: (_imagePaths.isNotEmpty) ? 100 : 250,
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(10),
+                                          border: Border.all(color: Colors.black),
+                                        ),
+                                        child: AnimatedContainer(
+                                          duration: const Duration(milliseconds: 50),
+                                          decoration: BoxDecoration(
+                                            borderRadius: BorderRadius.circular(10),
+                                            color: _fileDragging ? const Color(0x33224190) : const Color(0x55C9C9CC),
+                                          ),
+                                          height: (_imagePaths.isNotEmpty) ? 100 : 250,
+                                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 5),
+                                          alignment: Alignment.center,
+                                          child: 
+                                            _imagePaths.isEmpty ?
+                                              SingleChildScrollView(
+                                                physics: const NeverScrollableScrollPhysics(),
+                                                child: Column(
+                                                  mainAxisAlignment: MainAxisAlignment.center, 
+                                                  children: [
+                                                    const Icon(Icons.image, size: 70),
+                                                    const Text("Drag and drop file here", style: TextStyle(fontWeight: FontWeight.bold)),
+                                                    const SizedBox(height: 10),
+                                                    const Row(
+                                                      mainAxisAlignment: MainAxisAlignment.center, 
+                                                      children: [
+                                                        Expanded(child: Divider(color: Colors.black, height: 1, thickness: 1, indent: 70, endIndent: 15)), 
+                                                        Text("or"), 
+                                                        Expanded(child: Divider(color: Colors.black, height: 1, thickness: 1, indent: 15, endIndent: 70))
+                                                      ]
+                                                    ),
+                                                    const SizedBox(height: 10),
+                                                    OutlinedButton(
+                                                      style: const ButtonStyle(
+                                                        foregroundColor: MaterialStatePropertyAll<Color>(Colors.black)
+                                                      ),                 
+                                                      onPressed: () async {
+                                                        FilePickerResult? result = await FilePicker.platform.pickFiles(allowMultiple: true, type: FileType.image, allowedExtensions: ['png', 'jpg']);
+                                                        if (result != null) {
+                                                          List<String> paths = [];
+
+                                                          for (var path in result.paths) {
+                                                            if (path != null) {
+                                                              paths.add(path);
+                                                            }
+                                                          }
+
+                                                          setState(() => _imagePaths.addAll(paths));
+                                                          debugPrint("File upload successful: ${result.files.first.path}");
+                                                        }
+                                                        else {
+                                                          debugPrint("File upload aborted/failed.");
+                                                        }
+                                                      },
+                                                      child: const Text("Browse Files")
+                                                    ),
+                                                    const SizedBox(height: 10),
+                                                    const Text("File must be .jpg or .png", style: TextStyle(fontSize: 12.0, fontStyle: FontStyle.italic))
+                                                  ]
+                                                )
+                                            )
+                                            : Row(
+                                              mainAxisAlignment: MainAxisAlignment.center,
+                                              children: [
+                                                const Text("Drag and drop file here", style: TextStyle(fontWeight: FontWeight.bold)),
+                                                const SizedBox(width: 20),
+                                                const Column(
+                                                  mainAxisAlignment: MainAxisAlignment.center, 
+                                                  children: [
+                                                    Expanded(child: VerticalDivider(color: Colors.black, width: 1, thickness: 1, indent: 10, endIndent: 1)), 
+                                                    Text("or"), 
+                                                    Expanded(child: VerticalDivider(color: Colors.black, width: 1, thickness: 1, indent: 1, endIndent: 10))
+                                                  ]
+                                                ),
+                                                const SizedBox(width: 20),
+                                                OutlinedButton(
+                                                  style: const ButtonStyle(
+                                                    foregroundColor: MaterialStatePropertyAll<Color>(Colors.black)
+                                                  ),                 
+                                                  onPressed: () async {
+                                                    FilePickerResult? result = await FilePicker.platform.pickFiles(allowMultiple: true, type: FileType.image, allowedExtensions: ['png', 'jpg']);
+                                                    if (result != null) {
+                                                      List<String> paths = [];
+
+                                                      for (var path in result.paths) {
+                                                        if (path != null) {
+                                                          paths.add(path);
+                                                        }
+                                                      }
+
+                                                      setState(() => _imagePaths.addAll(paths));
+                                                      debugPrint("File upload successful: ${result.files.first.path}");
+                                                    }
+                                                    else {
+                                                      debugPrint("File upload aborted/failed.");
+                                                    }
+                                                  },
+                                                  child: const Text("Browse Files")
+                                                ),
+                                              ]
+                                            )
+                                        ),
+                                      ), 
+                                    ),
+                                    const SizedBox(height: 10),
+                                    SizedBox(
+                                      width: 300,
+                                      child: ListView.builder(
+                                        shrinkWrap: true,
+                                        physics: const NeverScrollableScrollPhysics(),
+                                        itemCount: _imagePaths.length,
+                                        itemBuilder:(context, index) {
+                                          File image = File(_imagePaths[index]);
+                                          return Column(
+                                            children: [
+                                              Container(
+                                                decoration: BoxDecoration(
+                                                  color: const Color(0x55C9C9CC),
+                                                  borderRadius: BorderRadius.circular(15)
+                                                ),
+                                                alignment: Alignment.center,
+                                                height: 33,
+                                                padding: const EdgeInsets.symmetric(horizontal: 10),
+                                                child:
+                                                  Row(
+                                                    mainAxisSize: MainAxisSize.min,
+                                                    children: [
+                                                      Text("${index+1}."),
+                                                      const SizedBox(width: 10),
+                                                      Expanded(
+                                                        child:
+                                                          Text(image.uri.pathSegments.last, overflow: TextOverflow.ellipsis)
+                                                      ),
+                                                      const SizedBox(width: 10),
+                                                      IconButton(
+                                                        style: const ButtonStyle(
+                                                          backgroundColor: MaterialStatePropertyAll<Color>(Color(0xFFA9A9AA)),
+                                                          minimumSize: MaterialStatePropertyAll<Size>(Size(25,25)),
+                                                          fixedSize: MaterialStatePropertyAll<Size>(Size(25,25))
+                                                        ),
+                                                        padding: EdgeInsets.zero,
+                                                        icon: const Icon(Icons.remove_red_eye),
+                                                        color: Colors.white,
+                                                        hoverColor: const Color(0xFF224190),
+                                                        iconSize: 18,
+                                                        onPressed: () async {
+                                                          await _previewImage(context, image);
+                                                        }
+                                                      ),
+                                                      const SizedBox(width: 10),
+                                                      IconButton(
+                                                        style: const ButtonStyle(
+                                                          backgroundColor: MaterialStatePropertyAll<Color>(Color(0xFFA9A9AA)),
+                                                          minimumSize: MaterialStatePropertyAll<Size>(Size(25,25)),
+                                                          fixedSize: MaterialStatePropertyAll<Size>(Size(25,25))
+                                                        ),
+                                                        padding: EdgeInsets.zero,
+                                                        icon: const Icon(Icons.close),
+                                                        color: Colors.white,
+                                                        hoverColor: const Color(0xFFC3291B),
+                                                        iconSize: 18,
+                                                        onPressed: () => setState(() => _imagePaths.removeAt(index))
+                                                      )
+                                                    ],
+                                                  )
+                                              ),
+                                              const SizedBox(height: 5),
+                                            ]
+                                          );
+                                        },
+                                      )
+                                    )
+                                  ]
+                                )
+                            )
+                        )
+                      ]
+                    ),
                 ),
                 const SizedBox(height: 20),
-                DropdownMenu<ECategory>(
-                  label: const Text("Category *"),
-                  controller: _dropdownController,
-                  initialSelection: _focusItem?.getParent(root: _editorAll) ?? _editorAll,
-                  dropdownMenuEntries: _editorAll.getSubCategories().map<DropdownMenuEntry<ECategory>>((ECategory category){
-                    return DropdownMenuEntry<ECategory>(
-                      value: category,
-                      label: category.category.name,
-                    );
-                  }).toList(),
-                  onSelected: (newValue) {
-                    setState((){
-                      _selectedCategory = newValue!;
-                    });
-                  },
+                const Padding(
+                  padding: EdgeInsets.only(left: 150, right: 150, bottom: 10), 
+                  child: 
+                    Text("Product Description", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 ),
+                Padding(
+                  padding: const EdgeInsets.only(left: 150, right: 150, bottom: 20),
+                  child: 
+                    TextFormField(
+                      controller: _descriptionController,
+                      decoration: const InputDecoration(
+                        labelText: "Overview"
+                      ),
+                      minLines: 1,
+                      maxLines: null,
+                      keyboardType: TextInputType.multiline,
+                    )
+                ),
+                Padding( 
+                  padding: const EdgeInsets.symmetric(horizontal: 150),
+                  child:
+                    Container(
+                      alignment: Alignment.centerLeft,
+                      child: 
+                        ReorderableListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          buildDefaultDragHandles: false,
+                          itemCount: _brochure.length,
+                          itemBuilder: (context, index) {
+                            final item = _brochure[index];
+                            
+                            return MouseRegion(
+                              key: Key('Mouse_$index'),
+                              onEnter: (PointerEnterEvent evt) {
+                                setState((){
+                                  _brochureActiveIndex = index;
+                                });
+                              },
+                              onExit: (PointerExitEvent evt) {
+                                setState((){
+                                  _brochureActiveIndex = -1;
+                                });
+                              },
+                              child:
+                                Column(
+                                  children: [
+                                    Padding(
+                                      padding: const EdgeInsets.only(bottom: 0),
+                                      child: 
+                                        ReorderableDelayedDragStartListener(
+                                          index: index,
+                                          child: Row(
+                                            children: [
+                                              Expanded(
+                                                child: item.buildItem(context)
+                                              ), 
+                                              if (index == _brochureActiveIndex)
+                                                IconButton(
+                                                  hoverColor: const Color(0x55C3291B),
+                                                  icon: const Icon(Icons.delete), 
+                                                  onPressed: () => setState(()=> _brochure.removeAt(index)) 
+                                                )
+                                            ]
+                                          )
+                                        )
+                                    ),
+                                    if(_brochureActiveIndex == index)
+                                      Container(
+                                        padding: const EdgeInsets.only(top: 10),
+                                        width: 450,
+                                        height: 30,
+                                        alignment: Alignment.bottomCenter,
+                                        child:
+                                            Row(
+                                              children: [
+                                                Expanded(
+                                                  child: 
+                                                  ElevatedButton(
+                                                    style: const ButtonStyle(
+                                                      backgroundColor: MaterialStatePropertyAll<Color>(Color(0xFFC9C9CC)),
+                                                      foregroundColor: MaterialStatePropertyAll<Color>(Colors.black),
+                                                      visualDensity: VisualDensity(horizontal: -4),
+                                                    ),
+                                                    onPressed: () {
+                                                      setState((){
+                                                        int newItemIndex = index+1;
+                                                        _brochure.insert(newItemIndex, BrochureHeader.basic());
+                                                      });
+                                                    }, 
+                                                    child: const Text("Header+")
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 20),
+                                                Expanded(
+                                                  child: 
+                                                    ElevatedButton(
+                                                      style: const ButtonStyle(
+                                                        backgroundColor: MaterialStatePropertyAll<Color>(Color(0xFFC9C9CC)),
+                                                        foregroundColor: MaterialStatePropertyAll<Color>(Colors.black),
+                                                      ),
+                                                      onPressed: () {
+                                                        setState((){
+                                                          int newItemIndex = index+1;
+                                                          _brochure.insert(newItemIndex, BrochureSubheader.basic());
+                                                        });
+                                                      }, 
+                                                      child: const Text("Subheader+")
+                                                    ),
+                                                ),
+                                                const SizedBox(width: 20),
+                                                Expanded(
+                                                  child:
+                                                    ElevatedButton(
+                                                      style: const ButtonStyle(
+                                                        backgroundColor: MaterialStatePropertyAll<Color>(Color(0xFFC9C9CC)),
+                                                        foregroundColor: MaterialStatePropertyAll<Color>(Colors.black),
+                                                      ),
+                                                      onPressed: () {
+                                                        setState((){
+                                                          int newItemIndex = index+1;
+                                                          _brochure.insert(newItemIndex, BrochureEntry.basic());
+                                                        });
+                                                      }, 
+                                                      child: const Text("Entry+")
+                                                    )
+                                                )
+                                              ]
+                                            )
+                                      )
+                                  ]
+                                )
+                              );
+                          },
+                          onReorder: (int oldIndex, int newIndex) {
+                            setState(() {
+                              if (oldIndex < newIndex) {
+                                newIndex -= 1;
+                              }
+                              final item = _brochure.removeAt(oldIndex);
+                              _brochure.insert(newIndex, item);
+                            });
+                          },                                                            
+                        )
+                    ),
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  style: const ButtonStyle(
+                    backgroundColor: MaterialStatePropertyAll<Color>(Color(0xFF224190)),
+                    foregroundColor: MaterialStatePropertyAll<Color>(Colors.white)
+                  ),
+                  child: _addingItem ? const Text("Add") : const Text("Save"),
+                  onPressed: () {
+                    if (_addingItem) {
+                      Product newProduct = Product(
+                        name: _nameController.text,
+                        parentId: _selectedCategory.id,
+                        modelNumber: _modelNumberController.text,
+                        description: _descriptionController.text,
+                        brochure: Product.mapListToBrochure(_brochure)
+                      );
+                      EProduct newEProduct = EProduct(product: newProduct, rank: _selectedCategory.rank+1);
+                      _selectedCategory.addItem(newEProduct);
+                    }
+                    else if (product != null) {
+                      product.getParent(root: _editorAll)?.editorItems.remove(product);
+                      product.product.name = _nameController.text;
+                      product.parentId = _selectedCategory.id;
+                      product.product.modelNumber = _modelNumberController.text;
+                      product.product.description = _descriptionController.text;
+                      product.product.brochure = Product.mapListToBrochure(_brochure);
+                      _selectedCategory.addItem(product);
+                      product.rank = _selectedCategory.rank+1;
+                    }
+                    setState(() {
+                      _addingItem = false;
+                      _focusItem = null;
+                    });
+                  }
+                ),
+                const SizedBox(height: 20),
               ]
             )
-        ),
-        Flexible(
-          child:
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 40),
-              child:
-                Column(
-                  children: [
-                    DropTarget(
-                      onDragDone: (detail) async {
-                        List<String> paths = [];
-
-                        for (var file in detail.files) {
-                          String extension = file.path.substring(file.path.length - 4);
-                          if (extension == ".jpg" || extension == ".png") {
-                            debugPrint("Image added to paths: ${file.path}");
-                            paths.add(file.path);
-                          }
-                          else if (file.path.substring(file.path.length - 5) == ".jpeg") {
-                            debugPrint("Image added to paths: ${file.path}");
-                            paths.add(file.path);
-                          }
-                          else {
-                            debugPrint("Invalid file type: File type $extension not supported.");
-                          }
-                        }
-
-                        setState(() {
-                          _imagePaths.addAll(paths);
-                        });
-                      },
-                      onDragEntered: (details) => setState(() => _fileDragging = true),
-                      onDragExited: (details) => setState(() => _fileDragging = false),
-                      child: Container(
-                        width: 400,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: Colors.black),
-                        ),
-                        padding: const EdgeInsets.all(10.0),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(10),
-                            color: _fileDragging ? const Color(0x22224190) : const Color(0x55C9C9CC),
-                          ),
-                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 20),
-                          child: 
-                            Column(
-                              mainAxisAlignment: MainAxisAlignment.center, 
-                              children: [
-                                const Icon(Icons.image, size: 70),
-                                const Text("Drag and drop file here", style: TextStyle(fontWeight: FontWeight.bold)),
-                                const SizedBox(height: 10),
-                                const Row(
-                                  mainAxisAlignment: MainAxisAlignment.center, 
-                                  children: [
-                                    Expanded(child: Divider(color: Colors.black, height: 1, thickness: 1, indent: 70, endIndent: 15)), 
-                                    Text("or"), 
-                                    Expanded(child: Divider(color: Colors.black, height: 1, thickness: 1, indent: 15, endIndent: 70))
-                                  ]
-                                ),
-                                const SizedBox(height: 10),
-                                OutlinedButton(                          
-                                  onPressed: () async {
-                                    FilePickerResult? result = await FilePicker.platform.pickFiles(allowMultiple: true, type: FileType.image, allowedExtensions: ['png', 'jpg']);
-                                    if (result != null) {
-                                      List<String> paths = [];
-
-                                      for (var path in result.paths) {
-                                        if (path != null) {
-                                          paths.add(path);
-                                        }
-                                      }
-
-                                      setState(() => _imagePaths.addAll(paths));
-                                      debugPrint("File upload successful: ${result.files.first.path}");
-                                    }
-                                    else {
-                                      debugPrint("File upload aborted/failed.");
-                                    }
-                                  },
-                                  child: const Text("Browse Files")
-                                ),
-                                const SizedBox(height: 10),
-                                const Text("File must be .jpg or .png", style: TextStyle(fontSize: 12.0, fontStyle: FontStyle.italic))
-                              ]
-                            )
-                        ),
-                      ), 
-                    ),
-                    const SizedBox(height: 10),
-                    ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: _imagePaths.length,
-                      itemBuilder:(context, index) {
-                        File image = File(_imagePaths[index]);
-                        return Row(
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Image.file(image, height: 50),
-                            ),
-                            Expanded(
-                              child:
-                                Text(image.uri.pathSegments.last, overflow: TextOverflow.ellipsis)
-                            )
-                          ],
-                        );
-                      },
-                    )
-                  ]
-                )
-            )
         )
-      ]
     );
   }
 
   Widget categoryEditor({ECategory? category}) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
       children: [
-        const SizedBox(width: 25),
-        Flexible(
-          child: 
-            Column(
-              children: [
-                const SizedBox(height: 25),
-                TextFormField(
-                  controller: _nameController,
-                  decoration: const InputDecoration(
-                    labelText: "Category Name *"
-                  ),
-                  validator: (String? value) {
-                    return (value == null || value == '') ? "Name required." : null;
-                  }
-                ),
-                const SizedBox(height: 20),
-                DropdownMenu<ECategory>(
-                  label: const Text("Category *"),
-                  controller: _dropdownController,
-                  initialSelection: _focusItem?.getParent(root: _editorAll) ?? _editorAll,
-                  dropdownMenuEntries: _editorAll.getSubCategories().map<DropdownMenuEntry<ECategory>>((ECategory category){
-                    return DropdownMenuEntry<ECategory>(
-                      value: category,
-                      label: category.category.name,
-                    );
-                  }).toList(),
-                  onSelected: (newValue) {
-                    setState((){
-                      _selectedCategory = newValue!;
-                    });
-                  },
-                ),
-              ]
-            )
-        ),
-        Flexible(
-          child:
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 100, vertical: 40),
-              child:
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(width: 25),
+            Flexible(
+              child: 
                 Column(
                   children: [
-                    ElevatedButton(
-                      child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [Text("Upload", style: TextStyle(color: Colors.black)), Icon(Icons.upload)]), 
-                      onPressed: () async {
-                        FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.image, allowedExtensions: ['png', 'jpg']);
-                        if (result != null) {
-                          // setState(() => _mainImagePath = result.files.first.path!);
-                          debugPrint("File upload successful: ${result.files.first.path}");
-                        }
-                        else {
-                          debugPrint("File upload aborted/failed.");
-                        }
+                    const SizedBox(height: 25),
+                    TextFormField(
+                      controller: _nameController,
+                      decoration: const InputDecoration(
+                        labelText: "Category Name *"
+                      ),
+                      validator: (String? value) {
+                        return (value == null || value == '') ? "Name required." : null;
+                      }
+                    ),
+                    const SizedBox(height: 20),
+                    DropdownMenu<ECategory>(
+                      label: const Text("Category *"),
+                      controller: _dropdownController,
+                      initialSelection: _focusItem?.getParent(root: _editorAll) ?? _editorAll,
+                      dropdownMenuEntries: _editorAll.getSubCategories().map<DropdownMenuEntry<ECategory>>((ECategory category){
+                        return DropdownMenuEntry<ECategory>(
+                          value: category,
+                          label: category.category.name,
+                        );
+                      }).toList(),
+                      onSelected: (newValue) {
+                        setState((){
+                          _selectedCategory = newValue!;
+                        });
                       },
-                    )
+                    ),
                   ]
                 )
+            ),
+            Flexible(
+              child:
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 100, vertical: 40),
+                  child:
+                    Column(
+                      children: [
+                        ElevatedButton(
+                          child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [Text("Upload", style: TextStyle(color: Colors.black)), Icon(Icons.upload)]), 
+                          onPressed: () async {
+                            FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.image, allowedExtensions: ['png', 'jpg']);
+                            if (result != null) {
+                              // setState(() => _mainImagePath = result.files.first.path!);
+                              debugPrint("File upload successful: ${result.files.first.path}");
+                            }
+                            else {
+                              debugPrint("File upload aborted/failed.");
+                            }
+                          },
+                        )
+                      ]
+                    )
+                )
             )
+          ]
+        ),
+        ElevatedButton(
+          style: const ButtonStyle(
+            backgroundColor: MaterialStatePropertyAll<Color>(Color(0xFF224190)),
+            foregroundColor: MaterialStatePropertyAll<Color>(Colors.white)
+          ),
+          onPressed: () {
+            if (_addingItem) {
+              ProductCategory newCategory = ProductCategory(
+                name: _nameController.text,
+                parentId: _selectedCategory.id
+              );
+              ECategory newECategory = ECategory(category: newCategory, editorItems: [], rank: _selectedCategory.rank+1);
+              _selectedCategory.addItem(newECategory);
+            }
+            else if (category != null) {
+              category.getParent(root: _editorAll)?.editorItems.remove(category);
+              category.category.name = _nameController.text;
+              category.parentId = _selectedCategory.id;
+              _selectedCategory.addItem(category);
+              category.rank = _selectedCategory.rank + 1;
+            }
+            setState(() {
+              _addingItem = false;
+              _focusItem = null;
+            });
+          },
+          child: _addingItem ? const Text("Add") : const Text("Save"),
         )
       ]
     );
   }
 
-  void toggleEditorItem(EItem itemToEdit) {
-    switch (itemToEdit) {
+  Future<void> _previewImage(BuildContext context, File imageFile) async {
+    await showDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.transparent,
+          title: const Text(""),
+          content: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: Image.file(imageFile, height: 400),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text("Close"),
+              onPressed: () => Navigator.of(context).pop()
+            )
+          ]
+        );
+      }
+    );
+  }
+
+  Future<bool> _showExitDialog(BuildContext context) async {
+    bool hoverOnYes = false;
+    return await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text("Warning!"),
+              content: const Text("Are you sure you want to exit? Your progress will not be saved."),
+              actions: <Widget>[
+                TextButton(
+                  child: const Text("No"),
+                  onPressed: () {
+                    Navigator.of(context).pop(false);
+                  }
+                ),
+                TextButton(
+                  style: hoverOnYes ? 
+                    const ButtonStyle(
+                      foregroundColor: MaterialStatePropertyAll<Color>(Colors.white), 
+                      backgroundColor: MaterialStatePropertyAll<Color>(Color(0xFFC3291B))) : 
+                    const ButtonStyle(),
+                  onHover: (hovering) {
+                    setState(() => hoverOnYes = hovering);
+                  },
+                  child: Text("Yes", style: hoverOnYes ? const TextStyle(color: Colors.white) : null),
+                  onPressed: () {
+                    Navigator.of(context).pop(true);
+                  }
+                )
+              ]
+            );
+          }
+        );
+      }
+    ) ?? false;
+  }
+
+  Future<bool> _showAlertDialog(BuildContext context, EItem data) async {
+    bool? confirmation = false;
+    bool hoverOnYes = false;
+    switch (data) {
+      case ECategory _ : {
+        confirmation = await showDialog<bool>(
+          context: context,
+          builder: (BuildContext context) {
+            return StatefulBuilder(
+              builder: (context, setState) {
+                return AlertDialog(
+                  title: const Text("Warning!"),
+                  content: Text("You are about to delete ${data.category.name} and all of its contents (including sub-products). \nThis action cannot be undone. Are you sure?"),
+                  actions: <Widget>[
+                    TextButton(
+                      child: const Text("No"),
+                      onPressed: () {
+                        Navigator.of(context).pop(false);
+                      }
+                    ),
+                    TextButton(
+                      style: hoverOnYes ? 
+                        const ButtonStyle(
+                          foregroundColor: MaterialStatePropertyAll<Color>(Colors.white), 
+                          backgroundColor: MaterialStatePropertyAll<Color>(Color(0xFFC3291B))) : 
+                        const ButtonStyle(),
+                      onHover: (hovering) {
+                        setState(() => hoverOnYes = hovering);
+                      },
+                      child: const Text("Yes"),
+                      onPressed: () {
+                        Navigator.of(context).pop(true);
+                      }
+                    )
+                  ]
+                );
+              }
+            );
+          }
+        );
+      }
+      case EProduct _ : {
+        confirmation = await showDialog<bool>(
+          context: context,
+          builder: (BuildContext context) {
+            return StatefulBuilder(
+              builder: (context, setState) {
+                return AlertDialog(
+                  title: const Text("Warning!"),
+                  content: Text("You are about to delete ${data.product.name} and all of its contents. \nThis action cannot be undone. Are you sure?"),
+                  actions: <Widget>[
+                    TextButton(
+                      child: const Text("No"),
+                      onPressed: () {
+                        Navigator.of(context).pop(false);
+                      }
+                    ),
+                    TextButton(
+                      style: hoverOnYes ? 
+                        const ButtonStyle(
+                          foregroundColor: MaterialStatePropertyAll<Color>(Colors.white), 
+                          backgroundColor: MaterialStatePropertyAll<Color>(Color(0xFFC3291B))) : 
+                        const ButtonStyle(),
+                      onHover: (hovering) {
+                        setState(() => hoverOnYes = hovering);
+                      },
+                      child: const Text("Yes"),
+                      onPressed: () {
+                        Navigator.of(context).pop(true);
+                      }
+                    )
+                  ]
+                );
+              }
+            );
+          }
+        );
+      }
+    }
+    return confirmation ?? false;
+  }
+
+  void toggleEditorItem(EItem? focusItem) {
+    _imagePaths.clear();
+    switch (focusItem) {
       case EProduct _ : {
         setState(() {
-          _focusItem = itemToEdit;
-          _nameController.text = itemToEdit.product.name;
-          _modelNumberController.text = itemToEdit.product.modelNumber ?? '';
-          _brochure = itemToEdit.product.retrieveBrochureList();
-          _descriptionController.text = itemToEdit.product.description ?? '';
+          _focusItem = focusItem;
+          _nameController.text = focusItem.product.name;
+          _modelNumberController.text = focusItem.product.modelNumber ?? '';
+          _brochure = focusItem.product.retrieveBrochureList();
+          _descriptionController.text = focusItem.product.description ?? '';
         });
       }
       case ECategory _ : {
         setState(() {
-          _focusItem = itemToEdit;
-          _nameController.text = itemToEdit.category.name;
+          _focusItem = focusItem;
+          _nameController.text = focusItem.category.name;
+          _selectedCategory = focusItem.getParent(root: _editorAll) ?? _editorAll;
         });
+      }
+      case null : {
+        _brochure = [BrochureHeader.basic(), BrochureSubheader.basic(), BrochureEntry.basic(), BrochureHeader.basic(), BrochureEntry.basic()];
+        _nameController.text = '';
+        _descriptionController.text = '';
+        _modelNumberController.text = '';
+        _selectedCategory = _editorAll;
       }
     }
   }
@@ -1674,7 +2328,7 @@ class _AddItemPageState extends State<AddItemPage> with TickerProviderStateMixin
             crossAxisAlignment: CrossAxisAlignment.center,
             mainAxisAlignment: MainAxisAlignment.start,
             children: <Widget>[
-              Padding(padding: const EdgeInsets.only(top: 10.0, bottom: 5.0), child: Hero(tag: 'main-logo', child: Image.asset('assets/weightech_logo.png', height: 100, alignment: Alignment.center,))),
+              Padding(padding: const EdgeInsets.only(top: 10.0, bottom: 5.0), child: Hero(tag: 'main-logo', child: Image.asset('assets/weightech_logo.png', height: 100, cacheHeight: 150, cacheWidth: 394, alignment: Alignment.center,))),
               const Hero(tag: 'divider', child: Divider(color: Color(0xFF224190), height: 2, thickness: 2, indent: 25.0, endIndent: 25.0,)),
               Expanded(
                 child:
@@ -2076,30 +2730,7 @@ class _AddItemPageState extends State<AddItemPage> with TickerProviderStateMixin
           ElevatedButton(
             style: const ButtonStyle(foregroundColor: MaterialStatePropertyAll(Colors.white), backgroundColor: MaterialStatePropertyAll(Color(0xFF224190))),
             child: const Text('Save & Exit'),
-            onPressed: () {
-              if (_formKey.currentState!.validate()) {
-                if (widget.item != null && widget.item is Product) {
-                  widget.item!.name = _nameController.text;
-                  (widget.item! as Product).modelNumber = _modelNumberController.text;
-                  (widget.item! as Product).parentId = _selectedCategory.id;
-                  (widget.item! as Product).description = _descriptionController.text;
-                  (widget.item! as Product).brochure = Product.mapListToBrochure(_brochure);
-                  Navigator.pop(context);
-                }
-                else {
-                  Navigator.pop(
-                    context,                   
-                    Product(
-                      name: _nameController.text,
-                      modelNumber: _modelNumberController.text,
-                      parentId: _selectedCategory.id,
-                      description: _descriptionController.text,
-                      brochure: Product.mapListToBrochure(_brochure),
-                    )
-                  );
-                }
-              }
-            }
+            onPressed: () {}
           ),
         ],
       )

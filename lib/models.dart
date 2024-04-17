@@ -549,8 +549,6 @@ class Product extends CatalogItem {
   //
   // Maps the list of brochure items to the brochure json structure. 
   //
-  // TODO: This needs to be rewritten after the BrochureItem update. It's really inefficient code. -JT
-  //
   static List<Map<String, dynamic>> mapListToBrochure(List<BrochureItem> brochure) {
 
     List<String> entries = [];
@@ -665,7 +663,11 @@ class Product extends CatalogItem {
 
 sealed class EItem {
   late int rank;
-  EItem({required this.rank});
+  final String id;
+  String? parentId;
+  EItem({required this.id, required this.rank, this.parentId});
+
+  static late ECategory all;
 
   static ECategory createEditorCatalog(ProductCategory catalogCopy) {
 
@@ -688,7 +690,8 @@ sealed class EItem {
     }
 
 
-    return traverseCategory(catalogCopy, 0);
+    all = traverseCategory(catalogCopy, 0);
+    return all;
   }
 
   static EItem? getItemById({required root, required id}) {
@@ -726,25 +729,23 @@ sealed class EItem {
 
 class ECategory extends EItem {
   final ProductCategory category;
-  final String id;
-  final String? parentId;
-  late List<EItem> editorItems;
+  List<EItem> editorItems;
   bool showChildren = false;
-  ECategory({required this.category, required this.editorItems, required super.rank}) : id = category.id, parentId = category.parentId;
+  ECategory({required this.category, required super.rank, required this.editorItems}) : super(id: category.id, parentId: category.parentId);
 
   bool open = false;
-  bool previousOpen = false; 
+  bool play = false;
 
   
-  Widget buildListTile({int? index, VoidCallback? onArrowCallback, VoidCallback? onEditCallback, VoidCallback? onDragStarted, VoidCallback? onDragCompleted, TickerProvider? ticker}) {
-    Tween<double>? closeTween;
+  Widget buildListTile({int? index, VoidCallback? onArrowCallback, VoidCallback? onEditCallback, VoidCallback? onDragStarted, VoidCallback? onDragCompleted, VoidCallback? onDragCanceled, TickerProvider? ticker}) {
     Tween<double>? openTween;
+    Tween<double>? closeTween;
     AnimationController? controller; 
 
 
     if (ticker != null) {
-      closeTween = Tween<double>(begin: 1, end: 0.75);
       openTween = Tween<double>(begin: 0.75, end: 1);
+      closeTween = Tween<double>(begin: 1.0, end: 0.75);
       controller = AnimationController(vsync: ticker, duration: const Duration(milliseconds: 100));
       controller.forward();
     }
@@ -754,17 +755,24 @@ class ECategory extends EItem {
         return (!editorItems.contains(details.data) && details.data != this);
       },
       onAcceptWithDetails: (details) {
-        details.data.rank += 1;
+        ECategory parent = details.data.getParent(root: EItem.all)!;
+        parent.editorItems.remove(details.data);
+
+        details.data.rank = rank + 1;
+        details.data.parentId = id;
         editorItems.add(details.data);
       },
       builder: (context, accepted, rejected) {
-        return Draggable<EItem> (
+        Widget widget = Draggable<EItem> (
           data: this,
           onDragStarted: () {
             if (onDragStarted != null) onDragStarted();
           },
           onDragCompleted: () {
             if (onDragCompleted != null) onDragCompleted();
+          },
+          onDraggableCanceled: (v, o) {
+            if (onDragCanceled != null) onDragCanceled();
           },
           feedback: Container(
             decoration: BoxDecoration(
@@ -786,10 +794,10 @@ class ECategory extends EItem {
           ),
           child: InkWell(
             onTap: () {
-              previousOpen = open;
               if (onEditCallback != null) {onEditCallback();}
             },
             child: ListTile(
+              visualDensity: VisualDensity.compact,
               title: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -798,26 +806,22 @@ class ECategory extends EItem {
                       InkWell(
                         onTap: () {
                           open = false;
-                          previousOpen = true;
+                          play = true;
                           onArrowCallback();
                         }, 
-                        child: (open == previousOpen) ? 
-                          const Icon(Icons.keyboard_arrow_down)
-                          : (openTween != null) ? 
-                            RotationTransition(turns: openTween.animate(controller!), child: const Icon(Icons.keyboard_arrow_down)) 
-                            : const Icon(Icons.keyboard_arrow_down)
+                        child: (openTween != null && play) ? 
+                          RotationTransition(turns: openTween.animate(controller!), child: const Icon(Icons.keyboard_arrow_down)) 
+                          : const Icon(Icons.keyboard_arrow_down)
                       )
                       : InkWell(
                         onTap: () {
-                          open = true; 
-                          previousOpen = false;
+                          open = true;
+                          play = true;
                           onArrowCallback();
                         },
-                        child: (open == previousOpen) ? 
-                          Transform.rotate(angle: -math.pi/2, child: const Icon(Icons.keyboard_arrow_down))
-                          : (closeTween != null) ? 
-                            RotationTransition(turns: closeTween.animate(controller!), child: const Icon(Icons.keyboard_arrow_down)) 
-                            : const Icon(Icons.keyboard_arrow_down),
+                        child: (closeTween != null && play) ? 
+                          RotationTransition(turns: closeTween.animate(controller!), child: const Icon(Icons.keyboard_arrow_down)) 
+                          : Transform.rotate(angle: -90*math.pi/180, child: const Icon(Icons.keyboard_arrow_down)),
                       ),
                   const Icon(Icons.folder_outlined, size: 20),
                   const SizedBox(width: 5),
@@ -829,6 +833,8 @@ class ECategory extends EItem {
             )
           )
         );
+        play = false;
+        return widget;
       }
     );
   }
@@ -856,20 +862,35 @@ class ECategory extends EItem {
 
     return subCategories;
   }
+
+  void addItem(EItem item) {
+    switch (item) {
+      case ECategory _ :
+        item.parentId = id;
+        editorItems.add(item);
+      case EProduct _ :
+        item.parentId = id;
+        editorItems.add(item);
+    }
+  }
 }
 
 class EProduct extends EItem {
   final Product product;
-  final String id;
-  final String? parentId;
-  EProduct({required this.product, required super.rank}) : id = product.id, parentId = product.parentId;
+  EProduct({required this.product, required super.rank}) : super(id: product.id, parentId: product.parentId);
 
 
-  Widget buildListTile({int? index, VoidCallback? onEditCallback, VoidCallback? onDragCompleted}) {
+  Widget buildListTile({int? index, VoidCallback? onEditCallback, VoidCallback? onDragCompleted, VoidCallback? onDragStarted, VoidCallback? onDragCanceled}) {
     return Draggable<EItem> (
       data: this,
+      onDragStarted: () {
+        if (onDragStarted != null) onDragStarted();
+      },
       onDragCompleted: () {
         if (onDragCompleted != null) onDragCompleted();
+      },
+      onDraggableCanceled: (v, o) {
+        if (onDragCanceled != null) onDragCanceled();
       },
       feedback: Container(
         decoration: BoxDecoration(
@@ -896,6 +917,7 @@ class EProduct extends EItem {
             if (onEditCallback != null) {onEditCallback();}
           },
           child: ListTile(
+            visualDensity: VisualDensity.compact,
             title: Row(
               children: [
                 const Icon(Icons.conveyor_belt, size: 20,),
@@ -935,9 +957,13 @@ class BrochureHeader implements BrochureItem {
   @override
   Widget buildItem(BuildContext context) {
     return ListTile(
-      leading: const Icon(Icons.menu, size: 30,), 
+      leading: const Padding(
+        padding: EdgeInsets.only(top: 15),
+        child: Icon(Icons.drag_handle, size: 30), 
+      ),
       title: TextFormField(
         controller: controller, 
+        maxLines: null,
         decoration: 
           const InputDecoration(
             label: Text("Header")
@@ -961,11 +987,15 @@ class BrochureSubheader implements BrochureItem {
   @override
   Widget buildItem(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(left: 50), 
+      padding: const EdgeInsets.only(left: 20), 
       child: ListTile(
-        leading: const Icon(Icons.drag_handle, size: 30), 
+        leading: const Padding(
+          padding: EdgeInsets.only(top: 15),
+          child: Icon(Icons.drag_handle, size: 30), 
+        ),
         title: TextFormField(
           controller: controller, 
+          maxLines: null,
           decoration: 
             const InputDecoration(
               label: Text("Subheader")
@@ -990,12 +1020,16 @@ class BrochureEntry implements BrochureItem {
   @override
   Widget buildItem(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(left: 100), 
+      padding: const EdgeInsets.only(left: 40), 
       child: 
         ListTile(
-          leading: const Icon(Icons.menu, size: 30), 
+          leading: const Padding(
+            padding: EdgeInsets.only(top: 15),
+            child: Icon(Icons.drag_handle, size: 30), 
+          ),
           title: TextFormField(
             controller: controller,
+            maxLines: null,
             decoration: 
               const InputDecoration(
                 label: Text("Entry")
