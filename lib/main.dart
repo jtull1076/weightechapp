@@ -979,7 +979,9 @@ class _ListingPageState extends State<ListingPage> with TickerProviderStateMixin
                                           icon: const Icon(Icons.arrow_back),
                                           iconSize: 30,
                                           color: const Color(0xFF224190),
-                                          onPressed: () {}
+                                          onPressed: () {
+                                            Navigator.of(context).pop();
+                                          }
                                         )
                                     )
                                 ),
@@ -1014,7 +1016,7 @@ class _ListingPageState extends State<ListingPage> with TickerProviderStateMixin
                                         child:
                                           Text(widget.category.name, 
                                             textAlign: TextAlign.center, 
-                                            style: const TextStyle(fontSize: 36.0, fontWeight: FontWeight.bold, color: Colors.white),
+                                            style: const TextStyle(fontSize: 32.0, fontWeight: FontWeight.bold, color: Colors.white),
                                           )
                                       )
                                   )
@@ -1054,6 +1056,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<double> _dividerWidthAnimation;
+  late Animation<double> _editorHeightAnimation;
   late ProductCategory _catalogCopy;
 
   late ItemSelect _itemSelection;
@@ -1077,6 +1080,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
   final ScrollController _scrollController = ScrollController();
 
   late List<String> _imagePaths;
+  late int _primaryImageIndex;
   late bool _fileDragging;
   late bool _hoverOnAll;
   late bool _hoverOnDelete;
@@ -1088,6 +1092,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
     _animationController = AnimationController(duration : const Duration(seconds: 5), vsync: this);
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _animationController, curve: const Interval(0.4, 0.7, curve: Curves.ease)));
     _dividerWidthAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _animationController, curve: const Interval(0.4, 1.0, curve: Curves.ease)));
+    _editorHeightAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _animationController, curve: const Interval(0.5, 1.0, curve: Curves.ease)));
 
     _catalogCopy = CatalogItem.fromJson(ProductManager.all.toJson()) as ProductCategory;
 
@@ -1104,6 +1109,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
 
     _brochureActiveIndex = -1;
     _imagePaths = [];
+    _primaryImageIndex = 0;
     _fileDragging = false;
 
     toggleEditorItem(_focusItem);
@@ -1137,6 +1143,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
             label: const Text("Save & Exit"),
             onPressed: () {
               ProductManager.all.catalogItems = _catalogCopy.catalogItems;
+
               Navigator.of(context).pop();
             }
           ),
@@ -1190,39 +1197,41 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                     ]
                   ),
               ),
-              SizeTransition(
-                sizeFactor: _dividerWidthAnimation, 
-                axis: Axis.horizontal, 
-                child: FadeTransition(
-                  opacity: _fadeAnimation, 
-                  child: Column(
-                    children: [
-                      const Divider(color: Color(0xFF224190), height: 2, thickness: 2, indent: 25.0, endIndent: 25.0,),
-                      SizeTransition(
-                        sizeFactor: _dividerWidthAnimation, 
-                        axis: Axis.vertical, 
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 25),
-                          child: Container(
-                            alignment: Alignment.topCenter,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFF224190),
-                            ),
-                            width: double.infinity,
-                            child: const Text("Catalog Editor", 
-                              textAlign: TextAlign.center, 
-                              style: TextStyle(fontSize: 32.0, fontWeight: FontWeight.bold, color: Colors.white),
-                            )
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 25),
+                alignment: Alignment.centerLeft,
+                child: SizeTransition(
+                  sizeFactor: _dividerWidthAnimation, 
+                  axis: Axis.horizontal,
+                  child: FadeTransition(
+                    opacity: _fadeAnimation, 
+                    child: Column(
+                      children: [
+                        const Divider(color: Color(0xFF224190), height: 2, thickness: 2, indent: 0, endIndent: 0,),
+                        Container(
+                          alignment: Alignment.topCenter,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF224190),
+                          ),
+                          width: double.infinity,
+                          child: const Text("Catalog Editor", 
+                            textAlign: TextAlign.center, 
+                            style: TextStyle(fontSize: 32.0, fontWeight: FontWeight.bold, color: Colors.white),
                           )
                         )
-                      ),
-                    ]
+                      ]
+                    )
                   )
-                )
+                ),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 25),
-                child: Row(
+                child: SizeTransition(
+                  sizeFactor: _editorHeightAnimation,
+                  axis: Axis.vertical,
+                  axisAlignment: 1,
+                  child: 
+                  Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Flexible(
@@ -1400,6 +1409,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                     )
                   ]
                 )
+                ),
               ),
             ]
           )
@@ -1611,7 +1621,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                           duration: const Duration(milliseconds: 50),
                                           decoration: BoxDecoration(
                                             borderRadius: BorderRadius.circular(10),
-                                            color: _fileDragging ? const Color(0x33224190) : const Color(0x55C9C9CC),
+                                            color: _fileDragging ? const Color(0x88396CED) : const Color(0x55C9C9CC),
                                           ),
                                           height: (_imagePaths.isNotEmpty) ? 100 : 250,
                                           padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 5),
@@ -1709,7 +1719,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                     ),
                                     const SizedBox(height: 10),
                                     SizedBox(
-                                      width: 300,
+                                      width: 340,
                                       child: ListView.builder(
                                         shrinkWrap: true,
                                         physics: const NeverScrollableScrollPhysics(),
@@ -1744,6 +1754,20 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                                           fixedSize: MaterialStatePropertyAll<Size>(Size(25,25))
                                                         ),
                                                         padding: EdgeInsets.zero,
+                                                        icon: const Icon(Icons.star),
+                                                        color: (index == _primaryImageIndex) ? Colors.yellow : Colors.white,
+                                                        hoverColor: const Color(0xFF808082),
+                                                        iconSize: 18,
+                                                        onPressed: () => setState(() => _primaryImageIndex = index)
+                                                      ),
+                                                      const SizedBox(width: 10),
+                                                      IconButton(
+                                                        style: const ButtonStyle(
+                                                          backgroundColor: MaterialStatePropertyAll<Color>(Color(0xFFA9A9AA)),
+                                                          minimumSize: MaterialStatePropertyAll<Size>(Size(25,25)),
+                                                          fixedSize: MaterialStatePropertyAll<Size>(Size(25,25))
+                                                        ),
+                                                        padding: EdgeInsets.zero,
                                                         icon: const Icon(Icons.remove_red_eye),
                                                         color: Colors.white,
                                                         hoverColor: const Color(0xFF224190),
@@ -1766,6 +1790,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                                         iconSize: 18,
                                                         onPressed: () => setState(() => _imagePaths.removeAt(index))
                                                       )
+
                                                     ],
                                                   )
                                               ),

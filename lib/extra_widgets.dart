@@ -145,7 +145,6 @@ class _ExpandableFabState extends State<ExpandableFab>
             child: Center(
               child: Material(
                 color: const Color(0xFFA0A0A2),
-                shadowColor: Colors.transparent,
                 shape: const CircleBorder(),
                 clipBehavior: Clip.antiAlias,
                 elevation: 4,
@@ -158,7 +157,7 @@ class _ExpandableFabState extends State<ExpandableFab>
                       padding: const EdgeInsets.all(8),
                       child: const Icon(
                         Icons.close,
-                        color: Colors.black,
+                        color: Colors.white,
                       ),
                     ),
                   )
