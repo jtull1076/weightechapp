@@ -2,7 +2,27 @@ import 'package:flutter/material.dart';
 import 'package:shortid/shortid.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:convert';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:weightechapp/firebase_options.dart';
 import 'dart:math' as math;
+
+
+class FirebaseInfo {
+  static late FirebaseApp firebaseApp; // Initialize Firebase
+  static late FirebaseDatabase database;
+  static late FirebaseStorage storage;
+  FirebaseInfo() {
+    _init();
+  }
+
+  void _init() async {
+    firebaseApp = await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    database = FirebaseDatabase.instanceFor(app: firebaseApp, databaseURL: 'https://weightechapp-default-rtdb.firebaseio.com/');
+    storage = FirebaseStorage.instanceFor(app: firebaseApp, bucket: 'gs://weightechapp.appspot.com');
+  }
+}
 
 
 class ProductManager extends ChangeNotifier {

@@ -27,10 +27,7 @@ class DefaultFirebaseOptions {
       case TargetPlatform.macOS:
         return macos;
       case TargetPlatform.windows:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for windows - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return windows;
       case TargetPlatform.linux:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for linux - '
@@ -49,6 +46,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '863473899531',
     projectId: 'weightechapp',
     authDomain: 'weightechapp.firebaseapp.com',
+    databaseURL: 'https://weightechapp-default-rtdb.firebaseio.com',
     storageBucket: 'weightechapp.appspot.com',
   );
 
@@ -57,6 +55,7 @@ class DefaultFirebaseOptions {
     appId: '1:863473899531:android:40014b0fa1b5c2e2c30f0e',
     messagingSenderId: '863473899531',
     projectId: 'weightechapp',
+    databaseURL: 'https://weightechapp-default-rtdb.firebaseio.com',
     storageBucket: 'weightechapp.appspot.com',
   );
 
@@ -65,16 +64,29 @@ class DefaultFirebaseOptions {
     appId: '1:863473899531:ios:c39348d62c71891cc30f0e',
     messagingSenderId: '863473899531',
     projectId: 'weightechapp',
+    databaseURL: 'https://weightechapp-default-rtdb.firebaseio.com',
     storageBucket: 'weightechapp.appspot.com',
     iosBundleId: 'com.example.weightechapp',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
     apiKey: 'AIzaSyDaHqsjjTShg_F2kj-IZ5jACrqBcSkzKJU',
-    appId: '1:863473899531:ios:3662934a197535eac30f0e',
+    appId: '1:863473899531:ios:c39348d62c71891cc30f0e',
     messagingSenderId: '863473899531',
     projectId: 'weightechapp',
+    databaseURL: 'https://weightechapp-default-rtdb.firebaseio.com',
     storageBucket: 'weightechapp.appspot.com',
-    iosBundleId: 'com.example.weightechapp.RunnerTests',
+    iosBundleId: 'com.example.weightechapp',
   );
+
+  static const FirebaseOptions windows = FirebaseOptions(
+    apiKey: 'AIzaSyBaKfG95R_liIPQBivxLcSa9MaZg9LutuM',
+    appId: '1:863473899531:web:663efbfa81990adac30f0e',
+    messagingSenderId: '863473899531',
+    projectId: 'weightechapp',
+    authDomain: 'weightechapp.firebaseapp.com',
+    databaseURL: 'https://weightechapp-default-rtdb.firebaseio.com',
+    storageBucket: 'weightechapp.appspot.com',
+  );
+
 }

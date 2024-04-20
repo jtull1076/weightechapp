@@ -1,23 +1,20 @@
+import 'dart:convert';
+
 import 'package:dotted_border/dotted_border.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/painting.dart';
-import 'package:flutter/rendering.dart';
-import 'package:flutter/scheduler.dart';
+import 'package:feedback_gitlab/feedback_gitlab.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/widgets.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:weightechapp/models.dart';
 import 'package:weightechapp/themes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:weightechapp/firebase_options.dart';
 import 'package:weightechapp/extra_widgets.dart';
 import 'package:wakelock/wakelock.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:mime/mime.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
 import 'dart:async';
 import 'dart:ui';
 import 'dart:io';
@@ -25,8 +22,11 @@ import 'dart:math' as math;
 import 'package:simple_rich_text/simple_rich_text.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:feedback/feedback.dart';
+import 'package:feedback_github/feedback_github.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:desktop_drop/desktop_drop.dart';
+import 'package:shortid/shortid.dart';
 
 
 //MARK: MAIN
@@ -45,10 +45,15 @@ Future<void> main() async {
   }
 
   debugPrint('...Initializing Firebase...');
-  // await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform); // Initialize Firebase
+  FirebaseInfo();
 
   debugPrint('...App Startup...');
-  runApp(WeightechApp());
+  runApp(
+    BetterFeedback(
+      child: 
+        WeightechApp()
+    )
+  );
 }
 
 /// A class that defines the widget tree.
@@ -1155,6 +1160,40 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                 child: 
                   Stack(
                     children: [
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: 
+                          Padding(
+                            padding: const EdgeInsets.only(right: 30),
+                            child: 
+                              FadeTransition(
+                                opacity: _fadeAnimation,
+                                child: 
+                                  IconButton(
+                                    icon: const Icon(Icons.bug_report),
+                                    iconSize: 30,
+                                    color: const Color(0xFF224190),
+                                    onPressed: () {
+                                      String id = shortid.generate();
+                                      BetterFeedback.of(context).showAndUploadToGitHub(
+                                        username: 'jtull1076',
+                                        repository: 'weightechapp',
+                                        authToken: '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',
+                                        labels: ['feedback'],
+                                        assignees: ['jtull1076'],
+                                        imageId: id,
+                                      );
+
+
+                                      // BetterFeedback.of(context).showAndUploadToGitHub(
+                                      //   projectId: '57087454',
+                                      //   apiToken: 'glpat-gvKyYogeMStqrmi2aYz4'
+                                      // );
+                                    }
+                                  )
+                              )
+                          )
+                      ),
                       Center(
                         child: 
                           GestureDetector(
@@ -2116,6 +2155,17 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
         );
       }
     );
+  }
+
+  Future<String> writeImageToStorage(Uint8List feedbackScreenshot) async {
+    final Directory? output = await getDownloadsDirectory();
+    if (output != null) {
+      final String screenshotFilePath = '${output.path}/feedback.png';
+      final File screenshotFile = File(screenshotFilePath);
+      await screenshotFile.writeAsBytes(feedbackScreenshot);
+      return screenshotFilePath;
+    }
+    return '';
   }
 
   Future<bool> _showExitDialog(BuildContext context) async {
