@@ -19,7 +19,6 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_launcher_icons: ^0.13.1
-  flutter_markdown: ^0.6.22+1
   google_fonts: ^6.2.1 
   image_picker: ^1.0.7
   mailto: ^2.0.0
@@ -28,13 +27,14 @@ dependencies:
   shortid: ^0.1.2
   simple_rich_text: ^2.0.49
   url_launcher: ^6.2.6
-  video_player: ^2.8.3
   wakelock: ^0.6.2
   window_manager: ^0.3.8
   feedback_github:
     git: 
       url: https://github.com/defuncart/feedback_github/
       ref: main
+  http: ^1.2.1
+  cloud_firestore: ^4.17.0
 
 dev_dependencies:
   flutter_test:
