@@ -45,3 +45,7 @@ firebase.exe
 
 #keystore
 /android/key.properties
+
+# Firebase
+firebase-win.exe
+firebase.json

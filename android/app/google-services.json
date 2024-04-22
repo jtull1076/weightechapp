@@ -1,6 +1,7 @@
 {
   "project_info": {
     "project_number": "863473899531",
+    "firebase_url": "https://weightechapp-default-rtdb.firebaseio.com",
     "project_id": "weightechapp",
     "storage_bucket": "weightechapp.appspot.com"
   },
