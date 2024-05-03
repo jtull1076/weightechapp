@@ -45,6 +45,11 @@ firebase.exe
 
 #keystore
 /android/key.properties
+weightechkey.key
+CERTIFICATE.pfx
+wtcrt.crt
+wtcsr.csr
+wtkey.key
 
 # Firebase
 firebase-win.exe
