@@ -1,7 +1,22 @@
 name: weightechapp
-description: "A new Flutter project."
+description: "A Flutter implementation for WeighTech's sales app."
 publish_to: 'none'
-version: 0.1.0
+version: 1.0.0
+
+msix_config:
+  display_name: WeighTech Inc. Sales
+  publisher_display_name: Jeremy Tull
+  msix_version: 1.0.0.0
+  app_installer: 
+    publish_folder_path: build/windows/installers
+    hours_between_update_checks: 0
+    automatic_background_task: false
+    update_blocks_activation: true
+    show_prompt: true
+    force_update_from_any_version: false
+  certificate_path: CERTIFICATE.pfx
+  certificate_password: RileyCoyote
+
 
 environment:
   sdk: '>=3.3.0 <4.0.0'
@@ -35,11 +50,16 @@ dependencies:
       ref: main
   http: ^1.2.1
   cloud_firestore: ^4.17.0
+  cached_network_image: ^3.3.1
+  flutter_cache_manager: ^3.3.2
+  string_validator: ^1.0.2
+  loading_animation_widget: ^1.2.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
+  msix: ^3.16.7
 
 flutter:
   uses-material-design: true

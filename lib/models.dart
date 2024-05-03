@@ -1,24 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:shortid/shortid.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:convert';
+import 'dart:io';
+import 'dart:async';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:weightechapp/firebase_options.dart';
+import 'package:path/path.dart' as path_handler;
 import 'dart:math' as math;
+import 'package:string_validator/string_validator.dart';
+
 
 
 class FirebaseInfo {
   static late FirebaseApp firebaseApp; // Initialize Firebase
   static late FirebaseFirestore database;
   static late FirebaseStorage storage;
-  FirebaseInfo() {
-    _init();
-  }
+  FirebaseInfo();
 
-  void _init() async {
+  Future<void> init() async {
     firebaseApp = await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
     database = FirebaseFirestore.instanceFor(app: firebaseApp);
     storage = FirebaseStorage.instanceFor(app: firebaseApp, bucket: 'gs://weightechapp.appspot.com');
@@ -27,290 +33,20 @@ class FirebaseInfo {
 
 
 class ProductManager extends ChangeNotifier {
-  static ProductCategory all = ProductCategory.all();
+  static ProductCategory? all;
+  static DateTime? timestamp;
 
-  ProductManager() {
-    all.addCategory(
-      ProductCategory(
-        name: "Microweigh Indicators",
-        image: Image.asset(
-          'assets/product_images/microweigh_indicator.png',
-          width: double.infinity,
-          fit: BoxFit.fitWidth,
-        ),
-      ),
-    );
-    all.addProduct(
-      Product(
-        name: "Portion Scale",
-        productImages: [Image.asset(
-          'assets/product_images/qa-new.jpg',
-          width: double.infinity,
-          fit: BoxFit.fitWidth,
-        )],
-        description: "The WeighTech line of Portion Scales is designed to cover a multitude of uses – QA checks, portioning and verifying correct product weights on the production line. Our small scale line comes in a variety of base sizes to meet your weighing requirements.",
-        brochure: [
-          {"Features" : [{"Entries" : [
-            "Permanently sealed, high impact, ABS alloy construction for enclosure" , 
-            "Highly visible display with adjustable contrast and backlight",
-            "Touch sensitive operator control panel",
-            "Displays in lbs., kg., g., or oz.", 
-            "Communications available in infrared, RS-232, RS-485, Ethernet and Bluetooth",
-            "Data collection available through tablet with WeighTech Update App",
-            ]}]
-          },
-          {"Options" : [{"Entries" : [
-            "Detachable or hardwired power cord", 
-            "Stainless steel swivel bracket",
-            "Multiple tower heights",
-            "MicroArmor",
-            "Custom firmware for data collection and customized reporting"
-            ]}]
-          },
-          {"Advantages" : [{"Entries" : [
-            "Ease of operation requiring minimal training" , 
-            "No double boxing required",
-            "Low Maintenance",
-            "Operates as individual unit or integrated multiple scale system"
-            ]}]
-          },
-        ],
-      ),
-    );
-    all.addProduct(
-      Product(
-        name: "Sizing System",
-        productImages: [Image.asset(
-          'assets/product_images/sizer.png',
-          width: double.infinity,
-          fit: BoxFit.fitWidth,
-        )],
-        description: "WeighTech’s sizing systems are built with the operator and maintenance personnel in mind. With it’s simplistic yet rigid design and proven controller it requires minimal training. Optional webserver with the ability to check totals from your phone, tablet, or desktop.",
-        brochure: [
-          {"Features" : [{"Entries" : [
-            "Up to 150 pieces per minute per lane" , 
-            "Gapper ensures proper singulation while maintaining a compact footprint", 
-            "Can be fed via an operator or a conveyor",
-            "+/- 5 grams accuracy", 
-            "Weigh in units of pounds, ounces, grams, or kilograms",
-            ]}]
-          },
-          {"Advantages" : [{"Entries" : [
-            "Industry proven MicroWeigh controller" , 
-            "Designed for simple operation and easy maintenance",
-            "Phone/tablet friendly",
-            ]}]
-          },
-          {"Options" : [{"Entries" : [
-            "Single or dual lanes", 
-            "Web server over Ethernet",
-            "Can fill boxes, bags, combos, or conveyors",
-            "Industrial communication protocols (OPC-UA, Modbus/TCP, MQTT, EtherNet/IP, etc.)",
-            ]}]
-          }
-        ],
-      ),
-    );
-    all.addProduct(
-      Product(
-        name: "Trimline Systems",
-        productImages: [
-          Image.asset(
-          'assets/product_images/trimline_station.png',
-          width: double.infinity,
-          fit: BoxFit.cover,
-          ),
-          Image.asset(
-          'assets/product_images/trimline_shop.jpg',
-          width: double.infinity,
-          fit: BoxFit.cover,
-          )
-        ],
-        description: "WeighTech’s *Trimline Systems* can take care of all your portion control or de-boning needs. Constructed out of polished 304 stainless steel with an emphasis on durability and easy cleaning. Its large cutting stations, easy to read scale displays, and data tracking make for minimal training. The QC station allows for checks throughout each shift with up to ten customizable questions. The totals can be viewed easily with a phone or tablet anytime.",
-        brochure: [
-          {"Features" : [{"Entries" : [
-            "Data tracking for up to 3 products per station" , 
-            "Highly visible scale display with backlight at each station", 
-            "Open frame design with 304 polished stainless steel",
-            "Integrated scale at each station", 
-            "Modes included de-boning portion control",
-            ]}]
-          },
-          {"Advantages" : [{"Entries" : [
-            "Ease of operation, minimal training required" , 
-            "Ability to QC each product with up to 10 questions per product",
-            "Can utilize numerous products",
-            "Modular design for potential future expansion",
-            "Minimal support staff required",
-            "Accurate pounds per hour tracking",
-            ]}]
-          },
-          {"Options" : [{"Entries" : [
-            "One to three finished product versions", 
-            "Web server over Ethernet",
-            "Infeed system with de-icer capabilities",
-            "Large color scoreboards",
-            "Phone/tablet friendly"
-            ]}]
-          }
-        ],
-      ),
-    );
-    all.getItemByName("Microweigh Indicators").addProduct(
-      Product(
-        name: "Microweigh Indicator 2",
-        productImages: [Image.asset(
-          'assets/product_images/microweigh_indicator.png',
-          width: double.infinity,
-          fit: BoxFit.fitWidth,
-        )],
-        description: "The patented industry leading electronic indicator for harsh washdown environments. MicroWeigh, the flagship product of the WeighTech line, was designed to outperform and outlast other indicators. This is accomplished through the use of several key features such as its highly durable IP69K housing. Touch sensitive keypads responds to human touch – not to knives or other sharp instruments. Safety issues are also addressed through the use of potted electrical parts for safety when the panel is exposed or taken off. The indicator is used in many applications including scales and processing equipment. MicroWeigh has been tested for compliance with industry standards for protection from water ingress under IP69K (pressure washing), NEMA 4 (hosedown), NEMA 6 (water immersion), IP67 (water immersion), and IP68 (water immersion simulating water pressure over 80-feet deep). MicroWeigh has also satisfied tests for dust resistance under IP6. We know of no other manufacturer of an electronic indicator that has passed all these tests.",
-        brochure: [
-          {"Header1" : [{"Entries" : ["Entry1" , "Entry2"]}, {"Subheader1" : ["Entry1" , "Entry2"]}]},
-          {"Header2" : [{"Subheader1" : ["Entry1", "Entry2"]}, {"Subheader2" : ["Entry1", "Entry2"]}]}
-        ],
-      )
-    );
-    all.getItemByName("Microweigh Indicators").addProduct(
-      Product(
-        name: "Microweigh Indicator 3",
-        productImages: [Image.asset(
-          'assets/product_images/microweigh_indicator.png',
-          width: double.infinity,
-          fit: BoxFit.fitWidth,
-        )],
-        description: "Description of Product 2",
-        brochure: [
-          {"Header1" : [{"Entries" : ["Entry1" , "Entry2"]}, {"Subheader1" : ["Entry1" , "Entry2"]}]},
-          {"Header2" : [{"Subheader1" : ["Entry1", "Entry2"]}, {"Subheader2" : ["Entry1", "Entry2"]}]}
-        ],
-      )
-    );
-    all.getItemByName("Microweigh Indicators").addProduct(
-      Product(
-        name: "Microweigh Indicator 4",
-        productImages: [Image.asset(
-          'assets/product_images/microweigh_indicator.png',
-          width: double.infinity,
-          fit: BoxFit.fitWidth,
-        )],
-        description: "Description of Product 2",
-        brochure: [
-          {"Header1" : [{"Entries" : ["Entry1" , "Entry2"]}, {"Subheader1" : ["Entry1" , "Entry2"]}]},
-          {"Header2" : [{"Subheader1" : ["Entry1", "Entry2"]}, {"Subheader2" : ["Entry1", "Entry2"]}]}
-        ],
-      )
-    );
-    all.getItemByName("Microweigh Indicators").addProduct(
-      Product(
-        name: "Microweigh Indicator 5",
-        productImages: [Image.asset(
-          'assets/product_images/microweigh_indicator.png',
-          width: double.infinity,
-          fit: BoxFit.fitWidth,
-        )],
-        description: "Description of Product 2",
-        brochure: [
-          {"Header1" : [{"Entries" : ["Entry1" , "Entry2"]}, {"Subheader1" : ["Entry1" , "Entry2"]}]},
-          {"Header2" : [{"Subheader1" : ["Entry1", "Entry2"]}, {"Subheader2" : ["Entry1", "Entry2"]}]}
-        ],
-      )
-    );
-    all.getItemByName("Microweigh Indicators").addProduct(
-      Product(
-        name: "Microweigh Indicator 6",
-        productImages: [Image.asset(
-          'assets/product_images/microweigh_indicator.png',
-          width: double.infinity,
-          fit: BoxFit.fitWidth,
-        )],
-        description: "Description of Product 2",
-        brochure: [
-          {"Header1" : [{"Entries" : ["Entry1" , "Entry2"]}, {"Subheader1" : ["Entry1" , "Entry2"]}]},
-          {"Header2" : [{"Subheader1" : ["Entry1", "Entry2"]}, {"Subheader2" : ["Entry1", "Entry2"]}]}
-        ],
-      )
-    );
-    all.getItemByName("Microweigh Indicators").addProduct(
-      Product(
-        name: "Microweigh Indicator 7",
-        productImages: [Image.asset(
-          'assets/product_images/microweigh_indicator.png',
-          width: double.infinity,
-          fit: BoxFit.fitWidth,
-        )],
-        description: "Description of Product 2",
-        brochure: [
-          {"Header1" : [{"Entries" : ["Entry1" , "Entry2"]}, {"Subheader1" : ["Entry1" , "Entry2"]}]},
-          {"Header2" : [{"Subheader1" : ["Entry1", "Entry2"]}, {"Subheader2" : ["Entry1", "Entry2"]}]}
-        ],
-      )
-    );
-    all.getItemByName("Microweigh Indicators").addProduct(
-      Product(
-        name: "Microweigh Indicator 8",
-        productImages: [Image.asset(
-          'assets/product_images/microweigh_indicator.png',
-          width: double.infinity,
-          fit: BoxFit.fitWidth,
-        )],
-        description: "Description of Product 2",
-        brochure: [
-          {"Header1" : [{"Entries" : ["Entry1" , "Entry2"]}, {"Subheader1" : ["Entry1" , "Entry2"]}]},
-          {"Header2" : [{"Subheader1" : ["Entry1", "Entry2"]}, {"Subheader2" : ["Entry1", "Entry2"]}]}
-        ],
-      )
-    );
-    all.getItemByName("Microweigh Indicators").addProduct(
-      Product(
-        name: "Microweigh Indicator 9",
-        productImages: [Image.asset(
-          'assets/product_images/microweigh_indicator.png',
-          width: double.infinity,
-          fit: BoxFit.fitWidth,
-        )],
-        description: "Description of Product 2",
-        brochure: [
-          {"Header1" : [{"Entries" : ["Entry1" , "Entry2"]}, {"Subheader1" : ["Entry1" , "Entry2"]}]},
-          {"Header2" : [{"Subheader1" : ["Entry1", "Entry2"]}, {"Subheader2" : ["Entry1", "Entry2"]}]}
-        ],
-      )
-    );
-    all.getItemByName("Microweigh Indicators").addProduct(
-      Product(
-        name: "Microweigh Indicator 10",
-        productImages: [Image.asset(
-          'assets/product_images/microweigh_indicator.png',
-          width: double.infinity,
-          fit: BoxFit.fitWidth,
-        )],
-        description: "Description of Product 2",
-        brochure: [
-          {"Header1" : [{"Entries" : ["Entry1" , "Entry2"]}, {"Subheader1" : ["Entry1" , "Entry2"]}]},
-          {"Header2" : [{"Subheader1" : ["Entry1", "Entry2"]}, {"Subheader2" : ["Entry1", "Entry2"]}]}
-        ],
-      )
-    );
-    all.getItemByName("Microweigh Indicators").addProduct(
-      Product(
-        name: "Microweigh Indicator 11",
-        productImages: [Image.asset(
-          'assets/product_images/microweigh_indicator.png',
-          width: double.infinity,
-          fit: BoxFit.fitWidth,
-        )],
-        description: "Description of Product 2",
-        brochure: [
-          {"Header1" : [{"Entries" : ["Entry1" , "Entry2"]}, {"Subheader1" : ["Entry1" , "Entry2"]}]},
-          {"Header2" : [{"Subheader1" : ["Entry1", "Entry2"]}, {"Subheader2" : ["Entry1", "Entry2"]}]}
-        ],
-      )
-    );
-    postCatalogToFirebase();
+  ProductManager._();
+
+  static Future<ProductManager> create() async {
+    Map<String, dynamic> catalogJson = await getCatalogFromFirebase();
+    all = ProductCategory.fromJson(catalogJson);
+    //timestamp = catalogJson["timestamp"];
+    return ProductManager._();
   }
 
   List<ProductCategory> getAllCategories(ProductCategory? category) {
-    final ProductCategory root = category ?? all;
+    final ProductCategory root = category ?? all!;
 
     List<ProductCategory> allCategories = [];
 
@@ -331,7 +67,7 @@ class ProductManager extends ChangeNotifier {
   }
 
   static CatalogItem? getItemById(String id, {ProductCategory? category}) {
-    final ProductCategory root = category ?? all;
+    final ProductCategory root = category ?? all!;
 
     CatalogItem? result;
 
@@ -362,26 +98,49 @@ class ProductManager extends ChangeNotifier {
     return result;
   }
 
-  static void postCatalogToFirebase() async {
-    await FirebaseInfo.database.collection("catalog").add(all.toJson()).then((DocumentReference doc) => debugPrint('DocumentSnapshot added with ID: ${doc.id}'));
+  static Future<void> postCatalogToFirebase() async {
+    Map<String,dynamic> catalogJson = all!.toJson();
+    catalogJson['timestamp'] = DateTime.now();
+    await FirebaseInfo.database.collection("catalog").add(catalogJson).then((DocumentReference doc) => debugPrint('DocumentSnapshot added with ID: ${doc.id}'));
+  }
+
+  static Future<Map<String,dynamic>> getCatalogFromFirebase() async {
+    return await FirebaseInfo.database.collection("catalog").orderBy("timestamp", descending: true).limit(1).get().then((event) {
+      debugPrint('DocumentSnapshot retrieved with ID: ${event.docs[0].id}');
+      return event.docs[0].data();
+    });
   }
 }
 
 sealed class CatalogItem {
-  late String id;
+  final String id;
   late String name;
   late String? parentId;
-  late Image? image;
+  String? imageUrl;
+  ImageProvider? imageProvider;
 
-  CatalogItem({required this.name, this.parentId, String? id, Image? image}) 
-  : id = id ?? shortid.generate(), 
-    image = image ?? Image.asset('assets/weightech_logo.png', width: double.infinity, fit: BoxFit.fitWidth );
+  CatalogItem({required this.name, this.parentId, String? id, this.imageUrl, BuildContext? context}) 
+  : id = id ?? shortid.generate()
+  {
+    if (imageUrl != null) {
+      try {
+        imageProvider = CachedNetworkImageProvider(imageUrl!);
+      } on HttpExceptionWithStatus catch (e) {
+        debugPrint("Failed to retrieve image at $imageUrl. Error: $e");
+        imageUrl = null;
+        imageProvider = Image.asset('assets/weightech_logo.png').image;
+      }
+    }
+    else {
+      imageProvider = Image.asset('assets/weightech_logo.png').image;
+    }
+  }
 
   Widget buildCard(VoidCallback onTapCallback) {
     return Card(
       surfaceTintColor: Colors.white,
       shadowColor: const Color(0xAA000000),
-      margin: const EdgeInsets.only(left: 10.0, right: 10.0, bottom: 10.0, top: 30.0),
+      margin: const EdgeInsets.only(left: 10.0, right: 10.0, bottom: 30.0, top: 30.0),
       child: Stack( 
         children: [
           Column(
@@ -390,11 +149,17 @@ sealed class CatalogItem {
             children: [
               Expanded(
                 child: 
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child:
-                      Hero(tag: '${name}_htag', child: image!),
-                  ),
+                  Container (
+                    alignment: Alignment.center,
+                    padding: const EdgeInsets.only(left: 14.0, right: 14.0, top: 30, bottom: 30),
+                    child: Hero(
+                      tag: '${name}_htag', 
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: Image(image: imageProvider!, fit: BoxFit.fitWidth),
+                      ),
+                    ),
+                  )
               ),
               Text(name, textAlign: TextAlign.center, style: const TextStyle(fontSize: 16.0, color: Colors.black)), // Handle if name is null
               const SizedBox(height: 10),
@@ -426,7 +191,7 @@ sealed class CatalogItem {
       'id': id,
       'name': name,
       'parentId': parentId,
-      'image': image?.toString(),
+      'imageUrl': imageUrl,
     };
   }
 
@@ -446,6 +211,16 @@ sealed class CatalogItem {
     debugPrint("Parent doesn't exist");
     return null;
   }
+
+  void storeImage(File imageFile) {
+    final storageRef = FirebaseInfo.storage.ref("images");
+    final categoryImageRef = storageRef.child("${id}_0");
+    try {
+      categoryImageRef.putFile(imageFile);
+    } on FirebaseException catch (e) {
+      debugPrint("Failed to add ${id}_0 to Firebase. Error code: ${e.code}");
+    }
+  }
 }
 
 class ProductCategory extends CatalogItem {
@@ -456,7 +231,7 @@ class ProductCategory extends CatalogItem {
     required super.name,
     super.id,
     super.parentId,
-    super.image,
+    super.imageUrl,
     List<CatalogItem>? catalogItems,
   }) : catalogItems = catalogItems ?? [];
 
@@ -547,6 +322,7 @@ class ProductCategory extends CatalogItem {
       name: json['name'],
       id: json['id'],
       parentId: json['parentId'],
+      imageUrl: json['imageUrl'],
       catalogItems: (json['catalogItems'] as List<dynamic>).map((itemJson) => CatalogItem.fromJson(itemJson)).toList()
     );
   }
@@ -555,7 +331,8 @@ class ProductCategory extends CatalogItem {
 
 class Product extends CatalogItem {
   String? modelNumber;
-  List<Image> productImages;
+  List<String>? productImageUrls;
+  List<CachedNetworkImageProvider> productImageProviders;
   String? description;
   List<Map<String, dynamic>>? brochure;
   static const String buttonRoute = '/product';
@@ -564,13 +341,37 @@ class Product extends CatalogItem {
     required super.name,
     super.parentId,
     super.id,
-    List<Image>? productImages,
+    super.imageUrl,
+    this.productImageUrls,
     this.modelNumber,
     this.description,
     this.brochure,
+    BuildContext? context,
   }) 
-  : productImages = productImages ??= [Image.asset('assets/weightech_logo.png', width: double.infinity, fit: BoxFit.fitWidth,)], 
-    super(image: productImages[0]);
+  : productImageProviders = []
+  {
+    if (super.imageUrl == null && (productImageUrls?.isNotEmpty ?? false)) {
+      super.imageUrl = productImageUrls![0];
+      if (imageUrl != null) {
+        try {
+          super.imageProvider = CachedNetworkImageProvider(super.imageUrl!);
+        } on HttpExceptionWithStatus catch (e) {
+          debugPrint("Failed to retrieve image at $imageUrl. Error: $e");
+          super.imageUrl = null;
+          super.imageProvider = Image.asset('assets/weightech_logo.png').image;
+        }
+      }
+      for (String url in productImageUrls!) {
+        try {
+          CachedNetworkImageProvider newImageProvider = CachedNetworkImageProvider(url);
+          productImageProviders.add(newImageProvider);
+        } on HttpExceptionWithStatus catch (e) {
+          debugPrint("Failed to retrieve image at $imageUrl. Error: $e");
+          productImageUrls!.remove(url);
+        }
+      }
+    }
+  }
 
   //
   // Maps the list of brochure items to the brochure json structure. 
@@ -667,10 +468,10 @@ class Product extends CatalogItem {
   Map<String, dynamic> toJson() {
     Map<String, dynamic> json = super.toJson();
     json['modelNumber'] = modelNumber;
-    json['productImages'] = productImages.map((image) => image.toString()).toList();
     json['description'] = description;
     json['brochure'] = brochure;
     json['parentId'] = parentId;
+    json['imageUrls'] = productImageUrls;
     return json;
   }
 
@@ -680,9 +481,23 @@ class Product extends CatalogItem {
       id: json['id'],
       modelNumber: json['modelNumber'],
       description: json['description'],
-      brochure: json['brochure'],
-      parentId: json['parentId']
+      brochure: List<Map<String,dynamic>>.from(json['brochure']),
+      parentId: json['parentId'],
+      productImageUrls: List<String>.from(json['imageUrls'] ?? [])
     );
+  }
+
+
+  void storeListOfImages(List<File> imageFiles){
+    final storageRef = FirebaseInfo.storage.ref("images");
+    for ( int i=0 ; i < imageFiles.length ; i++ ) {
+      final imageRef = storageRef.child("${id}_$i");
+      try {
+        imageRef.putFile(imageFiles[i]);
+      } on FirebaseException catch (e) {
+        debugPrint("Failed to add ${id}_$i to Firebase. Error code: ${e.code}");
+      }
+    }
   }
 }
 
@@ -720,6 +535,76 @@ sealed class EItem {
     return all;
   }
 
+  static Future<void> updateProductCatalog(ECategory editorCatalog) async {
+    await updateImages(editorCatalog);
+    ProductManager.all = editorCatalog.category;
+    await ProductManager.postCatalogToFirebase();
+    debugPrint("Catalog update completed.");
+  }
+
+  static Future<void> updateImages(ECategory editorCatalog) async {
+    final storageRef = FirebaseInfo.storage.ref().child("images");
+
+    Future<void> traverseItems(ECategory category) async {
+      if (category.imageFile != null) {
+        final refName = "${category.id}_0${path_handler.extension(category.imageFile!.path)}";
+        await storageRef.child(refName).putFile(category.imageFile!).then((value) async {
+          await storageRef.child(refName).getDownloadURL().then((value) {
+            category.category.imageUrl = value;
+            debugPrint("Category image url updated.");
+          });
+        });
+      }
+      for (var item in category.editorItems) {
+        switch (item) {
+          case ECategory _: {
+            await traverseItems(item);
+          }
+          case EProduct _: {
+            if (item.imagePaths != null) {
+
+              await Future.wait([
+                for (var url in item.product.productImageUrls!)
+                  FirebaseInfo.storage.refFromURL(url).delete(),
+              ]);
+
+              item.product.productImageUrls = [];
+
+              int nonPrimaryCount = 0;
+              for (int i = 0; i < item.imageFiles!.length; i++) {
+                File imageFile = item.imageFiles![i];
+                String baseRefName = '';
+                if (i == item.primaryImageIndex) {
+                  baseRefName = "${item.id}_0";
+                  final extension = path_handler.extension(imageFile.path);
+                  
+                  await storageRef.child("$baseRefName$extension").putFile(imageFile).then((value) async {
+                    final imageUrl = await storageRef.child("$baseRefName$extension").getDownloadURL();
+                    item.product.productImageUrls!.insert(0, imageUrl);
+                  });
+                }
+                else {
+                  baseRefName = "${item.id}_${nonPrimaryCount+1}";
+                  final extension = path_handler.extension(imageFile.path);
+
+                  await storageRef.child("$baseRefName$extension").putFile(imageFile).then((value) async {
+                    final imageUrl = await storageRef.child("$baseRefName$extension").getDownloadURL();
+                    item.product.productImageUrls!.add(imageUrl);
+                  });
+                  nonPrimaryCount++;
+                }
+                
+              }
+            }
+          }
+        }
+      }
+    }
+
+    await traverseItems(editorCatalog);
+    debugPrint("Images updated.");
+  }
+
   static EItem? getItemById({required root, required id}) {
     EItem? result;
 
@@ -750,14 +635,46 @@ sealed class EItem {
     return result;
   }
 
+  static EItem? getItemByName({required root, required name}) {
+    EItem? result;
+
+    void traverseItems(ECategory category) {
+      if (category.category.name == name) {
+        result = category;
+        return;
+      }
+      for (var item in category.editorItems) {
+        switch (item) {
+          case ECategory _: {
+            traverseItems(item);
+            if (result != null) {
+              return;
+            }
+          }
+          case EProduct _: {
+            if (item.product.name == name) {
+              result = item;
+            }
+          }
+        }
+      }
+    }
+
+    traverseItems(root);
+
+    return result;
+  }
+
   ECategory? getParent({required root});
 }
 
 class ECategory extends EItem {
   final ProductCategory category;
   List<EItem> editorItems;
+  String? imagePath;
+  File? imageFile;
   bool showChildren = false;
-  ECategory({required this.category, required super.rank, required this.editorItems}) : super(id: category.id, parentId: category.parentId);
+  ECategory({required this.category, required super.rank, required this.editorItems, this.imagePath}) : super(id: category.id, parentId: category.parentId);
 
   bool open = false;
   bool play = false;
@@ -783,6 +700,14 @@ class ECategory extends EItem {
       onAcceptWithDetails: (details) {
         ECategory parent = details.data.getParent(root: EItem.all)!;
         parent.editorItems.remove(details.data);
+        switch (details.data) {
+          case ECategory _ : {
+            parent.category.catalogItems.remove((details.data as ECategory).category);
+          }
+          case EProduct _ : {
+            parent.category.catalogItems.remove((details.data as EProduct).product);
+          }
+        }
 
         details.data.rank = rank + 1;
         details.data.parentId = id;
@@ -855,7 +780,7 @@ class ECategory extends EItem {
                 ]
               ),
               //subtitle: const Text("Category", style: TextStyle(fontSize: 12.0, fontStyle: FontStyle.italic)),
-              trailing: (index != null) ? ReorderableDelayedDragStartListener(index: index, child: const Icon(Icons.drag_handle)) : const SizedBox(),
+              trailing: (index != null) ? ReorderableDragStartListener(index: index, child: const Icon(Icons.drag_handle)) : const SizedBox(),
             )
           )
         );
@@ -870,7 +795,7 @@ class ECategory extends EItem {
     return EItem.getItemById(root: root, id: parentId) as ECategory;
   }
 
-  List<ECategory> getSubCategories() {
+  List<ECategory> getSubCategories({List<ECategory>? categoriesToExclude}) {
     List<ECategory> subCategories = [];
 
     void traverseCategories(ECategory category) {
@@ -886,6 +811,12 @@ class ECategory extends EItem {
 
     traverseCategories(this);
 
+    if (categoriesToExclude != null) {
+      for (ECategory eCategory in categoriesToExclude) {
+        subCategories.remove(eCategory);
+      }
+    }
+
     return subCategories;
   }
 
@@ -894,17 +825,57 @@ class ECategory extends EItem {
       case ECategory _ :
         item.parentId = id;
         editorItems.add(item);
+        category.catalogItems.add(item.category);
       case EProduct _ :
         item.parentId = id;
         editorItems.add(item);
+        category.catalogItems.add(item.product);
+    }
+  }
+
+  Future<void> setImagePaths() async {
+    if (imagePath != null) {
+      return;
+    }
+    else if (category.imageProvider != null) {
+      if (category.imageUrl != null) {
+        imagePath = category.imageUrl;
+      }
+    }
+    else {
+      imagePath = '';
+    }
+  }
+
+  Future<void> setImageFiles() async {
+    if (imageFile != null) {
+      return;
+    }
+    else {
+      final basePath = await getTemporaryDirectory();
+      if (imagePath == null) {
+        return;
+      }
+      else if (isURL(imagePath)) {
+        final imageRef = FirebaseInfo.storage.refFromURL(imagePath!);
+        final file = File('${basePath.path}/${imageRef.name}');
+
+        await imageRef.writeToFile(file);
+        imageFile = file;
+      }
+      else if (imagePath != '') {
+        imageFile = File(imagePath!);
+      }
     }
   }
 }
 
 class EProduct extends EItem {
   final Product product;
-  EProduct({required this.product, required super.rank}) : super(id: product.id, parentId: product.parentId);
-
+  List<String>? imagePaths;
+  List<File>? imageFiles;
+  int primaryImageIndex;
+  EProduct({required this.product, required super.rank, List<String>? imagePaths, primaryImageIndex}) : primaryImageIndex = primaryImageIndex ?? 0, super(id: product.id, parentId: product.parentId);
 
   Widget buildListTile({int? index, VoidCallback? onEditCallback, VoidCallback? onDragCompleted, VoidCallback? onDragStarted, VoidCallback? onDragCanceled}) {
     return Draggable<EItem> (
@@ -955,7 +926,7 @@ class EProduct extends EItem {
             //   padding: EdgeInsets.only(left: 30), 
             //   child: Text("Product", style: TextStyle(fontSize: 12.0, fontStyle: FontStyle.italic)),
             // ),
-            trailing: (index != null) ? ReorderableDelayedDragStartListener(index: index, child: const Icon(Icons.drag_handle)) : const SizedBox(),
+            trailing: (index != null) ? ReorderableDragStartListener(index: index, child: const Icon(Icons.drag_handle)) : const SizedBox(),
           )
         )
     );
@@ -964,6 +935,44 @@ class EProduct extends EItem {
   @override
   ECategory? getParent({required root}) {
     return EItem.getItemById(root: root, id: parentId) as ECategory;
+  }
+
+  Future<void> setImagePaths() async {
+    if (imagePaths != null) {
+      return;
+    }
+    else {
+      imagePaths = [];
+      if (product.productImageProviders.isNotEmpty) {
+        if (product.productImageUrls != null) {
+          for (var url in product.productImageUrls!) {
+            imagePaths!.add(url);
+          }
+        }
+      }
+    }
+  }
+
+  Future<void> setImageFiles() async {
+    if (imageFiles != null) {
+      return;
+    }
+    else {
+      final basePath = await getTemporaryDirectory();
+      imageFiles = [];
+      for (var path in imagePaths!) {
+        if (isURL(path)) {
+          final imageRef = FirebaseInfo.storage.refFromURL(path);
+          final file = File('${basePath.path}/${imageRef.name}');
+
+          await imageRef.writeToFile(file);
+          imageFiles!.add(file);
+        }
+        else {
+          imageFiles!.add(File(path));
+        }
+      }
+    }
   }
 }
 

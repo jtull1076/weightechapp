@@ -1,7 +1,9 @@
 import 'dart:convert';
 
 import 'package:dotted_border/dotted_border.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:weightechapp/models.dart';
 import 'package:weightechapp/themes.dart';
@@ -21,11 +23,13 @@ import 'dart:math' as math;
 import 'package:simple_rich_text/simple_rich_text.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:feedback/feedback.dart';
 import 'package:feedback_github/feedback_github.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:shortid/shortid.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:string_validator/string_validator.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 
 
 //MARK: MAIN
@@ -44,7 +48,10 @@ Future<void> main() async {
   }
 
   debugPrint('...Initializing Firebase...');
-  FirebaseInfo();
+  await FirebaseInfo().init();
+
+  debugPrint('...Initializing Product Manager...');
+  ProductManager productManager = await ProductManager.create();
   
   debugPrint('...App Startup...');
   runApp(
@@ -66,17 +73,20 @@ Future<void> main() async {
         colorScheme: WeightechThemes.lightTheme.colorScheme,
       ),
       child: 
-        WeightechApp()
+        WeightechApp(catalog: productManager)
     )
   );
 }
 
 /// A class that defines the widget tree.
 class WeightechApp extends StatelessWidget {
+  final ProductManager catalog;
+  WeightechApp({required this.catalog}) : super(key: GlobalKey());
+
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider<ProductManager>(
-      create: (_) => ProductManager(),
+      create: (_) => catalog,
       child: MaterialApp(
         title: "Weightech Inc. Sales",
         theme: WeightechThemes.lightTheme, 
@@ -262,14 +272,14 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                           child: 
                             GridView.builder(
                               padding: const EdgeInsets.only(top: 110, bottom: 20, left: 20, right: 20),
-                              itemCount: ProductManager.all.catalogItems.length,
+                              itemCount: ProductManager.all!.catalogItems.length,
                               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                                 crossAxisCount: MediaQuery.of(context).size.width > 1000 ? 4 : MediaQuery.of(context).size.width > 800 ? 3 : MediaQuery.of(context).size.width > 500 ? 2 : 1,
                                 childAspectRatio: 0.9,
                                 crossAxisSpacing: 1,
                                 mainAxisSpacing: 1,
                               ),
-                              itemBuilder: (context, index) => ProductManager.all.catalogItems[index].buildCard(() => catalogNavigation(context, ProductManager.all.getAllCatalogItems()[index])),
+                              itemBuilder: (context, index) => ProductManager.all!.catalogItems[index].buildCard(() => catalogNavigation(context, ProductManager.all!.getAllCatalogItems()[index])),
                             )
                         ),
                     )],//)
@@ -519,7 +529,7 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                   children: [
                     CarouselSlider.builder(
                       options: CarouselOptions(
-                        enableInfiniteScroll: widget.product.productImages.length > 1 ? true : false, 
+                        enableInfiniteScroll: widget.product.productImageProviders.length > 1 ? true : false, 
                         enlargeCenterPage: true,
                         enlargeFactor: 1,
                         onPageChanged: (index, reason) {
@@ -528,19 +538,19 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                           });
                         },
                       ),
-                      itemCount: widget.product.productImages!.length,
+                      itemCount: widget.product.productImageProviders.length,
                       itemBuilder: (BuildContext context, int itemIndex, int pageViewIndex) {
                         return ClipRRect(
                           borderRadius: BorderRadius.circular(30.0),
-                          child: widget.product.productImages![itemIndex]
+                          child: Image(image: widget.product.productImageProviders[itemIndex], fit: BoxFit.fitWidth, width: double.infinity)
                         );
                       }
                     ),
                     const SizedBox(height: 10),
-                    if (widget.product.productImages.length > 1)
+                    if (widget.product.productImageProviders.length > 1)
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
-                        children: widget.product.productImages!.asMap().entries.map((entry) {
+                        children: widget.product.productImageProviders.asMap().entries.map((entry) {
                           return Container(
                               width: 10.0,
                               height: 10.0,
@@ -680,7 +690,7 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                       children: [
                         CarouselSlider.builder(
                           options: CarouselOptions(
-                            enableInfiniteScroll: widget.product.productImages!.length > 1 ? true : false, 
+                            enableInfiniteScroll: widget.product.productImageProviders.length > 1 ? true : false, 
                             enlargeCenterPage: true,
                             enlargeFactor: 1,
                             onPageChanged: (index, reason) {
@@ -689,19 +699,19 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                               });
                             },
                           ),
-                          itemCount: widget.product.productImages!.length,
+                          itemCount: widget.product.productImageProviders.length,
                           itemBuilder: (BuildContext context, int itemIndex, int pageViewIndex) {
                             return ClipRRect(
                               borderRadius: BorderRadius.circular(30.0),
-                              child: widget.product.productImages![itemIndex]
+                              child: Image(image: widget.product.productImageProviders[itemIndex], fit: BoxFit.fitWidth, width: double.infinity),
                             );
                           }
                         ),
                         const SizedBox(height: 10),
-                        if (widget.product.productImages!.length > 1)
+                        if (widget.product.productImageProviders.length > 1)
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
-                            children: widget.product.productImages!.asMap().entries.map((entry) {
+                            children: widget.product.productImageProviders.asMap().entries.map((entry) {
                               return Container(
                                   width: 10.0,
                                   height: 10.0,
@@ -774,7 +784,7 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                               itemCount: subheaders.length,
                               itemBuilder: (context, subIndex) {
                                 final subheaderKey = subheaders[subIndex].keys.first;
-                                final subheaderValue = subheaders[subIndex][subheaderKey] as List<String>;
+                                final subheaderValue = subheaders[subIndex][subheaderKey] as List;
 
                                 return Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -982,10 +992,7 @@ class _ListingPageState extends State<ListingPage> with TickerProviderStateMixin
                                       },
                                       child: Padding(
                                         padding: const EdgeInsets.only(top: 10.0), 
-                                        child: Hero(
-                                          tag: 'main-logo',
-                                          child: Image.asset('assets/weightech_logo.png', height: 100, cacheHeight: 150, cacheWidth: 394, alignment: Alignment.center,)
-                                        ),
+                                        child: Image.asset('assets/weightech_logo.png', height: 100, cacheHeight: 150, cacheWidth: 394, alignment: Alignment.center,)
                                       )
                                     ),
                                 ),
@@ -1103,6 +1110,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
   final ScrollController _scrollController = ScrollController();
 
   late List<String> _imagePaths;
+  late List<File> _imageFiles;
   late int _primaryImageIndex;
   late bool _fileDragging;
   late bool _hoverOnAll;
@@ -1117,12 +1125,12 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
     
     _animationController = AnimationController(duration : const Duration(seconds: 5), vsync: this);
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _animationController, curve: const Interval(0.4, 0.6, curve: Curves.ease)));
-    _dividerWidthAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _animationController, curve: const Interval(0.4, 1.0, curve: Curves.ease)));
-    _editorHeightAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _animationController, curve: const Interval(0.6, 1.0, curve: Curves.ease)));
+    _dividerWidthAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _animationController, curve: const Interval(0.4, 0.7, curve: Curves.ease)));
+    _editorHeightAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _animationController, curve: const Interval(0.55, 1.0, curve: Curves.ease)));
 
-    _catalogCopy = CatalogItem.fromJson(ProductManager.all.toJson()) as ProductCategory;
+    _catalogCopy = CatalogItem.fromJson(ProductManager.all!.toJson()) as ProductCategory;
 
-    _editorAll = EItem.createEditorCatalog(ProductManager.all);
+    _editorAll = EItem.createEditorCatalog(ProductManager.all!);
     _editorAll.showChildren = true;
     
     _itemsToDisplay = _editorAll.editorItems;
@@ -1135,6 +1143,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
 
     _brochureActiveIndex = -1;
     _imagePaths = [];
+    _imageFiles = [];
     _primaryImageIndex = 0;
     _fileDragging = false;
 
@@ -1172,10 +1181,20 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
             foregroundColor: Colors.white,
             hoverColor: const Color(0xFF224190),
             label: const Text("Save & Exit"),
-            onPressed: () {
-              ProductManager.all.catalogItems = _catalogCopy.catalogItems;
-
-              Navigator.of(context).pop();
+            onPressed: () async {
+              setState(() {
+                _ignoringPointer = true;
+              });
+              _showSaveLoading(context);
+              await EItem.updateProductCatalog(_editorAll);
+              productManager = await ProductManager.create();
+              if (context.mounted) {
+                Navigator.of(context).pop();
+                Navigator.of(context).pop();
+              }
+              setState(() {
+                _ignoringPointer = false;
+              });
             }
           ),
           body: IgnorePointer(
@@ -1201,7 +1220,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                     opacity: _fadeAnimation,
                                     child: 
                                       IconButton(
-                                        icon: const Icon(Icons.feedback),
+                                        icon: const Icon(Icons.feedback_outlined),
                                         iconSize: 30,
                                         color: const Color(0xFF224190),
                                         onPressed: () async {
@@ -1270,7 +1289,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                     alignment: Alignment.centerLeft,
                     child: SizeTransition(
                       sizeFactor: _dividerWidthAnimation, 
-                      axis: Axis.horizontal,
+                      axis: Axis.vertical,
                       child: FadeTransition(
                         opacity: _fadeAnimation, 
                         child: Column(
@@ -1309,9 +1328,16 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                               if (_dragging) {
                                 if ((event.position.dy > MediaQuery.of(context).size.height - 50)) {
                                   _scrollController.animateTo(
-                                    math.min(_scrollController.offset + 20, _scrollController.position.maxScrollExtent),
-                                    duration: const Duration(milliseconds: 10),
-                                    curve: Curves.linear,
+                                    _scrollController.position.maxScrollExtent,
+                                    duration: const Duration(milliseconds: 700),
+                                    curve: Curves.easeInOut,
+                                  );
+                                }
+                                else if ((event.position.dy < 200)) {
+                                  _scrollController.animateTo(
+                                    _scrollController.position.minScrollExtent,
+                                    duration: const Duration(milliseconds: 700),
+                                    curve: Curves.easeInOut,
                                   );
                                 }
                               }
@@ -1406,7 +1432,15 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                                       if (confirm) {
                                                         ECategory parent = details.data.getParent(root: _editorAll)!;
                                                         parent.editorItems.remove(details.data);
-                                                        setState(() {});
+                                                        switch (details.data) {
+                                                          case ECategory _ : {
+                                                            parent.category.catalogItems.remove((details.data as ECategory).category);
+                                                          }
+                                                          case EProduct _ : {
+                                                            parent.category.catalogItems.remove((details.data as EProduct).product);
+                                                          }
+                                                        }
+                                                        setState(() => _focusItem = null);
                                                       }
                                                     },
                                                     builder: (context, accepted, rejected) {
@@ -1431,19 +1465,21 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                       distance: 60,
                                       children: [
                                         ActionButton(
-                                          onPressed: () => setState(() {
+                                          onPressed: () async {
                                             _focusItem = null;
-                                            toggleEditorItem(_focusItem);
-                                            _addingItem = true;
-                                            _itemSelection = ItemSelect.category;
-                                          }),
+                                            await toggleEditorItem(_focusItem);
+                                            setState(() {
+                                              _addingItem = true;
+                                              _itemSelection = ItemSelect.category;
+                                            });
+                                          },
                                           icon: const Icon(Icons.folder),
                                         ),
                                         ActionButton(
-                                          onPressed: () {
+                                          onPressed: () async {
+                                            _focusItem = null;
+                                            await toggleEditorItem(_focusItem);
                                             setState(() {
-                                              _focusItem = null;
-                                              toggleEditorItem(_focusItem);
                                               _addingItem = true;
                                               _itemSelection = ItemSelect.product;
                                             });
@@ -1523,7 +1559,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                       subItem.buildListTile(
                         index: index, 
                         onArrowCallback: () => setState(() => subItem.showChildren = !subItem.showChildren), 
-                        onEditCallback: () => toggleEditorItem(subItem),
+                        onEditCallback: () async => toggleEditorItem(subItem),
                         onDragStarted: () => setState(() {
                           subItem.showChildren = false; 
                           _dragging = true;
@@ -1554,7 +1590,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                     children: [
                       subItem.buildListTile(
                         index: index, 
-                        onEditCallback: () => toggleEditorItem(subItem),
+                        onEditCallback: () async => await toggleEditorItem(subItem),
                         onDragCompleted: () => setState(() {
                           _dragging = false;
                           _hoverOnAll = false;
@@ -1577,8 +1613,16 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
             }
           }, 
           onReorder: (int oldIndex, int newIndex) {
+            if (newIndex > item.editorItems.length) newIndex = item.editorItems.length;
+            if (oldIndex < newIndex) newIndex--;
             var dragItem = item.editorItems.removeAt(oldIndex);
             item.editorItems.insert(newIndex, dragItem);
+          },
+          onReorderStart: (_) {
+            setState(() => _dragging = true);
+          },
+          onReorderEnd: (_) {
+            setState(() => _dragging = false);
           }
         ),
       ]
@@ -1604,9 +1648,9 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                         Flexible(
                           flex: 2,
                           child: Container(
-                            padding: const EdgeInsets.only(left: 20),
+                            padding: const EdgeInsets.only(left: 50, right: 30),
                             alignment: Alignment.center,
-                            height: 340,
+                            height: 360,
                             child: 
                               Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
@@ -1617,7 +1661,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                       labelText: "Product Name *"
                                     ),
                                     validator: (String? value) {
-                                      return (value == null || value == '') ? "Name required." : null;
+                                      return (value == null || value == '' || value == 'All') ? "Name required (and cannot be 'All')." : null;
                                     }
                                   ),
                                   TextFormField(
@@ -1643,20 +1687,28 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                       });
                                     },
                                   ),
+                                  const SizedBox(height: 10),
+                                  (product != null) ?
+                                    SizedBox(
+                                      height: 20,
+                                      child: Text("Item ID: ${product.id}", style: const TextStyle(fontStyle: FontStyle.italic)),
+                                    )
+                                  : const SizedBox(height: 20),
                                 ]
                               )
                           )
                         ),
                         Flexible(
-                          flex: 3,
+                          flex: 2,
                           child:
                             Container(
-                              padding: const EdgeInsets.only(left: 50, right: 50, top: 60),
+                              padding: const EdgeInsets.only(left: 30, right: 50, top: 60),
+                              alignment: Alignment.center,
                               child:
                                 Column(
                                   children: [
                                     DropTarget(
-                                      onDragDone: (detail) async {
+                                      onDragDone: (detail) {
                                         List<String> paths = [];
 
                                         for (var file in detail.files) {
@@ -1680,34 +1732,36 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
 
                                         setState(() {
                                           _imagePaths.addAll(paths);
+                                          for (var path in paths) {
+                                            _imageFiles.add(File(path));
+                                          }
                                         });
                                       },
                                       onDragEntered: (details) => setState(() => _fileDragging = true),
                                       onDragExited: (details) => setState(() => _fileDragging = false),
-                                      child: AnimatedContainer(
-                                        duration: const Duration(milliseconds: 150),
-                                        padding: EdgeInsets.symmetric(horizontal: _fileDragging ? 0 : 15, vertical: _fileDragging ? 0 : 15),
-                                        width: 400,
+                                      child: SizedBox(
                                         height: (_imagePaths.isNotEmpty) ? 100 : 250,
-                                        decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(10),
-                                          border: Border.all(color: Colors.black),
-                                        ),
                                         child: AnimatedContainer(
-                                          duration: const Duration(milliseconds: 50),
+                                          duration: const Duration(milliseconds: 250),
+                                          padding: EdgeInsets.symmetric(horizontal: _fileDragging ? 0 : 15, vertical: _fileDragging ? 0 : 15),
+                                          width: 400,
                                           decoration: BoxDecoration(
                                             borderRadius: BorderRadius.circular(10),
-                                            color: _fileDragging ? const Color(0x88396CED) : const Color(0x55C9C9CC),
+                                            border: Border.all(color: Colors.black),
                                           ),
-                                          height: (_imagePaths.isNotEmpty) ? 100 : 250,
-                                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 5),
-                                          alignment: Alignment.center,
-                                          child: 
-                                            _imagePaths.isEmpty ?
-                                              SingleChildScrollView(
-                                                physics: const NeverScrollableScrollPhysics(),
-                                                child: Column(
-                                                  mainAxisAlignment: MainAxisAlignment.center, 
+                                          child: AnimatedContainer(
+                                            duration: const Duration(milliseconds: 50),
+                                            decoration: BoxDecoration(
+                                              borderRadius: BorderRadius.circular(10),
+                                              color: _fileDragging ? const Color(0x88396CED) : const Color(0x55C9C9CC),
+                                            ),
+                                            height: (_imagePaths.isNotEmpty) ? 100 : 250,
+                                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 5),
+                                            alignment: Alignment.center,
+                                            child: 
+                                              _imagePaths.isEmpty ?
+                                                Column(
+                                                  mainAxisAlignment: MainAxisAlignment.center,
                                                   children: [
                                                     const Icon(Icons.image, size: 70),
                                                     const Text("Drag and drop file here", style: TextStyle(fontWeight: FontWeight.bold)),
@@ -1723,25 +1777,46 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                                     const SizedBox(height: 10),
                                                     OutlinedButton(
                                                       style: const ButtonStyle(
-                                                        foregroundColor: WidgetStatePropertyAll<Color>(Colors.black)
+                                                        foregroundColor: MaterialStatePropertyAll<Color>(Colors.black)
                                                       ),                 
                                                       onPressed: () async {
-                                                        FilePickerResult? result = await FilePicker.platform.pickFiles(allowMultiple: true, type: FileType.image, allowedExtensions: ['png', 'jpg']);
-                                                        if (result != null) {
-                                                          List<String> paths = [];
+                                                        FilePickerResult? _ = 
+                                                          await FilePicker.platform.
+                                                            pickFiles(allowMultiple: true, type: FileType.image, allowedExtensions: ['png', 'jpg'])
+                                                            .then((result) {
+                                                              if (result != null) {
+                                                                List<String> paths = [];
 
-                                                          for (var path in result.paths) {
-                                                            if (path != null) {
-                                                              paths.add(path);
-                                                            }
-                                                          }
+                                                                for (var path in result.paths) {
+                                                                  if (_imagePaths.contains(path)) {
+                                                                    debugPrint("Image already assigned to item.");
+                                                                    continue;
+                                                                  }
+                                                                  String extension = path!.substring(path.length - 4);
+                                                                  if (extension == ".jpg" || extension == ".png") {
+                                                                    debugPrint("Image added to paths: $path");
+                                                                    paths.add(path);
+                                                                  }
+                                                                  else if (path.substring(path.length - 5) == ".jpeg") {
+                                                                    debugPrint("Image added to paths: $path");
+                                                                    paths.add(path);
+                                                                  }
+                                                                  else {
+                                                                    debugPrint("Invalid file type: File type $extension not supported.");
+                                                                  }
+                                                                }
 
-                                                          setState(() => _imagePaths.addAll(paths));
-                                                          debugPrint("File upload successful: ${result.files.first.path}");
-                                                        }
-                                                        else {
-                                                          debugPrint("File upload aborted/failed.");
-                                                        }
+                                                                setState(() {
+                                                                  _imagePaths.addAll(paths);
+                                                                  for (var path in paths) {
+                                                                    _imageFiles.add(File(path));
+                                                                  }
+                                                                });
+                                                              }
+                                                              else {
+                                                                debugPrint("File upload aborted/failed.");
+                                                              }
+                                                            });
                                                       },
                                                       child: const Text("Browse Files")
                                                     ),
@@ -1749,131 +1824,190 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                                     const Text("File must be .jpg or .png", style: TextStyle(fontSize: 12.0, fontStyle: FontStyle.italic))
                                                   ]
                                                 )
-                                            )
-                                            : Row(
-                                              mainAxisAlignment: MainAxisAlignment.center,
-                                              children: [
-                                                const Text("Drag and drop file here", style: TextStyle(fontWeight: FontWeight.bold)),
-                                                const SizedBox(width: 20),
-                                                const Column(
-                                                  mainAxisAlignment: MainAxisAlignment.center, 
-                                                  children: [
-                                                    Expanded(child: VerticalDivider(color: Colors.black, width: 1, thickness: 1, indent: 10, endIndent: 1)), 
-                                                    Text("or"), 
-                                                    Expanded(child: VerticalDivider(color: Colors.black, width: 1, thickness: 1, indent: 1, endIndent: 10))
-                                                  ]
-                                                ),
-                                                const SizedBox(width: 20),
-                                                OutlinedButton(
-                                                  style: const ButtonStyle(
-                                                    foregroundColor: WidgetStatePropertyAll<Color>(Colors.black)
-                                                  ),                 
-                                                  onPressed: () async {
-                                                    FilePickerResult? result = await FilePicker.platform.pickFiles(allowMultiple: true, type: FileType.image, allowedExtensions: ['png', 'jpg']);
-                                                    if (result != null) {
-                                                      List<String> paths = [];
+                                              : Row(
+                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                children: [
+                                                  const Text("Drag and drop file here", style: TextStyle(fontWeight: FontWeight.bold)),
+                                                  const SizedBox(width: 20),
+                                                  const Column(
+                                                    mainAxisAlignment: MainAxisAlignment.center, 
+                                                    children: [
+                                                      Expanded(child: VerticalDivider(color: Colors.black, width: 1, thickness: 1, indent: 10, endIndent: 1)), 
+                                                      Text("or"), 
+                                                      Expanded(child: VerticalDivider(color: Colors.black, width: 1, thickness: 1, indent: 1, endIndent: 10))
+                                                    ]
+                                                  ),
+                                                  const SizedBox(width: 20),
+                                                  OutlinedButton(
+                                                    style: const ButtonStyle(
+                                                      foregroundColor: MaterialStatePropertyAll<Color>(Colors.black)
+                                                    ),                 
+                                                    onPressed: () async {
+                                                      FilePickerResult? _ = 
+                                                        await FilePicker.platform.
+                                                          pickFiles(allowMultiple: true, type: FileType.image, allowedExtensions: ['png', 'jpg'])
+                                                          .then((result) {
+                                                            if (result != null) {
+                                                              List<String> paths = [];
 
-                                                      for (var path in result.paths) {
-                                                        if (path != null) {
-                                                          paths.add(path);
-                                                        }
-                                                      }
+                                                              for (var path in result.paths) {
+                                                                if (_imagePaths.contains(path)) {
+                                                                  debugPrint("Image already assigned to item.");
+                                                                  continue;
+                                                                }
+                                                                String extension = path!.substring(path.length - 4);
+                                                                if (extension == ".jpg" || extension == ".png") {
+                                                                  debugPrint("Image added to paths: $path");
+                                                                  paths.add(path);
+                                                                }
+                                                                else if (path.substring(path.length - 5) == ".jpeg") {
+                                                                  debugPrint("Image added to paths: $path");
+                                                                  paths.add(path);
+                                                                }
+                                                                else {
+                                                                  debugPrint("Invalid file type: File type $extension not supported.");
+                                                                }
+                                                              }
 
-                                                      setState(() => _imagePaths.addAll(paths));
-                                                      debugPrint("File upload successful: ${result.files.first.path}");
-                                                    }
-                                                    else {
-                                                      debugPrint("File upload aborted/failed.");
-                                                    }
-                                                  },
-                                                  child: const Text("Browse Files")
-                                                ),
-                                              ]
-                                            )
-                                        ),
-                                      ), 
+                                                              setState(() {
+                                                                _imagePaths.addAll(paths);
+                                                                for (var path in paths) {
+                                                                  _imageFiles.add(File(path));
+                                                                }
+                                                              });
+                                                            }
+                                                            else {
+                                                              debugPrint("File upload aborted/failed.");
+                                                            }
+                                                          });
+                                                    },
+                                                    child: const Text("Browse Files")
+                                                  ),
+                                                ]
+                                              )
+                                          ),
+                                        ), 
+                                      ),
                                     ),
                                     const SizedBox(height: 10),
                                     SizedBox(
                                       width: 340,
-                                      child: ListView.builder(
+                                      child: ReorderableListView.builder(
                                         shrinkWrap: true,
+                                        buildDefaultDragHandles: false,
                                         physics: const NeverScrollableScrollPhysics(),
                                         itemCount: _imagePaths.length,
                                         itemBuilder:(context, index) {
-                                          File image = File(_imagePaths[index]);
-                                          return Column(
-                                            children: [
-                                              Container(
-                                                decoration: BoxDecoration(
-                                                  color: const Color(0x55C9C9CC),
-                                                  borderRadius: BorderRadius.circular(15)
-                                                ),
-                                                alignment: Alignment.center,
-                                                height: 33,
-                                                padding: const EdgeInsets.symmetric(horizontal: 10),
-                                                child:
-                                                  Row(
-                                                    mainAxisSize: MainAxisSize.min,
-                                                    children: [
-                                                      Text("${index+1}."),
-                                                      const SizedBox(width: 10),
-                                                      Expanded(
-                                                        child:
-                                                          Text(image.uri.pathSegments.last, overflow: TextOverflow.ellipsis)
-                                                      ),
-                                                      const SizedBox(width: 10),
-                                                      IconButton(
-                                                        style: const ButtonStyle(
-                                                          backgroundColor: WidgetStatePropertyAll<Color>(Color(0xFFA9A9AA)),
-                                                          minimumSize: WidgetStatePropertyAll<Size>(Size(25,25)),
-                                                          fixedSize: WidgetStatePropertyAll<Size>(Size(25,25))
-                                                        ),
-                                                        padding: EdgeInsets.zero,
-                                                        icon: const Icon(Icons.star),
-                                                        color: (index == _primaryImageIndex) ? Colors.yellow : Colors.white,
-                                                        hoverColor: const Color(0xFF808082),
-                                                        iconSize: 18,
-                                                        onPressed: () => setState(() => _primaryImageIndex = index)
-                                                      ),
-                                                      const SizedBox(width: 10),
-                                                      IconButton(
-                                                        style: const ButtonStyle(
-                                                          backgroundColor: WidgetStatePropertyAll<Color>(Color(0xFFA9A9AA)),
-                                                          minimumSize: WidgetStatePropertyAll<Size>(Size(25,25)),
-                                                          fixedSize: WidgetStatePropertyAll<Size>(Size(25,25))
-                                                        ),
-                                                        padding: EdgeInsets.zero,
-                                                        icon: const Icon(Icons.remove_red_eye),
-                                                        color: Colors.white,
-                                                        hoverColor: const Color(0xFF224190),
-                                                        iconSize: 18,
-                                                        onPressed: () async {
-                                                          await _previewImage(context, image);
-                                                        }
-                                                      ),
-                                                      const SizedBox(width: 10),
-                                                      IconButton(
-                                                        style: const ButtonStyle(
-                                                          backgroundColor: WidgetStatePropertyAll<Color>(Color(0xFFA9A9AA)),
-                                                          minimumSize: WidgetStatePropertyAll<Size>(Size(25,25)),
-                                                          fixedSize: WidgetStatePropertyAll<Size>(Size(25,25))
-                                                        ),
-                                                        padding: EdgeInsets.zero,
-                                                        icon: const Icon(Icons.close),
-                                                        color: Colors.white,
-                                                        hoverColor: const Color(0xFFC3291B),
-                                                        iconSize: 18,
-                                                        onPressed: () => setState(() => _imagePaths.removeAt(index))
-                                                      )
 
-                                                    ],
-                                                  )
+                                          bool isFromCloud = false;
+
+                                          final image = _imageFiles[index];
+                                          String imageText = '';
+                                          if (isURL(_imagePaths[index])) {
+                                            final ref = FirebaseInfo.storage.refFromURL(_imagePaths[index]);
+                                            imageText = ref.name;
+                                            isFromCloud = true;
+                                          }
+                                          else {
+                                            imageText = image.uri.pathSegments.last;
+                                          }
+
+                                          return Column(
+                                            key: Key('image_$index'),
+                                            children: [
+                                              ReorderableDragStartListener(
+                                                index: index,
+                                                child: 
+                                                  Container(
+                                                    decoration: BoxDecoration(
+                                                      color: const Color(0x55C9C9CC),
+                                                      borderRadius: BorderRadius.circular(15)
+                                                    ),
+                                                    alignment: Alignment.center,
+                                                    height: 33,
+                                                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                                                    child:
+                                                      Row(
+                                                        mainAxisSize: MainAxisSize.min,
+                                                        children: [
+                                                          Text("${index+1}."),
+                                                          const SizedBox(width: 10),
+                                                          Expanded(
+                                                            child: Row(
+                                                              children: [
+                                                                Text(imageText, overflow: TextOverflow.ellipsis),
+                                                                if (isFromCloud) const SizedBox(width: 7),
+                                                                if (isFromCloud) const Icon(Icons.cloud_outlined, color: Color(0xFFA9A9AA), size: 12.0)
+                                                              ]
+                                                            )
+                                                          ),
+                                                          const SizedBox(width: 10),
+                                                          IconButton(
+                                                            style: const ButtonStyle(
+                                                              backgroundColor: MaterialStatePropertyAll<Color>(Color(0xFFA9A9AA)),
+                                                              minimumSize: MaterialStatePropertyAll<Size>(Size(25,25)),
+                                                              fixedSize: MaterialStatePropertyAll<Size>(Size(25,25))
+                                                            ),
+                                                            padding: EdgeInsets.zero,
+                                                            icon: const Icon(Icons.star),
+                                                            color: (index == _primaryImageIndex) ? Colors.yellow : Colors.white,
+                                                            hoverColor: const Color(0xFF808082),
+                                                            iconSize: 18,
+                                                            onPressed: () => setState(() => _primaryImageIndex = index)
+                                                          ),
+                                                          const SizedBox(width: 10),
+                                                          IconButton(
+                                                            style: const ButtonStyle(
+                                                              backgroundColor: MaterialStatePropertyAll<Color>(Color(0xFFA9A9AA)),
+                                                              minimumSize: MaterialStatePropertyAll<Size>(Size(25,25)),
+                                                              fixedSize: MaterialStatePropertyAll<Size>(Size(25,25))
+                                                            ),
+                                                            padding: EdgeInsets.zero,
+                                                            icon: const Icon(Icons.remove_red_eye),
+                                                            color: Colors.white,
+                                                            hoverColor: const Color(0xFF224190),
+                                                            iconSize: 18,
+                                                            onPressed: () async {
+                                                              await _previewImage(context, image);
+                                                            }
+                                                          ),
+                                                          const SizedBox(width: 10),
+                                                          IconButton(
+                                                            style: const ButtonStyle(
+                                                              backgroundColor: MaterialStatePropertyAll<Color>(Color(0xFFA9A9AA)),
+                                                              minimumSize: MaterialStatePropertyAll<Size>(Size(25,25)),
+                                                              fixedSize: MaterialStatePropertyAll<Size>(Size(25,25))
+                                                            ),
+                                                            padding: EdgeInsets.zero,
+                                                            icon: const Icon(Icons.close),
+                                                            color: Colors.white,
+                                                            hoverColor: const Color(0xFFC3291B),
+                                                            iconSize: 18,
+                                                            onPressed: () => setState(() {
+                                                              _imagePaths.removeAt(index);
+                                                              _imageFiles.removeAt(index);
+                                                            })
+                                                          )
+
+                                                        ],
+                                                      )
+                                                  ),
                                               ),
                                               const SizedBox(height: 5),
                                             ]
                                           );
                                         },
+                                        onReorder: (oldIndex, newIndex) {
+                                          // These two lines are workarounds for ReorderableListView problems
+                                          if (newIndex > _imagePaths.length) newIndex = _imagePaths.length;
+                                          if (oldIndex < newIndex) newIndex--;
+
+                                          String pathToMove = _imagePaths.removeAt(oldIndex);
+                                          File fileToMove = _imageFiles.removeAt(oldIndex);
+                                          _imagePaths.insert(newIndex, pathToMove);
+                                          _imageFiles.insert(newIndex, fileToMove);
+                                          setState(() {});
+                                        }
                                       )
                                     )
                                   ]
@@ -1883,7 +2017,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                       ]
                     ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 10),
                 const Padding(
                   padding: EdgeInsets.only(left: 150, right: 150, bottom: 10), 
                   child: 
@@ -1934,7 +2068,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                     Padding(
                                       padding: const EdgeInsets.only(bottom: 0),
                                       child: 
-                                        ReorderableDelayedDragStartListener(
+                                        ReorderableDragStartListener(
                                           index: index,
                                           child: Row(
                                             children: [
@@ -1964,8 +2098,8 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                                   child: 
                                                   ElevatedButton(
                                                     style: const ButtonStyle(
-                                                      backgroundColor: WidgetStatePropertyAll<Color>(Color(0xFFC9C9CC)),
-                                                      foregroundColor: WidgetStatePropertyAll<Color>(Colors.black),
+                                                      backgroundColor: MaterialStatePropertyAll<Color>(Color(0xFFC9C9CC)),
+                                                      foregroundColor: MaterialStatePropertyAll<Color>(Colors.black),
                                                       visualDensity: VisualDensity(horizontal: -4),
                                                     ),
                                                     onPressed: () {
@@ -1982,8 +2116,8 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                                   child: 
                                                     ElevatedButton(
                                                       style: const ButtonStyle(
-                                                        backgroundColor: WidgetStatePropertyAll<Color>(Color(0xFFC9C9CC)),
-                                                        foregroundColor: WidgetStatePropertyAll<Color>(Colors.black),
+                                                        backgroundColor: MaterialStatePropertyAll<Color>(Color(0xFFC9C9CC)),
+                                                        foregroundColor: MaterialStatePropertyAll<Color>(Colors.black),
                                                       ),
                                                       onPressed: () {
                                                         setState((){
@@ -1999,8 +2133,8 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                                   child:
                                                     ElevatedButton(
                                                       style: const ButtonStyle(
-                                                        backgroundColor: WidgetStatePropertyAll<Color>(Color(0xFFC9C9CC)),
-                                                        foregroundColor: WidgetStatePropertyAll<Color>(Colors.black),
+                                                        backgroundColor: MaterialStatePropertyAll<Color>(Color(0xFFC9C9CC)),
+                                                        foregroundColor: MaterialStatePropertyAll<Color>(Colors.black),
                                                       ),
                                                       onPressed: () {
                                                         setState((){
@@ -2020,9 +2154,8 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                           },
                           onReorder: (int oldIndex, int newIndex) {
                             setState(() {
-                              if (oldIndex < newIndex) {
-                                newIndex -= 1;
-                              }
+                              if (newIndex > _brochure.length) newIndex = _brochure.length;
+                              if (oldIndex < newIndex) newIndex--;
                               final item = _brochure.removeAt(oldIndex);
                               _brochure.insert(newIndex, item);
                             });
@@ -2040,8 +2173,8 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                 const SizedBox(height: 10),
                 ElevatedButton(
                   style: const ButtonStyle(
-                    backgroundColor: WidgetStatePropertyAll<Color>(Color(0xFF224190)),
-                    foregroundColor: WidgetStatePropertyAll<Color>(Colors.white)
+                    backgroundColor: MaterialStatePropertyAll<Color>(Color(0xFF224190)),
+                    foregroundColor: MaterialStatePropertyAll<Color>(Colors.white)
                   ),
                   child: _addingItem ? const Text("Add") : const Text("Save"),
                   onPressed: () {
@@ -2053,17 +2186,22 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                         description: _descriptionController.text,
                         brochure: Product.mapListToBrochure(_brochure)
                       );
-                      EProduct newEProduct = EProduct(product: newProduct, rank: _selectedCategory.rank+1);
+                      EProduct newEProduct = EProduct(product: newProduct, rank: _selectedCategory.rank+1, imagePaths: _imagePaths, primaryImageIndex: _primaryImageIndex);
                       _selectedCategory.addItem(newEProduct);
                     }
                     else if (product != null) {
-                      product.getParent(root: _editorAll)?.editorItems.remove(product);
+                      if (product.parentId != _selectedCategory.id) {
+                        product.getParent(root: _editorAll)?.editorItems.remove(product);
+                        product.parentId = _selectedCategory.id;
+                        _selectedCategory.addItem(product);
+                      }
                       product.product.name = _nameController.text;
-                      product.parentId = _selectedCategory.id;
                       product.product.modelNumber = _modelNumberController.text;
                       product.product.description = _descriptionController.text;
                       product.product.brochure = Product.mapListToBrochure(_brochure);
-                      _selectedCategory.addItem(product);
+                      product.imagePaths = List.from(_imagePaths);
+                      product.imageFiles = List.from(_imageFiles);
+                      product.primaryImageIndex = _primaryImageIndex;
                       product.rank = _selectedCategory.rank+1;
                     }
                     setState(() {
@@ -2080,103 +2218,355 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
   }
 
   Widget categoryEditor({ECategory? category}) {
-    return Column(
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(width: 25),
-            Flexible(
-              child: 
-                Column(
-                  children: [
-                    const SizedBox(height: 25),
-                    TextFormField(
-                      controller: _nameController,
-                      decoration: const InputDecoration(
-                        labelText: "Category Name *"
-                      ),
-                      validator: (String? value) {
-                        return (value == null || value == '') ? "Name required." : null;
-                      }
-                    ),
-                    const SizedBox(height: 20),
-                    DropdownMenu<ECategory>(
-                      label: const Text("Category *"),
-                      controller: _dropdownController,
-                      initialSelection: _focusItem?.getParent(root: _editorAll) ?? _editorAll,
-                      dropdownMenuEntries: _editorAll.getSubCategories().map<DropdownMenuEntry<ECategory>>((ECategory category){
-                        return DropdownMenuEntry<ECategory>(
-                          value: category,
-                          label: category.category.name,
-                        );
-                      }).toList(),
-                      onSelected: (newValue) {
-                        setState((){
-                          _selectedCategory = newValue!;
-                        });
-                      },
-                    ),
-                  ]
-                )
-            ),
-            Flexible(
-              child:
+    
+    bool hoverOnImageRemove = false;
+
+    return SizedBox(
+      height: MediaQuery.of(context).size.height - 158,
+      width: double.infinity,
+      child:
+        SingleChildScrollView(
+          child: 
+            Column(
+              children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 100, vertical: 40),
-                  child:
-                    Column(
+                  constraints: const BoxConstraints(minHeight: 360),
+                  child: 
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        ElevatedButton(
-                          child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [Text("Upload", style: TextStyle(color: Colors.black)), Icon(Icons.upload)]), 
-                          onPressed: () async {
-                            FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.image, allowedExtensions: ['png', 'jpg']);
-                            if (result != null) {
-                              // setState(() => _mainImagePath = result.files.first.path!);
-                              debugPrint("File upload successful: ${result.files.first.path}");
-                            }
-                            else {
-                              debugPrint("File upload aborted/failed.");
-                            }
-                          },
+                        const SizedBox(width: 25),
+                        Flexible(
+                          flex: 2,
+                          child: Container(
+                            padding: const EdgeInsets.only(left: 20),
+                            alignment: Alignment.center,
+                            height: 340,
+                            child: 
+                              Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  TextFormField(
+                                    controller: _nameController,
+                                    decoration: const InputDecoration(
+                                      labelText: "Category Name *"
+                                    ),
+                                    validator: (String? value) {
+                                      return (value == null || value == '' || value == 'All') ? "Name required (and cannot be 'All')." : null;
+                                    }
+                                  ),
+                                  const SizedBox(height: 20),
+                                  DropdownMenu<ECategory>(
+                                    label: const Text("Parent Category *"),
+                                    controller: _dropdownController,
+                                    initialSelection: _focusItem?.getParent(root: _editorAll) ?? _editorAll,
+                                    dropdownMenuEntries: (_editorAll.getSubCategories(categoriesToExclude : (category != null) ? [category] : null)).map<DropdownMenuEntry<ECategory>>((ECategory categoryOption){
+                                      return DropdownMenuEntry<ECategory>(
+                                        value: categoryOption,
+                                        label: categoryOption.category.name,
+                                      );
+                                    }).toList(),
+                                    onSelected: (newValue) {
+                                      setState((){
+                                        _selectedCategory = newValue!;
+                                      });
+                                    },
+                                  ),
+                                  const SizedBox(height: 10),
+                                  (category != null) ?
+                                    SizedBox(
+                                      height: 20,
+                                      child: Text("Item ID: ${category.id}", style: const TextStyle(fontStyle: FontStyle.italic)),
+                                    )
+                                  : const SizedBox(height: 20),
+                                ]
+                              )
+                          )
+                        ),
+                        Flexible(
+                          flex: 3,
+                          child:
+                            Container(
+                              padding: const EdgeInsets.only(left: 50, right: 50, top: 60),
+                              child:
+                                Column(
+                                  children: [
+                                    DropTarget(
+                                      onDragDone: (detail) {
+                                        List<String> paths = [];
+
+                                        for (var file in detail.files) {
+                                          if (_imagePaths.contains(file.path)) {
+                                            debugPrint("Image already assigned to item.");
+                                            continue;
+                                          }
+                                          String extension = file.path.substring(file.path.length - 4);
+                                          if (extension == ".jpg" || extension == ".png") {
+                                            debugPrint("Image added to paths: ${file.path}");
+                                            paths.add(file.path);
+                                          }
+                                          else if (file.path.substring(file.path.length - 5) == ".jpeg") {
+                                            debugPrint("Image added to paths: ${file.path}");
+                                            paths.add(file.path);
+                                          }
+                                          else {
+                                            debugPrint("Invalid file type: File type $extension not supported.");
+                                          }
+                                        }
+
+                                        setState(() {
+                                          _imagePaths = [];
+                                          _imageFiles = [];
+                                          _imagePaths.add(paths[0]);
+                                          _imageFiles.add(File(paths[0]));
+                                        });
+                                      },
+                                      onDragEntered: (details) => setState(() => _fileDragging = true),
+                                      onDragExited: (details) => setState(() => _fileDragging = false),
+                                      child: SizedBox(
+                                        height: 250,
+                                        child: AnimatedContainer(
+                                          duration: const Duration(milliseconds: 250),
+                                          padding: EdgeInsets.symmetric(horizontal: _fileDragging ? 0 : 15, vertical: _fileDragging ? 0 : 15),
+                                          width: 400,
+                                          decoration: BoxDecoration(
+                                            borderRadius: BorderRadius.circular(10),
+                                            border: Border.all(color: Colors.black),
+                                          ),
+                                          child: AnimatedContainer(
+                                            duration: const Duration(milliseconds: 50),
+                                            decoration: BoxDecoration(
+                                              borderRadius: BorderRadius.circular(10),
+                                              color: _fileDragging ? const Color(0x88396CED) : const Color(0x55C9C9CC),
+                                            ),
+                                            height: 250,
+                                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 5),
+                                            alignment: Alignment.center,
+                                            child: 
+                                              _imagePaths.isEmpty ?
+                                                Column(
+                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                  children: [
+                                                    const Icon(Icons.image, size: 70),
+                                                    const Text("Drag and drop file here", style: TextStyle(fontWeight: FontWeight.bold)),
+                                                    const SizedBox(height: 10),
+                                                    const Row(
+                                                      mainAxisAlignment: MainAxisAlignment.center, 
+                                                      children: [
+                                                        Expanded(child: Divider(color: Colors.black, height: 1, thickness: 1, indent: 70, endIndent: 15)), 
+                                                        Text("or"), 
+                                                        Expanded(child: Divider(color: Colors.black, height: 1, thickness: 1, indent: 15, endIndent: 70))
+                                                      ]
+                                                    ),
+                                                    const SizedBox(height: 10),
+                                                    OutlinedButton(
+                                                      style: const ButtonStyle(
+                                                        foregroundColor: MaterialStatePropertyAll<Color>(Colors.black)
+                                                      ),                 
+                                                      onPressed: () async {
+                                                        FilePickerResult? _ = 
+                                                          await FilePicker.platform.
+                                                            pickFiles(allowMultiple: false, type: FileType.image, allowedExtensions: ['png', 'jpg'])
+                                                            .then((result) {
+                                                              if (result != null) {
+                                                                List<String> paths = [];
+
+                                                                for (var path in result.paths) {
+                                                                  if (_imagePaths.contains(path)) {
+                                                                    debugPrint("Image already assigned to item.");
+                                                                    continue;
+                                                                  }
+                                                                  String extension = path!.substring(path.length - 4);
+                                                                  if (extension == ".jpg" || extension == ".png") {
+                                                                    debugPrint("Image added to paths: $path");
+                                                                    paths.add(path);
+                                                                  }
+                                                                  else if (path.substring(path.length - 5) == ".jpeg") {
+                                                                    debugPrint("Image added to paths: $path");
+                                                                    paths.add(path);
+                                                                  }
+                                                                  else {
+                                                                    debugPrint("Invalid file type: File type $extension not supported.");
+                                                                  }
+                                                                }
+
+                                                                setState(() {
+                                                                  _imagePaths = [];
+                                                                  _imageFiles = [];
+                                                                  _imagePaths.add(paths[0]);
+                                                                  _imageFiles.add(File(paths[0]));
+                                                                });
+                                                              }
+                                                              else {
+                                                                debugPrint("File upload aborted/failed.");
+                                                              }
+                                                            });
+                                                      },
+                                                      child: const Text("Browse Files")
+                                                    ),
+                                                    const SizedBox(height: 10),
+                                                    const Text("File must be .jpg or .png", style: TextStyle(fontSize: 12.0, fontStyle: FontStyle.italic))
+                                                  ]
+                                                )
+                                              : Column(
+                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                children: [
+                                                  const SizedBox(height: 10),
+                                                  Flexible(
+                                                    child: ClipRRect(
+                                                      borderRadius: BorderRadius.circular(8),
+                                                      child: Stack(
+                                                        children: [
+                                                          Image.file(_imageFiles[0], height: 300),
+                                                          StatefulBuilder(
+                                                            builder: (context, setState) {
+                                                              return Positioned.fill(
+                                                                child: Material(
+                                                                    color: Colors.transparent,
+                                                                    child: InkWell(
+                                                                      hoverColor: const Color(0x55000000),
+                                                                      onHover: (isHovering) {
+                                                                        if (isHovering) {
+                                                                          setState(() => hoverOnImageRemove = true);
+                                                                        }
+                                                                        else {
+                                                                          setState(() => hoverOnImageRemove = false);
+                                                                        }
+                                                                      },
+                                                                      onTap: () {
+                                                                        _imageFiles.clear();
+                                                                        _imagePaths.clear();
+                                                                        super.setState(() {});
+                                                                      },
+                                                                      child: hoverOnImageRemove ? const Icon(Icons.clear, size:40, color: Color(0xFFC9C9CC)) : const SizedBox()
+                                                                    )
+                                                                  )
+                                                              );
+                                                            }
+                                                          )
+                                                        ]
+                                                      )
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 10),
+                                                  SizedBox(
+                                                    height: 50,
+                                                    child: Row(
+                                                      mainAxisAlignment: MainAxisAlignment.center,
+                                                      children: [
+                                                        const Text("Drag and drop file here", style: TextStyle(fontWeight: FontWeight.bold)),
+                                                        const SizedBox(width: 20),
+                                                        const Column(
+                                                          mainAxisAlignment: MainAxisAlignment.center, 
+                                                          children: [
+                                                            Expanded(child: VerticalDivider(color: Colors.black, width: 1, thickness: 1, indent: 10, endIndent: 1)), 
+                                                            Text("or"), 
+                                                            Expanded(child: VerticalDivider(color: Colors.black, width: 1, thickness: 1, indent: 1, endIndent: 10))
+                                                          ]
+                                                        ),
+                                                        const SizedBox(width: 20),
+                                                        OutlinedButton(
+                                                          style: const ButtonStyle(
+                                                            foregroundColor: MaterialStatePropertyAll<Color>(Colors.black)
+                                                          ),                 
+                                                          onPressed: () async {
+                                                            FilePickerResult? _ = 
+                                                              await FilePicker.platform.
+                                                                pickFiles(allowMultiple: false, type: FileType.image, allowedExtensions: ['png', 'jpg'])
+                                                                .then((result) {
+                                                                  if (result != null) {
+                                                                    List<String> paths = [];
+
+                                                                    for (var path in result.paths) {
+                                                                      if (_imagePaths.contains(path)) {
+                                                                        debugPrint("Image already assigned to item.");
+                                                                        continue;
+                                                                      }
+                                                                      String extension = path!.substring(path.length - 4);
+                                                                      if (extension == ".jpg" || extension == ".png") {
+                                                                        debugPrint("Image added to paths: $path");
+                                                                        paths.add(path);
+                                                                      }
+                                                                      else if (path.substring(path.length - 5) == ".jpeg") {
+                                                                        debugPrint("Image added to paths: $path");
+                                                                        paths.add(path);
+                                                                      }
+                                                                      else {
+                                                                        debugPrint("Invalid file type: File type $extension not supported.");
+                                                                      }
+                                                                    }
+
+                                                                    setState(() {
+                                                                      _imagePaths = [];
+                                                                      _imageFiles = [];
+                                                                      _imagePaths.add(paths[0]);
+                                                                      _imageFiles.add(File(paths[0]));
+                                                                    });
+                                                                  }
+                                                                  else {
+                                                                    debugPrint("File upload aborted/failed.");
+                                                                  }
+                                                                });
+                                                          },
+                                                          child: const Text("Browse Files")
+                                                        ),
+                                                      ]
+                                                    )
+                                                  )
+                                                ]
+                                              )
+                                          ),
+                                        ), 
+                                      ),
+                                    ),
+                                    const SizedBox(height: 10),
+                                  ]
+                                )
+                            )
                         )
                       ]
-                    )
-                )
+                    ),
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  style: const ButtonStyle(
+                    backgroundColor: MaterialStatePropertyAll<Color>(Color(0xFF224190)),
+                    foregroundColor: MaterialStatePropertyAll<Color>(Colors.white)
+                  ),
+                  child: _addingItem ? const Text("Add") : const Text("Save"),
+                  onPressed: () {
+                    if (_addingItem) {
+                      ProductCategory newCategory = ProductCategory(
+                        name: _nameController.text,
+                        parentId: _selectedCategory.id,
+                      );
+                      ECategory newEProduct = ECategory(category: newCategory, rank: _selectedCategory.rank+1, editorItems: [], imagePath: _imagePaths[0]);
+                      _selectedCategory.addItem(newEProduct);
+                    }
+                    else if (category != null) {
+                      if (category.parentId != _selectedCategory.id) {
+                        category.getParent(root: _editorAll)?.editorItems.remove(category);
+                        category.parentId = _selectedCategory.id;
+                        _selectedCategory.addItem(category);
+                      }
+                      category.category.name = _nameController.text;
+                      category.imagePath = _imagePaths[0];
+                      category.imageFile = _imageFiles[0];
+                      category.rank = _selectedCategory.rank+1;
+                    }
+                    setState(() {
+                      _addingItem = false;
+                      _focusItem = null;
+                    });
+                  }
+                ),
+                const SizedBox(height: 20),
+              ]
             )
-          ]
-        ),
-        ElevatedButton(
-          style: const ButtonStyle(
-            backgroundColor: WidgetStatePropertyAll<Color>(Color(0xFF224190)),
-            foregroundColor: WidgetStatePropertyAll<Color>(Colors.white)
-          ),
-          onPressed: () {
-            if (_addingItem) {
-              ProductCategory newCategory = ProductCategory(
-                name: _nameController.text,
-                parentId: _selectedCategory.id
-              );
-              ECategory newECategory = ECategory(category: newCategory, editorItems: [], rank: _selectedCategory.rank+1);
-              _selectedCategory.addItem(newECategory);
-            }
-            else if (category != null) {
-              category.getParent(root: _editorAll)?.editorItems.remove(category);
-              category.category.name = _nameController.text;
-              category.parentId = _selectedCategory.id;
-              _selectedCategory.addItem(category);
-              category.rank = _selectedCategory.rank + 1;
-            }
-            setState(() {
-              _addingItem = false;
-              _focusItem = null;
-            });
-          },
-          child: _addingItem ? const Text("Add") : const Text("Save"),
         )
-      ]
     );
   }
+
 
   Future<void> _previewImage(BuildContext context, File imageFile) async {
     await showDialog<void>(
@@ -2201,6 +2591,27 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
     );
   }
 
+  Future<void> _showSaveLoading(BuildContext context) async {
+    await showDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.transparent,
+          title: const Text(""),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              LoadingAnimationWidget.hexagonDots(color: const Color(0xFF224190), size: 60),
+              const SizedBox(height: 50),
+              const Text("Saving changes... this may take a moment.")
+            ]
+          )
+        );
+      }
+    );
+  }
   
   Future<void> _showPreviewDialog(BuildContext context) async {
     await showDialog<bool>(
@@ -2261,7 +2672,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                           children: [
                                             CarouselSlider.builder(
                                               options: CarouselOptions(
-                                                enableInfiniteScroll: _imagePaths.length > 1 ? true : false, 
+                                                enableInfiniteScroll: _imageFiles.length > 1 ? true : false, 
                                                 enlargeCenterPage: true,
                                                 enlargeFactor: 1,
                                                 onPageChanged: (index, reason) {
@@ -2270,19 +2681,19 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                                   });
                                                 },
                                               ),
-                                              itemCount: _imagePaths.length,
+                                              itemCount: _imageFiles.length,
                                               itemBuilder: (BuildContext context, int itemIndex, int pageViewIndex) {
                                                 return ClipRRect(
                                                   borderRadius: BorderRadius.circular(30.0),
-                                                  child: Image.file(File(_imagePaths[itemIndex]))
+                                                  child: Image.file(_imageFiles[itemIndex])
                                                 );
                                               }
                                             ),
                                             const SizedBox(height: 7),
-                                            if (_imagePaths.length > 1)
+                                            if (_imageFiles.length > 1)
                                               Row(
                                                 mainAxisAlignment: MainAxisAlignment.center,
-                                                children: _imagePaths.asMap().entries.map((entry) {
+                                                children: _imageFiles.asMap().entries.map((entry) {
                                                   return Container(
                                                     width: 7,
                                                     height: 7,
@@ -2446,8 +2857,8 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                 TextButton(
                   style: hoverOnYes ? 
                     const ButtonStyle(
-                      foregroundColor: WidgetStatePropertyAll<Color>(Colors.white), 
-                      backgroundColor: WidgetStatePropertyAll<Color>(Color(0xFFC3291B))) : 
+                      foregroundColor: MaterialStatePropertyAll<Color>(Colors.white), 
+                      backgroundColor: MaterialStatePropertyAll<Color>(Color(0xFFC3291B))) : 
                     const ButtonStyle(),
                   onHover: (hovering) {
                     setState(() => hoverOnYes = hovering);
@@ -2488,8 +2899,8 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                     TextButton(
                       style: hoverOnYes ? 
                         const ButtonStyle(
-                          foregroundColor: WidgetStatePropertyAll<Color>(Colors.white), 
-                          backgroundColor: WidgetStatePropertyAll<Color>(Color(0xFFC3291B))) : 
+                          foregroundColor: MaterialStatePropertyAll<Color>(Colors.white), 
+                          backgroundColor: MaterialStatePropertyAll<Color>(Color(0xFFC3291B))) : 
                         const ButtonStyle(),
                       onHover: (hovering) {
                         setState(() => hoverOnYes = hovering);
@@ -2525,8 +2936,8 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                     TextButton(
                       style: hoverOnYes ? 
                         const ButtonStyle(
-                          foregroundColor: WidgetStatePropertyAll<Color>(Colors.white), 
-                          backgroundColor: WidgetStatePropertyAll<Color>(Color(0xFFC3291B))) : 
+                          foregroundColor: MaterialStatePropertyAll<Color>(Colors.white), 
+                          backgroundColor: MaterialStatePropertyAll<Color>(Color(0xFFC3291B))) : 
                         const ButtonStyle(),
                       onHover: (hovering) {
                         setState(() => hoverOnYes = hovering);
@@ -2547,24 +2958,40 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
     return confirmation ?? false;
   }
 
-  void toggleEditorItem(EItem? focusItem) {
-    _imagePaths.clear();
+  Future<void> toggleEditorItem(EItem? focusItem) async {
     switch (focusItem) {
       case EProduct _ : {
+        setState(() => _loadingSomething = true);
+        await focusItem.setImagePaths();
+        await focusItem.setImageFiles();
+        _imagePaths.clear();
+        _imageFiles.clear();
         setState(() {
           _focusItem = focusItem;
+          _imagePaths = List.from(focusItem.imagePaths!);
+          _imageFiles = List.from(focusItem.imageFiles!);
           _nameController.text = focusItem.product.name;
           _modelNumberController.text = focusItem.product.modelNumber ?? '';
           _brochure = focusItem.product.retrieveBrochureList();
           _descriptionController.text = focusItem.product.description ?? '';
+          _loadingSomething = false;
         });
+        setState(() => _loadingSomething = false);
       }
       case ECategory _ : {
+        setState(() => _loadingSomething = true);
+        await focusItem.setImagePaths();
+        await focusItem.setImageFiles();
+        _imagePaths.clear();
+        _imageFiles.clear();
         setState(() {
           _focusItem = focusItem;
+          if (focusItem.imagePath != null) _imagePaths.add(focusItem.imagePath!);
+          if (focusItem.imageFile != null) _imageFiles.add(focusItem.imageFile!);
           _nameController.text = focusItem.category.name;
           _selectedCategory = focusItem.getParent(root: _editorAll) ?? _editorAll;
         });
+        setState(() => _loadingSomething = false);
       }
       case null : {
         _brochure = [BrochureHeader.basic(), BrochureSubheader.basic(), BrochureEntry.basic(), BrochureHeader.basic(), BrochureEntry.basic()];
@@ -3061,7 +3488,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
 //           ),
 //           const SizedBox(height: 20),
 //           ElevatedButton(
-//             style: const ButtonStyle(foregroundColor: WidgetStatePropertyAll(Colors.white), backgroundColor: WidgetStatePropertyAll(Color(0xFF224190))),
+//             style: const ButtonStyle(foregroundColor: MaterialStatePropertyAll(Colors.white), backgroundColor: MaterialStatePropertyAll(Color(0xFF224190))),
 //             child: const Text('Save & Exit'),
 //             onPressed: () {}
 //           ),
