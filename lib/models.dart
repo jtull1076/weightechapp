@@ -15,29 +15,25 @@ import 'package:weightechapp/firebase_options.dart';
 import 'package:path/path.dart' as path_handler;
 import 'dart:math' as math;
 import 'package:string_validator/string_validator.dart';
-import 'package:package_info_plus/package_info_plus.dart';
+import 'package:weightechapp/utils.dart';
 
-
-class AppInfo {
-  static late PackageInfo packageInfo;
-  AppInfo();
-  
-  Future<void> init() async {
-    packageInfo = await PackageInfo.fromPlatform();
-  }
-}
 
 
 class FirebaseInfo {
   static late FirebaseApp firebaseApp; // Initialize Firebase
   static late FirebaseFirestore database;
   static late FirebaseStorage storage;
+  static late String githubToken;
   FirebaseInfo();
 
   Future<void> init() async {
     firebaseApp = await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
     database = FirebaseFirestore.instanceFor(app: firebaseApp);
     storage = FirebaseStorage.instanceFor(app: firebaseApp, bucket: 'gs://weightechapp.appspot.com');
+    
+    await database.collection("tokens").doc("github").get().then((DocumentSnapshot doc) {
+      githubToken = (doc.data() as Map<String, dynamic>)['access_token']!;
+    });
   }
 }
 
@@ -111,12 +107,12 @@ class ProductManager extends ChangeNotifier {
   static Future<void> postCatalogToFirebase() async {
     Map<String,dynamic> catalogJson = all!.toJson();
     catalogJson['timestamp'] = DateTime.now();
-    await FirebaseInfo.database.collection("catalog").add(catalogJson).then((DocumentReference doc) => debugPrint('DocumentSnapshot added with ID: ${doc.id}'));
+    await FirebaseInfo.database.collection("catalog").add(catalogJson).then((DocumentReference doc) => Log.logger.i('DocumentSnapshot added with ID: ${doc.id}'));
   }
 
   static Future<Map<String,dynamic>> getCatalogFromFirebase() async {
     return await FirebaseInfo.database.collection("catalog").orderBy("timestamp", descending: true).limit(1).get().then((event) {
-      debugPrint('DocumentSnapshot retrieved with ID: ${event.docs[0].id}');
+      Log.logger.i('DocumentSnapshot retrieved with ID: ${event.docs[0].id}');
       return event.docs[0].data();
     });
   }
@@ -136,7 +132,7 @@ sealed class CatalogItem {
       try {
         imageProvider = CachedNetworkImageProvider(imageUrl!);
       } on HttpExceptionWithStatus catch (e) {
-        debugPrint("Failed to retrieve image at $imageUrl. Error: $e");
+        Log.logger.i("Failed to retrieve image at $imageUrl. Error: $e");
         imageUrl = null;
         imageProvider = Image.asset('assets/weightech_logo.png').image;
       }
@@ -181,7 +177,7 @@ sealed class CatalogItem {
                 color: Colors.transparent,
                 child: InkWell(
                   onTap: () {
-                    debugPrint('Item tapped: $name');
+                    Log.logger.i('Item tapped: $name');
                     onTapCallback();
                   }
                 )
@@ -218,7 +214,7 @@ sealed class CatalogItem {
     if (parentId != null) {
       return ProductManager.getItemById(parentId!) as ProductCategory;
     }
-    debugPrint("Parent doesn't exist");
+    Log.logger.i("Parent doesn't exist");
     return null;
   }
 
@@ -228,7 +224,7 @@ sealed class CatalogItem {
     try {
       categoryImageRef.putFile(imageFile);
     } on FirebaseException catch (e) {
-      debugPrint("Failed to add ${id}_0 to Firebase. Error code: ${e.code}");
+      Log.logger.i("Failed to add ${id}_0 to Firebase. Error code: ${e.code}");
     }
   }
 }
@@ -296,13 +292,13 @@ class ProductCategory extends CatalogItem {
   void addProductByParentId(Product newProduct) {
     if (id == newProduct.parentId) {
       addProduct(newProduct);
-      debugPrint('${newProduct.name} (id: ${newProduct.id}) added to $name (id: $id)');
+      Log.logger.i('${newProduct.name} (id: ${newProduct.id}) added to $name (id: $id)');
       return;
     }
     for (var item in catalogItems) {
       if (item is ProductCategory && item.id == newProduct.parentId) {
         item.addProduct(newProduct);
-        debugPrint('${newProduct.name} (id: ${newProduct.id}) added to ${item.name} (id: ${item.id})');
+        Log.logger.i('${newProduct.name} (id: ${newProduct.id}) added to ${item.name} (id: ${item.id})');
         return;
       }
     }
@@ -312,7 +308,7 @@ class ProductCategory extends CatalogItem {
         item.addProductByParentId(newProduct); // Recursively search in subcategories
       }
     }
-    debugPrint('Parent category with ID ${newProduct.parentId} not found in category $name (id: $id).');
+    Log.logger.i('Parent category with ID ${newProduct.parentId} not found in category $name (id: $id).');
   }
 
   
@@ -324,10 +320,10 @@ class ProductCategory extends CatalogItem {
   }
 
   factory ProductCategory.fromJson(Map<String, dynamic> json) {
-    // debugPrint("Converting the following JSON to a ProductCategory. Here's the JSON:");
-    // debugPrint("------");
-    // debugPrint((const JsonEncoder.withIndent('   ')).convert(json));
-    // debugPrint("------");
+    // Log.logger.i("Converting the following JSON to a ProductCategory. Here's the JSON:");
+    // Log.logger.i("------");
+    // Log.logger.i((const JsonEncoder.withIndent('   ')).convert(json));
+    // Log.logger.i("------");
     return ProductCategory(
       name: json['name'],
       id: json['id'],
@@ -366,7 +362,7 @@ class Product extends CatalogItem {
         try {
           super.imageProvider = CachedNetworkImageProvider(super.imageUrl!);
         } on HttpExceptionWithStatus catch (e) {
-          debugPrint("Failed to retrieve image at $imageUrl. Error: $e");
+          Log.logger.i("Failed to retrieve image at $imageUrl. Error: $e");
           super.imageUrl = null;
           super.imageProvider = Image.asset('assets/weightech_logo.png').image;
         }
@@ -376,7 +372,7 @@ class Product extends CatalogItem {
           CachedNetworkImageProvider newImageProvider = CachedNetworkImageProvider(url);
           productImageProviders.add(newImageProvider);
         } on HttpExceptionWithStatus catch (e) {
-          debugPrint("Failed to retrieve image at $imageUrl. Error: $e");
+          Log.logger.i("Failed to retrieve image at $imageUrl. Error: $e");
           productImageUrls!.remove(url);
         }
       }
@@ -505,7 +501,7 @@ class Product extends CatalogItem {
       try {
         imageRef.putFile(imageFiles[i]);
       } on FirebaseException catch (e) {
-        debugPrint("Failed to add ${id}_$i to Firebase. Error code: ${e.code}");
+        Log.logger.i("Failed to add ${id}_$i to Firebase. Error code: ${e.code}");
       }
     }
   }
@@ -549,7 +545,7 @@ sealed class EItem {
     await updateImages(editorCatalog);
     ProductManager.all = editorCatalog.category;
     await ProductManager.postCatalogToFirebase();
-    debugPrint("Catalog update completed.");
+    Log.logger.i("Catalog update completed.");
   }
 
   static Future<void> updateImages(ECategory editorCatalog) async {
@@ -561,7 +557,7 @@ sealed class EItem {
         await storageRef.child(refName).putFile(category.imageFile!).then((value) async {
           await storageRef.child(refName).getDownloadURL().then((value) {
             category.category.imageUrl = value;
-            debugPrint("Category image url updated.");
+            Log.logger.i("Category image url updated.");
           });
         });
       }
@@ -612,7 +608,7 @@ sealed class EItem {
     }
 
     await traverseItems(editorCatalog);
-    debugPrint("Images updated.");
+    Log.logger.i("Images updated.");
   }
 
   static EItem? getItemById({required root, required id}) {
