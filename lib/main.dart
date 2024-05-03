@@ -1,6 +1,4 @@
 import 'dart:convert';
-
-import 'package:dotted_border/dotted_border.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
@@ -11,9 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'package:weightechapp/firebase_options.dart';
 import 'package:weightechapp/extra_widgets.dart';
-import 'package:wakelock/wakelock.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
 import 'dart:async';
@@ -30,11 +26,17 @@ import 'package:shortid/shortid.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:string_validator/string_validator.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
+import 'package:updat/updat_window_manager.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:http/http.dart' as http;
 
 
 //MARK: MAIN
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized(); // Initialize Flutter Bindings
+
+  debugPrint("...Checking for updates...");
+  await AppInfo().init();
 
   await windowManager.ensureInitialized();
   if (Platform.isWindows) {
@@ -44,7 +46,6 @@ Future<void> main() async {
   debugPrint('...System behavior setup...');
   if (defaultTargetPlatform == TargetPlatform.android || defaultTargetPlatform == TargetPlatform.iOS) {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky); // Set to full screen
-    Wakelock.enable(); // Enable wakelock to prevent the device from sleeping
   }
 
   debugPrint('...Initializing Firebase...');
@@ -107,28 +108,50 @@ class IdlePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () {
-          Navigator.of(context).push(_routeToHome());
-        },
-        onLongPress: () {
-          Navigator.of(context).push(_routeToControl());
-        },
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: <Widget>[
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 500),
-                child: Hero(tag: 'main-logo', child: Image.asset('assets/weightech_logo.png', fit: BoxFit.scaleDown))
-              ), 
-              const Text('Press anywhere to begin.', style: TextStyle(fontSize: 18.0, fontStyle: FontStyle.normal))],
+    return UpdatWindowManager(
+      currentVersion: AppInfo.packageInfo.version,
+      getLatestVersion: () async {
+        // Use Github latest endpoint
+        final data = await http.get(Uri.parse(
+          "https://github.com/jtull1076/weightechapp/releases/latest"
+        ));
+
+        return jsonDecode(data.body)["tag_name"];
+      },
+      getBinaryUrl: (version) async {
+        return "https://github.com/jtull1076/weightechapp/releases/download/$version/weightechinc-windows-$version.exe";
+      },
+      appName: "WeighTech Inc. Sales",
+      getChangelog: (_, __) async {
+        final data = await http.get(Uri.parse(
+          "https://api.github.com/repos/fluttertools/sidekick/releases/latest",
+        ));
+        return jsonDecode(data.body)["body"];
+      },
+      child: 
+        Scaffold(
+          body: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () {
+              Navigator.of(context).push(_routeToHome());
+            },
+            onLongPress: () {
+              Navigator.of(context).push(_routeToControl());
+            },
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: <Widget>[
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 500),
+                    child: Hero(tag: 'main-logo', child: Image.asset('assets/weightech_logo.png', fit: BoxFit.scaleDown))
+                  ), 
+                  const Text('Press anywhere to begin.', style: TextStyle(fontSize: 18.0, fontStyle: FontStyle.normal))],
+              )
+            )
           )
         )
-      )
     );
   }
 
@@ -3014,559 +3037,3 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
     }
   }
 }
-
-// // MARK: ADDITEM PAGE
-
-// enum ItemSelect {product, category}
-
-// /// A class defining the stateful [AddItemPage]. This is used for adding new items to the catalog. 
-// /// 
-// /// Stateful for handling the updating dynamically in response to the user's input. 
-// /// 
-// /// See also: [_AddItemPageState]
-// class AddItemPage extends StatefulWidget {
-//   final ItemSelect defaultType;
-//   final CatalogItem? item;
-//   const AddItemPage({super.key, this.item}) : defaultType = (item is Product) ? ItemSelect.product : ItemSelect.category; 
-
-//   @override
-//   State<AddItemPage> createState() => _AddItemPageState();
-// }
-
-// class _AddItemPageState extends State<AddItemPage> with TickerProviderStateMixin {
-//   final _formKey = GlobalKey<FormState>();
-
-//   late ItemSelect _itemSelection;
-
-//   late ProductCategory _selectedCategory;
-//   late List<BrochureItem> _brochure;
-
-//   final TextEditingController _dropdownController = TextEditingController();
-//   final TextEditingController _nameController = TextEditingController();
-//   final TextEditingController _descriptionController = TextEditingController();
-//   final TextEditingController _modelNumberController = TextEditingController();
-
-
-//   @override
-//   void initState() {
-//     super.initState();
-//     _itemSelection = widget.defaultType;
-//     _selectedCategory = ProductManager.all;
-//     if (widget.item != null && widget.item is Product) {
-//       _brochure = (widget.item as Product).retrieveBrochureList();
-//       _nameController.text = widget.item!.name;
-//       _descriptionController.text = (widget.item as Product).description ?? '';
-//       _modelNumberController.text = (widget.item as Product).modelNumber ?? '';
-//     }
-//     else {
-//       _brochure = [BrochureHeader(header: "Header1"), BrochureSubheader(subheader: "Subheader1"), BrochureEntry(entry: "Entry1"), BrochureEntry(entry: "Entry2"), BrochureHeader(header: "Header2")]; 
-//     }
-//   }
-
-//   @override
-//   void deactivate() {
-//     super.deactivate();
-//   }
-
-//   @override
-//   void dispose() {
-//     _dropdownController.dispose();
-//     _nameController.dispose();
-//     _descriptionController.dispose();
-//     _modelNumberController.dispose();
-//     super.dispose();
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
-    
-//     return Consumer<ProductManager>(
-//       builder: (context, productManager, child) {
-//         return Scaffold(
-//           resizeToAvoidBottomInset: false,
-//           body: Column(
-//             crossAxisAlignment: CrossAxisAlignment.center,
-//             mainAxisAlignment: MainAxisAlignment.start,
-//             children: <Widget>[
-//               Padding(padding: const EdgeInsets.only(top: 10.0, bottom: 5.0), child: Hero(tag: 'main-logo', child: Image.asset('assets/weightech_logo.png', height: 100, cacheHeight: 150, cacheWidth: 394, alignment: Alignment.center,))),
-//               const Hero(tag: 'divider', child: Divider(color: Color(0xFF224190), height: 2, thickness: 2, indent: 25.0, endIndent: 25.0,)),
-//               Expanded(
-//                 child:
-//                   ListView(
-//                     children: [
-//                       const SizedBox(height: 20),
-//                       Center(
-//                         child: 
-//                           SizedBox(
-//                             width: 300,
-//                             child: 
-//                               SegmentedButton<ItemSelect>(
-//                                 style: const ButtonStyle(visualDensity: VisualDensity(horizontal: -2, vertical: -1)),
-//                                 segments: const <ButtonSegment<ItemSelect>>[
-//                                   ButtonSegment<ItemSelect>(value: ItemSelect.category, label: Text('Category')),
-//                                   ButtonSegment<ItemSelect>(value: ItemSelect.product, label: Text("Product"))
-//                                 ], 
-//                                 selected: <ItemSelect>{_itemSelection},
-//                                 onSelectionChanged: (newSelection) {
-//                                   setState(() {
-//                                     _itemSelection = newSelection.first;
-//                                   });
-//                                 },
-//                               ),
-//                           )
-//                       ),
-//                       (_itemSelection == ItemSelect.category)? _categoryForm(productManager) : _productForm(productManager)
-//                     ]
-//                   )
-//                 ),
-//               const SizedBox(height: 20),
-//             ]
-//           )
-//         );
-//       }
-//     );
-//   }
-
-//   int _addBrochureItemIndex = -1; // -1 if not to show add buttons, otherwise represents index of where the buttons should be
-
-//   Widget _productForm(productManager) {
-//   return Form(
-//     key: _formKey,
-//     child: 
-//       Column(
-//         children: [
-//           const SizedBox(height: 30),
-//           Row(
-//             crossAxisAlignment: CrossAxisAlignment.start,
-//             children: [
-//               Expanded(
-//                 child:
-//                   Column(
-//                     crossAxisAlignment: CrossAxisAlignment.center,
-//                     children: [
-//                       Padding(
-//                         padding: const EdgeInsets.only(left: 40, right: 40, bottom: 20, top: 20),
-//                         child:
-//                           TextFormField(
-//                             controller: _nameController,
-//                             decoration: const InputDecoration(
-//                               labelText: "Product Name *"
-//                             ),
-//                             validator: (String? value) {
-//                               return (value == null || value == '') ? 'Name required.' : null;
-//                             },
-//                           ),
-//                       ),
-//                       Padding(
-//                         padding: const EdgeInsets.only(left: 40, right: 40, bottom: 30),
-//                         child:
-//                           TextFormField(
-//                             controller: _modelNumberController,
-//                             decoration: const InputDecoration(
-//                               labelText: "Product Model Number"
-//                             ),
-//                           ),
-//                       ),
-//                       DropdownMenu<ProductCategory>(
-//                         label: const Text("Category *"),
-//                         controller: _dropdownController,
-//                         initialSelection: widget.item?.getParentById() ?? ProductManager.all,
-//                         dropdownMenuEntries: productManager.getAllCategories(ProductManager.all).map<DropdownMenuEntry<ProductCategory>>((ProductCategory category){
-//                           return DropdownMenuEntry<ProductCategory>(
-//                             value: category,
-//                             label: category.name,
-//                           );
-//                         }).toList(),
-//                         onSelected: (newValue) {
-//                           setState((){
-//                             _selectedCategory = newValue!;
-//                           });
-//                         },
-//                       ),
-//                       const SizedBox(height: 30),
-//                     ]
-//                   ),
-//               ),
-//               Expanded(
-//                 child: 
-//                   Column(
-//                     children: <Widget>[
-//                       const SizedBox(height: 10),
-//                       const Text("[Insert best-practices for image/video upload here.]"),
-//                       const SizedBox(height: 10),
-//                       Row(
-//                         mainAxisAlignment: MainAxisAlignment.center,
-//                         children: [
-//                           DottedBorder(
-//                             borderType: BorderType.RRect,
-//                             radius: const Radius.circular(8),
-//                             padding: const EdgeInsets.all(6),
-//                             dashPattern: const [6, 3],
-//                             color: Colors.black,
-//                             strokeWidth: 1,
-//                             child: ClipRRect(
-//                               borderRadius: const BorderRadius.all(Radius.circular(8)),
-//                               child: 
-//                                 Container(
-//                                   height: 230,
-//                                   width: 200,
-//                                   color: const Color(0x55C9C9CC),
-//                                   child:
-//                                     const Column(
-//                                       mainAxisAlignment: MainAxisAlignment.center,
-//                                       children: [
-//                                         Icon(Icons.image, size: 70),
-//                                         Text("Drag and drop file here", style: TextStyle(fontWeight: FontWeight.bold)),
-//                                         SizedBox(height: 10),
-//                                         Row(
-//                                           mainAxisAlignment: MainAxisAlignment.center, 
-//                                           children: [
-//                                             Expanded(child: Divider(color: Colors.black, height: 1, thickness: 1, indent: 70, endIndent: 15)), 
-//                                             Text("or"), 
-//                                             Expanded(child: Divider(color: Colors.black, height: 1, thickness: 1, indent: 15, endIndent: 70))
-//                                           ]
-//                                         ),
-//                                         SizedBox(height: 10),
-//                                         OutlinedButton(onPressed: null , child: Text("Browse Files")),
-//                                         SizedBox(height: 10),
-//                                         Text("File must be .jpg or .png", style: TextStyle(fontSize: 12.0, fontStyle: FontStyle.italic))
-//                                       ]
-//                                     )
-//                                 )
-//                             )
-//                           ),
-//                           const SizedBox(width: 20),
-//                           DottedBorder(
-//                             borderType: BorderType.RRect,
-//                             radius: const Radius.circular(8),
-//                             padding: const EdgeInsets.all(6),
-//                             dashPattern: const [6, 3],
-//                             color: Colors.black,
-//                             strokeWidth: 1,
-//                             child: ClipRRect(
-//                               borderRadius: const BorderRadius.all(Radius.circular(8)),
-//                               child: 
-//                                 Container(
-//                                   height: 230,
-//                                   width: 200,
-//                                   color: const Color(0x55C9C9CC),
-//                                   child:
-//                                     const Column(
-//                                       mainAxisAlignment: MainAxisAlignment.center,
-//                                       children: [
-//                                         Icon(Icons.videocam, size: 70),
-//                                         Text("Drag and drop file here", style: TextStyle(fontWeight: FontWeight.bold)),
-//                                         SizedBox(height: 10),
-//                                         Row(
-//                                           mainAxisAlignment: MainAxisAlignment.center, 
-//                                           children: [
-//                                             Flexible(flex: 1, child: Divider(color: Colors.black, height: 1, thickness: 1, indent: 70, endIndent: 15)), 
-//                                             Text("or"), 
-//                                             Flexible(flex: 1, child: Divider(color: Colors.black, height: 1, thickness: 1, indent: 15, endIndent: 70))
-//                                           ]
-//                                         ),
-//                                         SizedBox(height: 10),
-//                                         OutlinedButton(onPressed: null , child: Text("Browse Files")),
-//                                         SizedBox(height: 10),
-//                                         Text("File must be .mp4", style: TextStyle(fontSize: 12.0, fontStyle: FontStyle.italic))
-//                                       ]
-//                                     )
-//                                 )
-//                             )
-//                           )
-//                         ]
-//                       )
-//                     ]
-//                   )
-//               )
-//             ],
-//           ),
-//           const Padding(
-//             padding: EdgeInsets.only(top: 20, left: 150, right: 150, bottom: 10), 
-//             child: 
-//               Text("Product Description", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-//           ),
-//           Padding(
-//             padding: const EdgeInsets.only(left: 150, right: 150, bottom: 20),
-//             child: 
-//               TextFormField(
-//                 controller: _descriptionController,
-//                 decoration: const InputDecoration(
-//                   labelText: "Overview"
-//                 ),
-//                 minLines: 1,
-//                 maxLines: null,
-//                 keyboardType: TextInputType.multiline,
-//               )
-//           ),
-//           Padding( 
-//             padding: const EdgeInsets.symmetric(horizontal: 150),
-//             child:
-//               Container(
-//                 alignment: Alignment.centerLeft,
-//                 child: 
-//                   ReorderableListView.builder(
-//                     shrinkWrap: true,
-//                     physics: const NeverScrollableScrollPhysics(),
-//                     buildDefaultDragHandles: false,
-//                     itemCount: _brochure.length,
-//                     itemBuilder: (context, index) {
-//                       final item = _brochure[index];
-                      
-//                       if (defaultTargetPlatform==TargetPlatform.macOS || defaultTargetPlatform==TargetPlatform.windows || defaultTargetPlatform==TargetPlatform.linux) {
-//                         return MouseRegion(
-//                           key: Key('Mouse_$index'),
-//                           onEnter: (PointerEnterEvent evt) {
-//                             setState((){
-//                               _addBrochureItemIndex = index;
-//                             });
-//                           },
-//                           onExit: (PointerExitEvent evt) {
-//                             setState((){
-//                               _addBrochureItemIndex = -1;
-//                             });
-//                           },
-//                           child:
-//                             Column(
-//                               children: [
-//                                 Padding(
-//                                   padding: const EdgeInsets.only(bottom: 0),
-//                                   child: 
-//                                     ReorderableDelayedDragStartListener(
-//                                       index: index,
-//                                       child:
-//                                         Row(children: [Expanded(child: item.buildItem(context)), IconButton(icon: const Icon(Icons.delete), onPressed: () => setState(()=> _brochure.removeAt(index)) )])
-//                                     )
-//                                 ),
-//                                 if(_addBrochureItemIndex == index)
-//                                   Container(
-//                                     width: 400,
-//                                     height: 30,
-//                                     alignment: Alignment.bottomCenter,
-//                                     child:
-//                                         Row(
-//                                           children: [
-//                                             Expanded(
-//                                               child: 
-//                                               ElevatedButton(
-//                                                 onPressed: () {
-//                                                   setState((){
-//                                                     int newItemIndex = index+1;
-//                                                     _brochure.insert(newItemIndex, BrochureHeader.basic());
-//                                                   });
-//                                                 }, 
-//                                                 child: const Text("Header+")
-//                                               ),
-//                                             ),
-//                                             Expanded(
-//                                               child: 
-//                                                 ElevatedButton(
-//                                                   onPressed: () {
-//                                                     setState((){
-//                                                       int newItemIndex = index+1;
-//                                                       _brochure.insert(newItemIndex, BrochureSubheader.basic());
-//                                                     });
-//                                                   }, 
-//                                                   child: const Text("Subheader+")
-//                                                 ),
-//                                             ),
-//                                             Expanded(
-//                                               child:
-//                                                 ElevatedButton(
-//                                                   onPressed: () {
-//                                                     setState((){
-//                                                       int newItemIndex = index+1;
-//                                                       _brochure.insert(newItemIndex, BrochureEntry.basic());
-//                                                     });
-//                                                   }, 
-//                                                   child: const Text("Entry+")
-//                                                 )
-//                                             )
-//                                           ]
-//                                         )
-//                                   )
-//                               ]
-//                             )
-//                         );
-//                       }
-//                       else {
-//                         return 
-//                           Column(
-//                             key: Key('col_$index'),
-//                             children: [
-//                               Padding(
-//                                 padding: const EdgeInsets.only(bottom: 0),
-//                                 child: 
-//                                   ReorderableDelayedDragStartListener(
-//                                     index: index,
-//                                     child: Row(
-//                                       children: [
-//                                         Expanded(
-//                                           child: item.buildItem(context),
-//                                         ),
-//                                         IconButton(
-//                                           icon: const Icon(Icons.add),
-//                                           onPressed: () => setState(() {
-//                                             _addBrochureItemIndex = index;
-//                                           })
-//                                         )
-//                                       ]
-//                                     )
-//                                   ),
-//                               ),
-//                               if(_addBrochureItemIndex == index)
-//                                 TapRegion(
-//                                   key: Key('Tap_$index'),
-//                                   onTapOutside: (event) {
-//                                     setState((){
-//                                       _addBrochureItemIndex = -1;
-//                                     });
-//                                   },
-//                                   child:
-//                                     Container(
-//                                       width: 400,
-//                                       height: 30,
-//                                       alignment: Alignment.bottomCenter,
-//                                       child:
-//                                           Row(
-//                                             children: [
-//                                               Expanded(
-//                                                 child: 
-//                                                 ElevatedButton(
-//                                                   onPressed: () {
-//                                                     setState((){
-//                                                       int newItemIndex = index+1;
-//                                                       _brochure.insert(newItemIndex, BrochureHeader.basic());
-//                                                     });
-//                                                   }, 
-//                                                   child: const Text("Header+")
-//                                                 ),
-//                                               ),
-//                                               Expanded(
-//                                                 child: 
-//                                                   ElevatedButton(
-//                                                     onPressed: () {
-//                                                       setState((){
-//                                                         int newItemIndex = index+1;
-//                                                         _brochure.insert(newItemIndex, BrochureSubheader.basic());
-//                                                       });
-//                                                     }, 
-//                                                     child: const Text("Subheader+")
-//                                                   ),
-//                                               ),
-//                                               Expanded(
-//                                                 child:
-//                                                   ElevatedButton(
-//                                                     onPressed: () {
-//                                                       setState((){
-//                                                         int newItemIndex = index+1;
-//                                                         _brochure.insert(newItemIndex, BrochureEntry.basic());
-//                                                       });
-//                                                     }, 
-//                                                     child: const Text("Entry+")
-//                                                   )
-//                                               )
-//                                             ]
-//                                           )
-//                                     )
-//                                 )
-//                             ]
-//                           );
-//                         }
-//                     },
-//                     onReorder: (int oldIndex, int newIndex) {
-//                       setState(() {
-//                         if (oldIndex < newIndex) {
-//                           newIndex -= 1;
-//                         }
-//                         final item = _brochure.removeAt(oldIndex);
-//                         _brochure.insert(newIndex, item);
-//                       });
-//                     },                                                            
-//                   )
-//               ),
-//           ),
-//           const SizedBox(height: 20),
-//           ElevatedButton(
-//             style: const ButtonStyle(foregroundColor: MaterialStatePropertyAll(Colors.white), backgroundColor: MaterialStatePropertyAll(Color(0xFF224190))),
-//             child: const Text('Save & Exit'),
-//             onPressed: () {}
-//           ),
-//         ],
-//       )
-//     );
-//   }
-
-//   Widget _categoryForm(productManager) {
-//   return Form(
-//     key: _formKey,
-//     child: 
-//       Column(
-//         children: [
-//           const SizedBox(height: 30),
-//           Row(
-//             crossAxisAlignment: CrossAxisAlignment.start,
-//             mainAxisAlignment: MainAxisAlignment.center,
-//             children: [
-//               Expanded(
-//                 child:
-//                   Column(
-//                     crossAxisAlignment: CrossAxisAlignment.center,
-//                     children: [
-//                       Padding(
-//                         padding: const EdgeInsets.only(left: 80, right: 40, bottom: 20),
-//                         child:
-//                           TextFormField(
-//                             decoration: const InputDecoration(
-//                               labelText: "Category Name"
-//                             ),
-//                             validator: (String? value) {
-//                               return (value == null) ? 'Name required.' : null;
-//                             },
-//                           ),
-//                       ),
-//                       DropdownMenu<ProductCategory>(
-//                         label: const Text("Parent Category: "),
-//                         initialSelection: ProductManager.all,
-//                         dropdownMenuEntries: productManager.getAllCategories(ProductManager.all).map<DropdownMenuEntry<ProductCategory>>((ProductCategory category){
-//                           return DropdownMenuEntry<ProductCategory>(
-//                             value: category,
-//                             label: category.name,
-//                           );
-//                         }).toList(),
-//                       )
-//                     ]
-//                   ),
-//               ),
-//               Expanded(
-//                 child: 
-//                   Column(
-//                     children: <Widget>[
-//                       DottedBorder(
-//                         borderType: BorderType.RRect,
-//                         radius: const Radius.circular(8),
-//                         padding: const EdgeInsets.all(6),
-//                         dashPattern: const [6, 3],
-//                         color: Colors.black,
-//                         strokeWidth: 1,
-//                         child: ClipRRect(
-//                           borderRadius: const BorderRadius.all(Radius.circular(8)),
-//                           child: 
-//                             Container(
-//                               alignment: Alignment.center,
-//                               height: 200,
-//                               width: 300,
-//                               color: const Color(0x55C9C9CC)
-//                             )
-//                         )
-//                       )
-//                     ]
-//                   )
-//               )
-//             ],
-//           )
-//         ],
-//       )
-//     );
-//   }
-// }

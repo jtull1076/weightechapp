@@ -15,7 +15,17 @@ import 'package:weightechapp/firebase_options.dart';
 import 'package:path/path.dart' as path_handler;
 import 'dart:math' as math;
 import 'package:string_validator/string_validator.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
+
+class AppInfo {
+  static late PackageInfo packageInfo;
+  AppInfo();
+  
+  Future<void> init() async {
+    packageInfo = await PackageInfo.fromPlatform();
+  }
+}
 
 
 class FirebaseInfo {
