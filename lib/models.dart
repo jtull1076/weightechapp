@@ -35,13 +35,13 @@ class FirebaseInfo {
       userCredential =
           await FirebaseAuth.instance.signInAnonymously();
       Log.logger.i("Signed in with temporary account.");
-    } on FirebaseAuthException catch (e) {
-      switch (e.code) {
+    } on FirebaseAuthException catch (error, stackTrace) {
+      switch (error.code) {
         case "operation-not-allowed":
-          Log.logger.i("Anonymous auth hasn't been enabled for this project.");
+          Log.logger.e("Anonymous auth hasn't been enabled for this project.");
           break;
         default:
-          Log.logger.i("Unknown error.");
+          Log.logger.e("Unknown error.", error: error, stackTrace: stackTrace);
       }
     }
 
@@ -128,12 +128,12 @@ class ProductManager extends ChangeNotifier {
   static Future<void> postCatalogToFirebase() async {
     Map<String,dynamic> catalogJson = all!.toJson();
     catalogJson['timestamp'] = DateTime.now();
-    await FirebaseInfo.database.collection("catalog").add(catalogJson).then((DocumentReference doc) => Log.logger.i('DocumentSnapshot added with ID: ${doc.id}'));
+    await FirebaseInfo.database.collection("catalog").add(catalogJson).then((DocumentReference doc) => Log.logger.t('Firebase DocumentSnapshot added with ID: ${doc.id}'));
   }
 
   static Future<Map<String,dynamic>> getCatalogFromFirebase() async {
     return await FirebaseInfo.database.collection("catalog").orderBy("timestamp", descending: true).limit(1).get().then((event) {
-      Log.logger.i('DocumentSnapshot retrieved with ID: ${event.docs[0].id}');
+      Log.logger.t('Firebase DocumentSnapshot retrieved with ID: ${event.docs[0].id}');
       return event.docs[0].data();
     });
   }
@@ -153,7 +153,7 @@ sealed class CatalogItem {
       try {
         imageProvider = CachedNetworkImageProvider(imageUrl!);
       } on HttpExceptionWithStatus catch (e) {
-        Log.logger.i("Failed to retrieve image at $imageUrl. Error: $e");
+        Log.logger.e("Failed to retrieve image at $imageUrl. Error: $e");
         imageUrl = null;
         imageProvider = Image.asset('assets/weightech_logo.png').image;
       }
