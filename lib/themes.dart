@@ -12,7 +12,9 @@ class WeightechThemes {
       )
     ),
     textTheme: GoogleFonts.openSansTextTheme(),
-    colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF224190), brightness: Brightness.light)
-    
+    colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF224190), brightness: Brightness.light),
+    dialogTheme: const DialogTheme(
+      surfaceTintColor: Colors.white,
+    ),
   );
 }

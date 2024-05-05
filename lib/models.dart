@@ -9,6 +9,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:weightechapp/firebase_options.dart';
@@ -23,11 +24,27 @@ class FirebaseInfo {
   static late FirebaseApp firebaseApp; // Initialize Firebase
   static late FirebaseFirestore database;
   static late FirebaseStorage storage;
+  static late UserCredential userCredential;
   static late String githubToken;
   FirebaseInfo();
 
   Future<void> init() async {
     firebaseApp = await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+    try {
+      userCredential =
+          await FirebaseAuth.instanceFor(app: firebaseApp).signInAnonymously();
+      Log.logger.i("Signed in with temporary account.");
+    } on FirebaseAuthException catch (e) {
+      switch (e.code) {
+        case "operation-not-allowed":
+          Log.logger.e("Anonymous auth hasn't been enabled for this project.");
+          break;
+        default:
+          Log.logger.e("Unknown error.");
+      }
+    }
+
     database = FirebaseFirestore.instanceFor(app: firebaseApp);
     storage = FirebaseStorage.instanceFor(app: firebaseApp, bucket: 'gs://weightechapp.appspot.com');
     
@@ -1005,6 +1022,9 @@ class BrochureHeader implements BrochureItem {
       title: TextFormField(
         controller: controller, 
         maxLines: null,
+        onChanged: (value) {
+          header = value;
+        },
         decoration: 
           const InputDecoration(
             label: Text("Header")
@@ -1037,6 +1057,9 @@ class BrochureSubheader implements BrochureItem {
         title: TextFormField(
           controller: controller, 
           maxLines: null,
+          onChanged: (value) {
+            subheader = value;
+          },
           decoration: 
             const InputDecoration(
               label: Text("Subheader")
@@ -1071,6 +1094,9 @@ class BrochureEntry implements BrochureItem {
           title: TextFormField(
             controller: controller,
             maxLines: null,
+            onChanged: (value) {
+              entry = value;
+            },
             decoration: 
               const InputDecoration(
                 label: Text("Entry")

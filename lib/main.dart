@@ -42,7 +42,6 @@ Future<void> main() async {
   await AppInfo().init();
   Log.logger.i(AppInfo.packageInfo.toString());
 
-
   await windowManager.ensureInitialized();
   if (Platform.isWindows) {
     WindowManager.instance.setMinimumSize(const Size(850, 550));
@@ -155,29 +154,30 @@ class IdlePage extends StatelessWidget {
               Navigator.of(context).push(_routeToControl());
             },
             child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: <Widget>[
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 500),
-                    child: Hero(tag: 'main-logo', child: Image.asset('assets/weightech_logo_beta.png', fit: BoxFit.scaleDown))
-                  ), 
-                  Stack(
-                    children: [
-                      const Text('MANAGER', style: TextStyle(fontSize: 30, color: Color(0xFF224190))),
-                      Positioned(
-                        right: 0,
-                        top: 30,
-                        child: Text(AppInfo.packageInfo.version.toString())
-                      )
-                    ]
+              child: Stack(
+                children: [
+                  Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: <Widget>[
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 500),
+                          child: Hero(tag: 'main-logo', child: Image.asset('assets/weightech_logo_beta.png', fit: BoxFit.scaleDown))
+                        ), 
+                        const Text('MANAGER', style: TextStyle(fontSize: 30, color: Color(0xFF224190))),
+                        const Text('Press anywhere to begin.', style: TextStyle(fontSize: 18.0, fontStyle: FontStyle.normal))],
+                    ),
                   ),
-                  const Text('Press anywhere to begin.', style: TextStyle(fontSize: 18.0, fontStyle: FontStyle.normal))],
-              )
+                  Align(
+                    alignment: Alignment.bottomRight,
+                    child: Text('${AppInfo.packageInfo.version.toString()} ')
+                  )
+                ]
             )
           )
         )
+      )
     );
   }
 
@@ -1273,27 +1273,101 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                 child: 
                                   FadeTransition(
                                     opacity: _fadeAnimation,
-                                    child: 
-                                      IconButton(
-                                        icon: const Icon(Icons.feedback_outlined),
-                                        iconSize: 30,
-                                        color: const Color(0xFF224190),
-                                        onPressed: () async {
-                                          String id = shortid.generate();
-                                          BetterFeedback.of(context).showAndUploadToGitHub(
-                                            username: 'jtull1076',
-                                            repository: 'weightechapp',
-                                            authToken:  FirebaseInfo.githubToken,
-                                            labels: ['feedback'],
-                                            assignees: ['jtull1076'],
-                                            imageId: id,
-                                          );
-                                          // BetterFeedback.of(context).showAndUploadToGitHub(
-                                          //   projectId: '57087454',
-                                          //   apiToken: 'glpat-gvKyYogeMStqrmi2aYz4'
-                                          // );
-                                        }
-                                      )
+                                    child: MenuAnchor(
+                                      style: const MenuStyle(surfaceTintColor: MaterialStatePropertyAll<Color>(Colors.white)),
+                                      menuChildren: [
+                                        MenuItemButton(
+                                          onPressed: () async {
+                                            String id = shortid.generate();
+                                            BetterFeedback.of(context).showAndUploadToGitHub(
+                                              username: 'jtull1076',
+                                              repository: 'weightechapp',
+                                              authToken:  FirebaseInfo.githubToken,
+                                              labels: ['feedback'],
+                                              assignees: ['jtull1076'],
+                                              imageId: id,
+                                            );
+                                          },
+                                          child: const Row(
+                                            children: [
+                                              Icon(Icons.feedback_outlined, color: Color(0xFF224190)),
+                                              SizedBox(width: 10),
+                                              Text("Feedback")
+                                            ]
+                                          )
+                                        ),
+                                        MenuItemButton(
+                                          onPressed: () => showDialog<void>(
+                                            context: context,
+                                            builder: (BuildContext context) {
+                                              return AlertDialog(
+                                                backgroundColor: Colors.white,
+                                                surfaceTintColor: Colors.transparent,
+                                                title: Image.asset('assets/skullbadge_small.gif', height: 120),
+                                                content: Container(
+                                                  alignment: Alignment.center,
+                                                  height: 130,
+                                                  width: 450,
+                                                  child: Row(
+                                                    crossAxisAlignment: CrossAxisAlignment.center,
+                                                    mainAxisSize: MainAxisSize.min,
+                                                    children: [
+                                                      Image.asset('assets/icon/wt_icon.ico', height: 100),
+                                                      const SizedBox(width: 30),
+                                                      Column(
+                                                        mainAxisSize: MainAxisSize.min,
+                                                        mainAxisAlignment: MainAxisAlignment.center,
+                                                        children: [
+                                                          Text(AppInfo.packageInfo.appName, style: const TextStyle(fontSize: 28)),
+                                                          Text("AppVer: ${AppInfo.packageInfo.version}", style: const TextStyle(fontSize: 20)),
+                                                          TextButton(
+                                                            child: const Text("View Licenses"),
+                                                            onPressed: () => showLicensePage(
+                                                              context: context, 
+                                                              applicationName: AppInfo.packageInfo.appName, 
+                                                              applicationVersion: AppInfo.packageInfo.version, 
+                                                              applicationIcon: Image.asset('assets/icon/wt_icon.ico', height: 200)
+                                                            ),
+                                                          ),
+                                                        ]
+                                                      )
+                                                    ]
+                                                  )
+                                                ),
+                                                actions: <Widget>[
+                                                  TextButton(
+                                                    child: const Text("Close"),
+                                                    onPressed: () => Navigator.of(context).pop()
+                                                  )
+                                                ],
+                                                actionsAlignment: MainAxisAlignment.center,
+                                              );
+                                            }
+                                          ),
+                                          child: const Row(
+                                            children: [
+                                              Icon(Icons.info_outline, color: Color(0xFF224190)),
+                                              SizedBox(width: 10),
+                                              Text("About")
+                                            ]
+                                          )
+                                        )
+                                      ],
+                                      builder: (BuildContext context, MenuController controller, Widget? child) {
+                                        return IconButton(
+                                          icon: const Icon(Icons.menu), 
+                                          color: const Color(0xFF224190),
+                                          onPressed: () {
+                                            if (controller.isOpen) {
+                                              controller.close();
+                                            }
+                                            else {
+                                              controller.open();
+                                            }
+                                          }
+                                        );
+                                      },
+                                    )
                                   )
                               )
                           ),

@@ -1,7 +1,7 @@
 name: weightechapp
 description: "A Flutter implementation for WeighTech's sales app."
 publish_to: 'none'
-version: 0.1.1
+version: 0.1.2
 
 msix_config:
   display_name: WeighTech Inc. Sales
@@ -56,6 +56,7 @@ dependencies:
   package_info_plus: ^8.0.0
   path: ^1.9.0
   logger: ^2.2.0
+  firebase_auth: ^4.19.4
 
 dev_dependencies:
   flutter_test:
@@ -68,7 +69,13 @@ flutter:
   assets:
     - assets/weightech_logo.png
     - assets/weightech_logo_beta.png
+    - assets/JT_signature.png
     - assets/product_images/
+    - assets/icon/wt_icon.ico
+    - assets/skull.png
+    - assets/skull2.gif
+    - assets/skullbadge2.gif
+    - assets/skullbadge_small.gif
 
 flutter_launcher_icons:
   android: "launcher_icon"
