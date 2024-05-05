@@ -33,21 +33,25 @@ class FirebaseInfo {
 
     try {
       userCredential =
-          await FirebaseAuth.instanceFor(app: firebaseApp).signInAnonymously();
+          await FirebaseAuth.instance.signInAnonymously();
       Log.logger.i("Signed in with temporary account.");
     } on FirebaseAuthException catch (e) {
       switch (e.code) {
         case "operation-not-allowed":
-          Log.logger.e("Anonymous auth hasn't been enabled for this project.");
+          Log.logger.i("Anonymous auth hasn't been enabled for this project.");
           break;
         default:
-          Log.logger.e("Unknown error.");
+          Log.logger.i("Unknown error.");
       }
     }
 
+    Log.logger.i("Setting up Firestore Database...");
     database = FirebaseFirestore.instanceFor(app: firebaseApp);
+
+    Log.logger.i("Setting up Firebase Storage...");
     storage = FirebaseStorage.instanceFor(app: firebaseApp, bucket: 'gs://weightechapp.appspot.com');
     
+    Log.logger.i("Getting access tokens...");
     await database.collection("tokens").doc("github").get().then((DocumentSnapshot doc) {
       githubToken = (doc.data() as Map<String, dynamic>)['access_token']!;
     });

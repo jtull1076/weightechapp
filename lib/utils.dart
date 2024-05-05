@@ -19,13 +19,12 @@ class Log {
   Log();
 
   Future<void> init() async {
-    Directory appDocsDir = await getApplicationDocumentsDirectory();
+    Directory appDocsDir = await getApplicationSupportDirectory();
     logger = Logger(
       filter: AppLogFilter(),
       printer: PrettyPrinter(
         methodCount: 2,
         lineLength: 120,
-        printTime: true,
         colors: true, 
         printEmojis: true
       ),

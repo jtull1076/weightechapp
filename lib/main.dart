@@ -38,7 +38,7 @@ Future<void> main() async {
   await Log().init();
   Log.logger.i("...Logger initialized...");
 
-  Log.logger.i("...Checking for updates...");
+  Log.logger.i("...Getting app info...");
   await AppInfo().init();
   Log.logger.i(AppInfo.packageInfo.toString());
 
