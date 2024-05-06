@@ -2135,7 +2135,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                                           Expanded(
                                                             child: Row(
                                                               children: [
-                                                                Text(imageText, overflow: TextOverflow.ellipsis),
+                                                                Expanded(child: Text(imageText, overflow: TextOverflow.ellipsis)),
                                                                 if (isFromCloud) const SizedBox(width: 7),
                                                                 if (isFromCloud) const Icon(Icons.cloud_outlined, color: Color(0xFFA9A9AA), size: 12.0)
                                                               ]
@@ -2387,7 +2387,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                           description: _descriptionController.text,
                           brochure: Product.mapListToBrochure(_brochure)
                         );
-                        EProduct newEProduct = EProduct(product: newProduct, rank: _selectedCategory.rank+1, imagePaths: _imagePaths, primaryImageIndex: _primaryImageIndex);
+                        EProduct newEProduct = EProduct(product: newProduct, rank: _selectedCategory.rank+1, imagePaths: List.from(_imagePaths), primaryImageIndex: _primaryImageIndex);
                         _selectedCategory.addItem(newEProduct);
                       }
                       else if (product != null) {
@@ -3178,6 +3178,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
           _modelNumberController.text = focusItem.product.modelNumber ?? '';
           _brochure = focusItem.product.retrieveBrochureList();
           _descriptionController.text = focusItem.product.description ?? '';
+          _selectedCategory = focusItem.getParent(root: _editorAll) ?? _editorAll;
           _loadingSomething = false;
         });
         setState(() => _loadingSomething = false);

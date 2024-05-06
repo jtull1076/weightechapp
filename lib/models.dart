@@ -589,10 +589,12 @@ sealed class EItem {
           case EProduct _: {
             if (item.imagePaths != null) {
 
-              await Future.wait([
-                for (var url in item.product.productImageUrls!)
-                  FirebaseInfo.storage.refFromURL(url).delete(),
-              ]);
+              if (item.product.productImageUrls != null) {
+                await Future.wait([
+                  for (var url in item.product.productImageUrls!)
+                    FirebaseInfo.storage.refFromURL(url).delete(),
+                ]);
+              }
 
               item.product.productImageUrls = [];
 
@@ -726,18 +728,23 @@ class ECategory extends EItem {
       onAcceptWithDetails: (details) {
         ECategory parent = details.data.getParent(root: EItem.all)!;
         parent.editorItems.remove(details.data);
-        switch (details.data) {
-          case ECategory _ : {
-            parent.category.catalogItems.remove((details.data as ECategory).category);
-          }
-          case EProduct _ : {
-            parent.category.catalogItems.remove((details.data as EProduct).product);
-          }
-        }
 
         details.data.rank = rank + 1;
         details.data.parentId = id;
         editorItems.add(details.data);
+
+        switch (details.data) {
+          case ECategory _ : {
+            parent.category.catalogItems.remove((details.data as ECategory).category);
+            category.catalogItems.add((details.data as ECategory).category);
+            (details.data as ECategory).category.parentId = id;
+          }
+          case EProduct _ : {
+            parent.category.catalogItems.remove((details.data as EProduct).product);
+            category.catalogItems.add((details.data as EProduct).product);
+            (details.data as EProduct).product.parentId = id;
+          }
+        }
       },
       builder: (context, accepted, rejected) {
         Widget widget = Draggable<EItem> (
@@ -901,7 +908,19 @@ class EProduct extends EItem {
   List<String>? imagePaths;
   List<File>? imageFiles;
   int primaryImageIndex;
-  EProduct({required this.product, required super.rank, List<String>? imagePaths, primaryImageIndex}) : primaryImageIndex = primaryImageIndex ?? 0, super(id: product.id, parentId: product.parentId);
+  EProduct({required this.product, required super.rank, this.imagePaths, primaryImageIndex}) : primaryImageIndex = primaryImageIndex ?? 0, super(id: product.id, parentId: product.parentId) {
+    if (imagePaths != null) {
+      imageFiles = [];
+      for (var path in imagePaths!) {
+        try {
+          imageFiles!.add(File(path));
+        }
+        catch (e, trace) {
+          Log.logger.w("Failed to add image at $path", error: e, stackTrace: trace);
+        }
+      }
+    }
+  }
 
   Widget buildListTile({int? index, VoidCallback? onEditCallback, VoidCallback? onDragCompleted, VoidCallback? onDragStarted, VoidCallback? onDragCanceled}) {
     return Draggable<EItem> (
