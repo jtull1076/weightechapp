@@ -54,8 +54,6 @@ flutter:
   assets:
     - assets/weightech_logo.png
     - assets/weightech_logo_beta.png
-    - assets/JT_signature.png
-    - assets/product_images/
     - assets/icon/wt_icon.ico
     - assets/skull.png
     - assets/skull2.gif
