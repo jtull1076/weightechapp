@@ -3,6 +3,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:updat/updat.dart';
 import 'package:weightechapp/models.dart';
 import 'package:weightechapp/themes.dart';
 import 'package:weightechapp/utils.dart';
@@ -34,7 +35,13 @@ import 'package:http/http.dart' as http;
 //MARK: MAIN
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized(); // Initialize Flutter Bindings
-  
+
+  await windowManager.ensureInitialized();
+  if (Platform.isWindows) {
+    WindowManager.instance.setMinimumSize(const Size(850, 550));
+  }
+
+
   await Log().init();
   Log.logger.i("...Logger initialized...");
 
@@ -42,23 +49,6 @@ Future<void> main() async {
   await AppInfo().init();
   Log.logger.t('Version: ${AppInfo.packageInfo.version}, Build: ${AppInfo.packageInfo.buildNumber}');
 
-  await windowManager.ensureInitialized();
-  if (Platform.isWindows) {
-    WindowManager.instance.setMinimumSize(const Size(850, 550));
-  }
-
-  Log.logger.i('...System behavior setup...');
-  if (defaultTargetPlatform == TargetPlatform.android || defaultTargetPlatform == TargetPlatform.iOS) {
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky); // Set to full screen
-  }
-
-  Log.logger.i('...Initializing Firebase...');
-  await FirebaseInfo().init();
-
-  Log.logger.i('...Initializing Product Manager...');
-  ProductManager productManager = await ProductManager.create();
-  
-  Log.logger.i('...App Startup...');
   runApp(
     BetterFeedback(
       feedbackBuilder: (context, onSubmit, scrollController) {
@@ -78,33 +68,157 @@ Future<void> main() async {
         colorScheme: WeightechThemes.lightTheme.colorScheme,
       ),
       child: 
-        WeightechApp(catalog: productManager)
+        WeightechApp()
     )
   );
 }
 
 /// A class that defines the widget tree.
 class WeightechApp extends StatelessWidget {
-  final ProductManager catalog;
-  WeightechApp({required this.catalog}) : super(key: GlobalKey());
+  WeightechApp() : super(key: GlobalKey());
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider<ProductManager>(
-      create: (_) => catalog,
-      child: MaterialApp(
-        title: "Weightech Inc. Sales",
-        theme: WeightechThemes.lightTheme, 
-        initialRoute: '/',
-        routes: {
-          '/': (context) => const IdlePage(),
-          '/home': (context) => HomePage(),
-        },
-      )
+    return MaterialApp(
+      title: "Weightech Inc. Sales",
+      theme: WeightechThemes.lightTheme, 
+      home: const StartupPage()
     );
   }
 }
 
+
+class StartupPage extends StatefulWidget {
+  const StartupPage({super.key});
+
+  @override
+  State<StartupPage> createState() => _StartupPageState();
+}
+
+class _StartupPageState extends State<StartupPage> with TickerProviderStateMixin {
+  late String _startupTaskMessage;
+  late StreamController<String> _progressStreamController;
+
+  @override
+  void initState() {
+    super.initState();
+    _startupTaskMessage = '';
+    _progressStreamController = StreamController<String>();
+    _runStartupTasks();
+  }
+
+  Future<void> _runStartupTasks() async { 
+
+    Log.logger.i('...Clearing existing cache');
+    _progressStreamController.add('...Clearing cache...');
+    await DefaultCacheManager().emptyCache();
+
+    Log.logger.i('...Initializing Firebase...');
+    _progressStreamController.add('...Initializing Firebase...');
+    await FirebaseInfo().init();
+    await Future.delayed(const Duration(seconds: 1));
+
+    Log.logger.i('...Initializing Product Manager...');
+    _progressStreamController.add('...Initializing Product Manager...');
+    await ProductManager.create();
+    await Future.delayed(const Duration(seconds: 1));
+
+    Log.logger.i('...App Startup...');
+    _progressStreamController.add('...App Startup...');
+    await Future.delayed(const Duration(seconds: 1));
+
+    _progressStreamController.close();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(right: 0),
+              child: Image.asset('assets/icon/wt_icon.ico', height: 200),
+            ),
+            const SizedBox(height: 10), 
+            Text("App Version: ${AppInfo.packageInfo.version}"),
+            Text(_startupTaskMessage),
+            StreamBuilder(
+              stream: _progressStreamController.stream,
+              initialData: '',
+              builder:(context, AsyncSnapshot<String> snapshot) {
+                if (snapshot.connectionState == ConnectionState.active) {
+                  if (snapshot.hasData) {
+                    return Text(snapshot.data!);
+                  } else {
+                    return const CircularProgressIndicator(); // Or any loading indicator
+                  }
+                }
+                else if (snapshot.connectionState == ConnectionState.done) {
+                  return Stack(
+                    children: [
+                      UpdatWidget(
+                        currentVersion: AppInfo.packageInfo.version,
+                        getLatestVersion: () async {
+                          // Use Github latest endpoint
+                          final data = await http.get(
+                            Uri.parse(
+                            "https://api.github.com/repos/jtull1076/weightechapp/releases/latest"
+                            ),
+                            headers: {
+                              'Authorization': 'Bearer ${FirebaseInfo.githubToken}'
+                            }
+                          );
+                          final latestVersion = jsonDecode(data.body)["tag_name"];
+                          final verCompare = AppInfo.versionCompare(latestVersion, AppInfo.packageInfo.version);
+                          Log.logger.t('Latest version: $latestVersion : This app version is ${(verCompare == 0) ? "up-to-date." : (verCompare == 1) ? "deprecated." : "in development."}');
+                          return latestVersion;
+                        },
+                        getBinaryUrl: (version) async {
+                          return "https://github.com/jtull1076/weightechapp/releases/download/$version/weightechsales-windows-$version.exe";
+                        },
+                        appName: "WeighTech Inc. Sales",
+                        getChangelog: (_, __) async {
+                          final data = await http.get(
+                            Uri.parse(
+                            "https://api.github.com/repos/jtull1076/weightechapp/releases/latest"
+                            ),
+                            headers: {
+                              'Authorization': 'Bearer ${FirebaseInfo.githubToken}'
+                            }
+                          );
+                          Log.logger.i('Changelog: ${jsonDecode(data.body)["body"]}');
+                          return jsonDecode(data.body)["body"];
+                        },
+                        callback: (status) {
+                          if (status == UpdatStatus.upToDate) {
+                            WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+                              Navigator.of(context).pushReplacement(PageRouteBuilder(pageBuilder: (BuildContext context, _, __) => const IdlePage()));
+                            });
+                          }
+                        }
+                      ),
+                      const Center(child: Text("...Checking for updates..."))
+                    ]
+                  );
+                }
+                else {
+                  return const Text("Other");
+                }
+              }
+            )
+          ]
+        )
+      )
+    );
+  }
+}
 
 //MARK: IDLE PAGE
 /// A class defining the stateless [IdlePage]. Used as the landing page (though not called "LandingPage" because "IdlePage" seemed more apt). 
@@ -113,71 +227,36 @@ class IdlePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return UpdatWindowManager(
-      currentVersion: AppInfo.packageInfo.version,
-      getLatestVersion: () async {
-        // Use Github latest endpoint
-        final data = await http.get(
-          Uri.parse(
-          "https://api.github.com/repos/jtull1076/weightechapp/releases/latest"
-          ),
-          headers: {
-            'Authorization': 'Bearer ${FirebaseInfo.githubToken}'
-          }
-        );
-        final latestVersion = jsonDecode(data.body)["tag_name"];
-        final verCompare = AppInfo.versionCompare(latestVersion, AppInfo.packageInfo.version);
-        Log.logger.t('Latest version: $latestVersion : This app version is ${(verCompare == 0) ? "up-to-date." : (verCompare == 1) ? "deprecated." : "in development."}');
-        return latestVersion;
-      },
-      getBinaryUrl: (version) async {
-        return "https://github.com/jtull1076/weightechapp/releases/download/$version/weightechsales-windows-$version.exe";
-      },
-      appName: "WeighTech Inc. Sales",
-      getChangelog: (_, __) async {
-        final data = await http.get(
-          Uri.parse(
-          "https://api.github.com/repos/jtull1076/weightechapp/releases/latest"
-          ),
-          headers: {
-            'Authorization': 'Bearer ${FirebaseInfo.githubToken}'
-          }
-        );
-        Log.logger.i('Changelog: ${jsonDecode(data.body)["body"]}');
-        return jsonDecode(data.body)["body"];
-      },
-      child: 
-        Scaffold(
-          body: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () {
-              Navigator.of(context).push(_routeToHome());
-            },
-            onLongPress: () {
-              Navigator.of(context).push(_routeToControl());
-            },
-            child: Center(
-              child: Stack(
-                children: [
-                  Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: <Widget>[
-                        ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 500),
-                          child: Hero(tag: 'main-logo', child: Image.asset('assets/weightech_logo_beta.png', fit: BoxFit.scaleDown))
-                        ), 
-                        const Text('MANAGER', style: TextStyle(fontSize: 30, color: Color(0xFF224190))),
-                        const Text('Press anywhere to begin.', style: TextStyle(fontSize: 18.0, fontStyle: FontStyle.normal))],
-                    ),
-                  ),
-                  Align(
-                    alignment: Alignment.bottomRight,
-                    child: Text('${AppInfo.packageInfo.version.toString()} ')
-                  )
-                ]
-            )
+    return Scaffold(
+      body: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          Navigator.of(context).push(_routeToHome());
+        },
+        onLongPress: () {
+          Navigator.of(context).push(_routeToControl());
+        },
+        child: Center(
+          child: Stack(
+            children: [
+              Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: <Widget>[
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 500),
+                      child: Hero(tag: 'main-logo', child: Image.asset('assets/weightech_logo_beta.png', fit: BoxFit.scaleDown))
+                    ), 
+                    const Text('MANAGER', style: TextStyle(fontSize: 30, color: Color(0xFF224190))),
+                    const Text('Press anywhere to begin.', style: TextStyle(fontSize: 18.0, fontStyle: FontStyle.normal))],
+                ),
+              ),
+              Align(
+                alignment: Alignment.bottomRight,
+                child: Text('${AppInfo.packageInfo.version.toString()} ')
+              )
+            ]
           )
         )
       )
@@ -186,7 +265,7 @@ class IdlePage extends StatelessWidget {
 
   Route _routeToHome() {
     return PageRouteBuilder(
-      pageBuilder: (context, animation, secondaryAnimation) => HomePage(),
+      pageBuilder: (context, animation, secondaryAnimation) => const HomePage(),
       transitionsBuilder: (context, animation, secondaryAnimation, child){
         var begin = 0.0;
         var end = 1.0;
@@ -224,7 +303,7 @@ class IdlePage extends StatelessWidget {
 /// 
 /// See also: [_HomePageState]
 class HomePage extends StatefulWidget {
-  HomePage({Key? key}) : super(key: key);
+  const HomePage({super.key});
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -253,7 +332,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
     _timer = Timer(const Duration(minutes: 10), () {
       if (mounted){
-        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => const IdlePage()));
+        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => IdlePage()));
         Log.logger.i("--Idle Timeout--");
       }
     });
@@ -307,83 +386,79 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<ProductManager>(
-      builder: (context, productManager, child) {
-        return Scaffold(
-          body: Container(
-            padding: const EdgeInsets.only(top: 0, bottom: 0),
-            child: Stack(
+    return Scaffold(
+      body: Container(
+        padding: const EdgeInsets.only(top: 0, bottom: 0),
+        child: Stack(
+          children: <Widget>[
+            Flex(
+              direction: Axis.vertical,
               children: <Widget>[
-                Flex(
-                  direction: Axis.vertical,
-                  children: <Widget>[
-                    Flexible(
+                Flexible(
+                  child: 
+                    FadeTransition(
+                      opacity: _fadeAnimation,
                       child: 
-                        FadeTransition(
-                          opacity: _fadeAnimation,
-                          child: 
-                            GridView.builder(
-                              padding: const EdgeInsets.only(top: 110, bottom: 20, left: 20, right: 20),
-                              itemCount: ProductManager.all!.catalogItems.length,
-                              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: MediaQuery.of(context).size.width > 1000 ? 4 : MediaQuery.of(context).size.width > 800 ? 3 : MediaQuery.of(context).size.width > 500 ? 2 : 1,
-                                childAspectRatio: 0.9,
-                                crossAxisSpacing: 1,
-                                mainAxisSpacing: 1,
-                              ),
-                              itemBuilder: (context, index) => ProductManager.all!.catalogItems[index].buildCard(() => catalogNavigation(context, ProductManager.all!.getAllCatalogItems()[index])),
-                            )
-                        ),
-                    )],//)
-                ),
-                Stack(
-                  alignment: Alignment.topCenter,
-                  children: [
-                    SizedBox(
-                      height: 110,
-                      width: double.infinity,
-                      child: 
-                        ClipRect(
-                          child: BackdropFilter(
-                            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12), 
-                            child: 
-                                  ShaderMask(
-                                    shaderCallback: (Rect rect) {
-                                      return const LinearGradient(
-                                        begin: Alignment.centerLeft,
-                                        end: Alignment.centerRight,
-                                        colors: [Colors.white, Colors.transparent, Colors.transparent, Colors.white],
-                                        stops: [0.0, 0.38, 0.62, 1.0],
-                                      ).createShader(rect);
-                                    },
-                                    blendMode: BlendMode.dstOut,
-                                    child:
-                                      Container(color: Colors.white.withOpacity(1.0))
-                                  )
-                          )
+                        GridView.builder(
+                          padding: const EdgeInsets.only(top: 110, bottom: 20, left: 20, right: 20),
+                          itemCount: ProductManager.all!.catalogItems.length,
+                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: MediaQuery.of(context).size.width > 1000 ? 4 : MediaQuery.of(context).size.width > 800 ? 3 : MediaQuery.of(context).size.width > 500 ? 2 : 1,
+                            childAspectRatio: 0.9,
+                            crossAxisSpacing: 1,
+                            mainAxisSpacing: 1,
+                          ),
+                          itemBuilder: (context, index) => ProductManager.all!.catalogItems[index].buildCard(() => catalogNavigation(context, ProductManager.all!.getAllCatalogItems()[index])),
                         )
                     ),
-                    Column(
-                      children: [
-                        GestureDetector(
-                          onDoubleTap: (){
-                            Log.logger.i('---Return to Idle Interaction---');
-                            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const IdlePage()));
-                          },
-                          child: Padding(padding: const EdgeInsets.only(top: 10.0), child: Hero(tag: 'main-logo', child: Image.asset('assets/weightech_logo_beta.png', height: 100, alignment: Alignment.center,))),
-                        ),
-                        SizeTransition(sizeFactor: _dividerWidthAnimation, axis: Axis.horizontal, child: FadeTransition(opacity: _fadeAnimation, child: const Hero(tag: 'divider', child: Divider(color: Color(0xFF224190), height: 2, thickness: 2, indent: 25.0, endIndent: 25.0,)))),
-                        const SizedBox(height: 10),
-                      ]
+                )],//)
+            ),
+            Stack(
+              alignment: Alignment.topCenter,
+              children: [
+                SizedBox(
+                  height: 110,
+                  width: double.infinity,
+                  child: 
+                    ClipRect(
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12), 
+                        child: 
+                              ShaderMask(
+                                shaderCallback: (Rect rect) {
+                                  return const LinearGradient(
+                                    begin: Alignment.centerLeft,
+                                    end: Alignment.centerRight,
+                                    colors: [Colors.white, Colors.transparent, Colors.transparent, Colors.white],
+                                    stops: [0.0, 0.38, 0.62, 1.0],
+                                  ).createShader(rect);
+                                },
+                                blendMode: BlendMode.dstOut,
+                                child:
+                                  Container(color: Colors.white.withOpacity(1.0))
+                              )
+                      )
                     )
-                  ]
                 ),
-                
+                Column(
+                  children: [
+                    GestureDetector(
+                      onDoubleTap: (){
+                        Log.logger.i('---Return to Idle Interaction---');
+                        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const IdlePage()));
+                      },
+                      child: Padding(padding: const EdgeInsets.only(top: 10.0), child: Hero(tag: 'main-logo', child: Image.asset('assets/weightech_logo_beta.png', height: 100, alignment: Alignment.center,))),
+                    ),
+                    SizeTransition(sizeFactor: _dividerWidthAnimation, axis: Axis.horizontal, child: FadeTransition(opacity: _fadeAnimation, child: const Hero(tag: 'divider', child: Divider(color: Color(0xFF224190), height: 2, thickness: 2, indent: 25.0, endIndent: 25.0,)))),
+                    const SizedBox(height: 10),
+                  ]
+                )
               ]
-            )
-          )
-        );
-      }
+            ),
+            
+          ]
+        )
+      )
     );
   }
 }
@@ -971,148 +1046,144 @@ class _ListingPageState extends State<ListingPage> with TickerProviderStateMixin
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<ProductManager>(
-      builder: (context, productManager, child) {
-        return Scaffold(
-          body: Container(
-            padding: const EdgeInsets.only(top: 0, bottom: 0),
-            child: Stack(
+    return Scaffold(
+      body: Container(
+        padding: const EdgeInsets.only(top: 0, bottom: 0),
+        child: Stack(
+          children: <Widget>[
+            Flex(
+              direction: Axis.vertical,
               children: <Widget>[
-                Flex(
-                  direction: Axis.vertical,
-                  children: <Widget>[
-                    Flexible(
+                Flexible(
+                  child: 
+                    FadeTransition(
+                      opacity: _fadeAnimation,
                       child: 
-                        FadeTransition(
-                          opacity: _fadeAnimation,
-                          child: 
-                            GridView.builder(
-                              padding: const EdgeInsets.only(top: 165, bottom: 20, left: 20, right: 20),
-                              itemCount: widget.catalogItems.length,
-                              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: MediaQuery.of(context).size.width<600 ? 1 : 4,
-                                childAspectRatio: 0.9,
-                                crossAxisSpacing: 1,
-                                mainAxisSpacing: 1,
-                              ),
-                              itemBuilder: (context, index) => widget.catalogItems[index].buildCard(() => catalogNavigation(context, widget.catalogItems[index])),)
-                        )
+                        GridView.builder(
+                          padding: const EdgeInsets.only(top: 165, bottom: 20, left: 20, right: 20),
+                          itemCount: widget.catalogItems.length,
+                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: MediaQuery.of(context).size.width<600 ? 1 : 4,
+                            childAspectRatio: 0.9,
+                            crossAxisSpacing: 1,
+                            mainAxisSpacing: 1,
+                          ),
+                          itemBuilder: (context, index) => widget.catalogItems[index].buildCard(() => catalogNavigation(context, widget.catalogItems[index])),)
                     )
-                  ],
+                )
+              ],
+            ),
+            Stack(
+              alignment: Alignment.topCenter,
+              children: [
+                SizedBox(
+                  height: 110,
+                  width: double.infinity,
+                  child: 
+                    ClipRect(
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12), 
+                        child: 
+                              ShaderMask(
+                                shaderCallback: (Rect rect) {
+                                  return const LinearGradient(
+                                    begin: Alignment.centerLeft,
+                                    end: Alignment.centerRight,
+                                    colors: [Colors.white, Colors.transparent, Colors.transparent, Colors.white],
+                                    stops: [0.0, 0.38, 0.62, 1.0],
+                                  ).createShader(rect);
+                                },
+                                blendMode: BlendMode.dstOut,
+                                child:
+                                  Container(color: Colors.white.withOpacity(1.0))
+                              )
+                      )
+                    )
                 ),
-                Stack(
-                  alignment: Alignment.topCenter,
+                Column(
                   children: [
                     SizedBox(
-                      height: 110,
                       width: double.infinity,
+                      height: 110,
                       child: 
-                        ClipRect(
-                          child: BackdropFilter(
-                            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12), 
-                            child: 
-                                  ShaderMask(
-                                    shaderCallback: (Rect rect) {
-                                      return const LinearGradient(
-                                        begin: Alignment.centerLeft,
-                                        end: Alignment.centerRight,
-                                        colors: [Colors.white, Colors.transparent, Colors.transparent, Colors.white],
-                                        stops: [0.0, 0.38, 0.62, 1.0],
-                                      ).createShader(rect);
-                                    },
-                                    blendMode: BlendMode.dstOut,
-                                    child:
-                                      Container(color: Colors.white.withOpacity(1.0))
-                                  )
-                          )
-                        )
-                    ),
-                    Column(
-                      children: [
-                        SizedBox(
-                          width: double.infinity,
-                          height: 110,
-                          child: 
-                            Stack(
-                              children: [
-                                Center(
-                                  child: 
-                                    GestureDetector(
-                                      onDoubleTap: (){
-                                        Log.logger.i('---Return to Idle Interaction---');
-                                        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const IdlePage()));
-                                      },
-                                      child: Padding(
-                                        padding: const EdgeInsets.only(top: 10.0), 
-                                        child: Image.asset('assets/weightech_logo_beta.png', height: 100, cacheHeight: 150, cacheWidth: 394, alignment: Alignment.center,)
-                                      )
-                                    ),
-                                ),
-                                Align(
-                                  alignment: Alignment.centerLeft,
-                                  child: 
-                                    Padding(
-                                      padding: const EdgeInsets.only(left: 30),
-                                      child: 
-                                        IconButton(
-                                          icon: const Icon(Icons.arrow_back),
-                                          iconSize: 30,
-                                          color: const Color(0xFF224190),
-                                          onPressed: () {
-                                            Navigator.of(context).pop();
-                                          }
-                                        )
-                                    )
-                                ),
-                              ]
-                            ),
-                        ),
                         Stack(
                           children: [
-                            Padding(
-                              padding: const EdgeInsets.only(left: 25.0, right: 25.0),
-                              child: Container(
-                                color: const Color(0xFF224190),
-                                height: 2.0
-                              )
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.only(left: 25.0, right: 25.0),
+                            Center(
                               child: 
-                                SizeTransition(
-                                  sizeFactor: _dividerHeightAnimation, 
-                                  axis: Axis.vertical, 
-                                  child: Container(
-                                    alignment: Alignment.topCenter,
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF224190),
-                                      border: Border.all(color: const Color(0xFF224190))
-                                    ),
-                                    width: double.infinity,
-                                    child: 
-                                      Padding(
-                                        padding: const EdgeInsets.all(2.0),
-                                        child:
-                                          Text(widget.category.name, 
-                                            textAlign: TextAlign.center, 
-                                            style: const TextStyle(fontSize: 32.0, fontWeight: FontWeight.bold, color: Colors.white),
-                                          )
-                                      )
+                                GestureDetector(
+                                  onDoubleTap: (){
+                                    Log.logger.i('---Return to Idle Interaction---');
+                                    Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const IdlePage()));
+                                  },
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(top: 10.0), 
+                                    child: Image.asset('assets/weightech_logo_beta.png', height: 100, cacheHeight: 150, cacheWidth: 394, alignment: Alignment.center,)
                                   )
                                 ),
                             ),
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: 
+                                Padding(
+                                  padding: const EdgeInsets.only(left: 30),
+                                  child: 
+                                    IconButton(
+                                      icon: const Icon(Icons.arrow_back),
+                                      iconSize: 30,
+                                      color: const Color(0xFF224190),
+                                      onPressed: () {
+                                        Navigator.of(context).pop();
+                                      }
+                                    )
+                                )
+                            ),
                           ]
-                        ),                      
+                        ),
+                    ),
+                    Stack(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(left: 25.0, right: 25.0),
+                          child: Container(
+                            color: const Color(0xFF224190),
+                            height: 2.0
+                          )
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.only(left: 25.0, right: 25.0),
+                          child: 
+                            SizeTransition(
+                              sizeFactor: _dividerHeightAnimation, 
+                              axis: Axis.vertical, 
+                              child: Container(
+                                alignment: Alignment.topCenter,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF224190),
+                                  border: Border.all(color: const Color(0xFF224190))
+                                ),
+                                width: double.infinity,
+                                child: 
+                                  Padding(
+                                    padding: const EdgeInsets.all(2.0),
+                                    child:
+                                      Text(widget.category.name, 
+                                        textAlign: TextAlign.center, 
+                                        style: const TextStyle(fontSize: 32.0, fontWeight: FontWeight.bold, color: Colors.white),
+                                      )
+                                  )
+                              )
+                            ),
+                        ),
                       ]
-                    )
+                    ),                      
                   ]
-                ),
-                
+                )
               ]
-            )
-          )
-        );
-      }
+            ),
+            
+          ]
+        )
+      )
     );
   }
 }
@@ -1158,6 +1229,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _modelNumberController = TextEditingController();
   late int _brochureActiveIndex;
+  final _formKey = GlobalKey<FormState>();
 
   final ScrollController _scrollController = ScrollController();
 
@@ -1175,10 +1247,10 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
   void initState() {
     super.initState();
     
-    _animationController = AnimationController(duration : const Duration(seconds: 5), vsync: this);
+    _animationController = AnimationController(duration : const Duration(seconds: 4), vsync: this);
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _animationController, curve: const Interval(0.4, 0.6, curve: Curves.ease)));
-    _dividerWidthAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _animationController, curve: const Interval(0.4, 0.7, curve: Curves.ease)));
-    _editorHeightAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _animationController, curve: const Interval(0.55, 1.0, curve: Curves.ease)));
+    _dividerWidthAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _animationController, curve: const Interval(0.5, 0.7, curve: Curves.ease)));
+    _editorHeightAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _animationController, curve: const Interval(0.6, 1.0, curve: Curves.ease)));
 
     _catalogCopy = CatalogItem.fromJson(ProductManager.all!.toJson()) as ProductCategory;
 
@@ -1225,440 +1297,433 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<ProductManager>(
-      builder: (context, productManager, child) {
-        return Scaffold(
-          floatingActionButton: FloatingActionButton.extended(
-            backgroundColor: const Color(0xFF7E7E80),
-            foregroundColor: Colors.white,
-            hoverColor: const Color(0xFF224190),
-            label: const Text("Save & Exit"),
-            onPressed: () async {
-              Log.logger.i("...Saving product catalog...");
-              setState(() {
-                _ignoringPointer = true;
-              });
-              _showSaveLoading(context);
-              try {
-                await EItem.updateProductCatalog(_editorAll);
-              }
-              catch (error, stackTrace) {
-                Log.logger.e("Error encountered while updating product catalog: ", error: error, stackTrace: stackTrace);
-              }
-              productManager = await ProductManager.create();
-              if (context.mounted) {
-                Navigator.of(context).pop();
-                Navigator.of(context).pop();
-              }
-              setState(() {
-                _ignoringPointer = false;
-              });
-            }
-          ),
-          body: IgnorePointer(
-            ignoring: _ignoringPointer,
-            child: 
-              Stack(
-            children: [
-              Column(
-                children: <Widget>[
-                  SizedBox(
-                    width: double.infinity,
-                    height: 110,
-                    child: 
-                      Stack(
-                        children: [
-                          Align(
-                            alignment: Alignment.centerRight,
+    return Scaffold(
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: const Color(0xFF7E7E80),
+        foregroundColor: Colors.white,
+        hoverColor: const Color(0xFF224190),
+        label: const Text("Save & Exit"),
+        onPressed: () async {
+          Log.logger.i("...Saving product catalog...");
+          setState(() {
+            _ignoringPointer = true;
+          });
+          _showSaveLoading(context);
+          try {
+            await EItem.updateProductCatalog(_editorAll);
+          }
+          catch (error, stackTrace) {
+            Log.logger.e("Error encountered while updating product catalog: ", error: error, stackTrace: stackTrace);
+          }
+          await ProductManager.create();
+          if (context.mounted) {
+            Navigator.of(context).pop();
+            Navigator.of(context).pop();
+          }
+          setState(() {
+            _ignoringPointer = false;
+          });
+        }
+      ),
+      body: IgnorePointer(
+        ignoring: _ignoringPointer,
+        child: 
+          Stack(
+        children: [
+          Column(
+            children: <Widget>[
+              SizedBox(
+                width: double.infinity,
+                height: 110,
+                child: 
+                  Stack(
+                    children: [
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: 
+                          Padding(
+                            padding: const EdgeInsets.only(right: 30),
                             child: 
-                              Padding(
-                                padding: const EdgeInsets.only(right: 30),
-                                child: 
-                                  FadeTransition(
-                                    opacity: _fadeAnimation,
-                                    child: MenuAnchor(
-                                      style: const MenuStyle(surfaceTintColor: MaterialStatePropertyAll<Color>(Colors.white)),
-                                      menuChildren: [
-                                        MenuItemButton(
-                                          onPressed: () async {
-                                            String id = shortid.generate();
-                                            BetterFeedback.of(context).showAndUploadToGitHub(
-                                              username: 'jtull1076',
-                                              repository: 'weightechapp',
-                                              authToken:  FirebaseInfo.githubToken,
-                                              labels: ['feedback'],
-                                              assignees: ['jtull1076'],
-                                              imageId: id,
-                                            );
-                                          },
-                                          child: const Row(
-                                            children: [
-                                              Icon(Icons.feedback_outlined, color: Color(0xFF224190)),
-                                              SizedBox(width: 10),
-                                              Text("Feedback")
-                                            ]
-                                          )
-                                        ),
-                                        MenuItemButton(
-                                          onPressed: () => showDialog<void>(
-                                            context: context,
-                                            builder: (BuildContext context) {
-                                              return AlertDialog(
-                                                backgroundColor: Colors.white,
-                                                surfaceTintColor: Colors.transparent,
-                                                title: Image.asset('assets/skullbadge_small.gif', height: 120),
-                                                content: Container(
-                                                  alignment: Alignment.center,
-                                                  height: 130,
-                                                  width: 450,
-                                                  child: Row(
-                                                    crossAxisAlignment: CrossAxisAlignment.center,
-                                                    mainAxisSize: MainAxisSize.min,
-                                                    children: [
-                                                      Image.asset('assets/icon/wt_icon.ico', height: 100),
-                                                      const SizedBox(width: 30),
-                                                      Column(
-                                                        mainAxisSize: MainAxisSize.min,
-                                                        mainAxisAlignment: MainAxisAlignment.center,
-                                                        children: [
-                                                          Text(AppInfo.packageInfo.appName, style: const TextStyle(fontSize: 28)),
-                                                          Text("AppVer: ${AppInfo.packageInfo.version}", style: const TextStyle(fontSize: 20)),
-                                                          TextButton(
-                                                            child: const Text("View Licenses"),
-                                                            onPressed: () => showLicensePage(
-                                                              context: context, 
-                                                              applicationName: AppInfo.packageInfo.appName, 
-                                                              applicationVersion: AppInfo.packageInfo.version, 
-                                                              applicationIcon: Image.asset('assets/icon/wt_icon.ico', height: 200)
-                                                            ),
-                                                          ),
-                                                        ]
-                                                      )
-                                                    ]
-                                                  )
-                                                ),
-                                                actions: <Widget>[
-                                                  TextButton(
-                                                    child: const Text("Close"),
-                                                    onPressed: () => Navigator.of(context).pop()
-                                                  )
-                                                ],
-                                                actionsAlignment: MainAxisAlignment.center,
-                                              );
-                                            }
-                                          ),
-                                          child: const Row(
-                                            children: [
-                                              Icon(Icons.info_outline, color: Color(0xFF224190)),
-                                              SizedBox(width: 10),
-                                              Text("About")
-                                            ]
-                                          )
-                                        )
-                                      ],
-                                      builder: (BuildContext context, MenuController controller, Widget? child) {
-                                        return IconButton(
-                                          icon: const Icon(Icons.menu), 
-                                          color: const Color(0xFF224190),
-                                          onPressed: () {
-                                            if (controller.isOpen) {
-                                              controller.close();
-                                            }
-                                            else {
-                                              controller.open();
-                                            }
-                                          }
+                              FadeTransition(
+                                opacity: _fadeAnimation,
+                                child: MenuAnchor(
+                                  style: const MenuStyle(surfaceTintColor: MaterialStatePropertyAll<Color>(Colors.white)),
+                                  menuChildren: [
+                                    MenuItemButton(
+                                      onPressed: () async {
+                                        String id = shortid.generate();
+                                        BetterFeedback.of(context).showAndUploadToGitHub(
+                                          username: 'jtull1076',
+                                          repository: 'weightechapp',
+                                          authToken:  FirebaseInfo.githubToken,
+                                          labels: ['feedback'],
+                                          assignees: ['jtull1076'],
+                                          imageId: id,
                                         );
                                       },
-                                    )
-                                  )
-                              )
-                          ),
-                          Center(
-                            child: 
-                              GestureDetector(
-                                onDoubleTap: (){
-                                  Log.logger.i('---Return to Idle Interaction---');
-                                  Navigator.push(context, MaterialPageRoute(builder: (context) => const IdlePage()));
-                                },
-                                child: Padding(
-                                  padding: const EdgeInsets.only(top: 10.0), 
-                                  child: Hero(
-                                    tag: 'main-logo',
-                                    child: Image.asset('assets/weightech_logo_beta.png', height: 100, alignment: Alignment.center,)
-                                  ),
-                                )
-                              ),
-                          ),
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: 
-                              Padding(
-                                padding: const EdgeInsets.only(left: 30),
-                                child: 
-                                  FadeTransition(
-                                    opacity: _fadeAnimation,
-                                    child: 
-                                      IconButton(
-                                        icon: const Icon(Icons.arrow_back),
-                                        iconSize: 30,
-                                        color: const Color(0xFF224190),
-                                        onPressed: () async {
-                                          bool confirm = await _showExitDialog(context);
-                                          if (confirm && context.mounted) {
-                                            Navigator.of(context).pop();
-                                          }
-                                        },
+                                      child: const Row(
+                                        children: [
+                                          Icon(Icons.feedback_outlined, color: Color(0xFF224190)),
+                                          SizedBox(width: 10),
+                                          Text("Feedback")
+                                        ]
                                       )
-                                  )
-                              )
-                          ),
-                        ]
-                      ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 25),
-                    alignment: Alignment.centerLeft,
-                    child: SizeTransition(
-                      sizeFactor: _dividerWidthAnimation, 
-                      axis: Axis.vertical,
-                      child: FadeTransition(
-                        opacity: _fadeAnimation, 
-                        child: Column(
-                          children: [
-                            const Divider(color: Color(0xFF224190), height: 2, thickness: 2, indent: 0, endIndent: 0,),
-                            Container(
-                              alignment: Alignment.topCenter,
-                              decoration: const BoxDecoration(
-                                color: Color(0xFF224190),
-                              ),
-                              width: double.infinity,
-                              child: const Text("Catalog Editor", 
-                                textAlign: TextAlign.center, 
-                                style: TextStyle(fontSize: 32.0, fontWeight: FontWeight.bold, color: Colors.white),
-                              )
-                            )
-                          ]
-                        )
-                      )
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 25),
-                    child: SizeTransition(
-                      sizeFactor: _editorHeightAnimation,
-                      axis: Axis.vertical,
-                      axisAlignment: 1,
-                      child: 
-                      Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Flexible(
-                          flex: 2,
-                          child: Listener(
-                            onPointerMove: (PointerMoveEvent event) {
-                              if (_dragging) {
-                                if ((event.position.dy > MediaQuery.of(context).size.height - 50)) {
-                                  _scrollController.animateTo(
-                                    _scrollController.position.maxScrollExtent,
-                                    duration: const Duration(milliseconds: 700),
-                                    curve: Curves.easeInOut,
-                                  );
-                                }
-                                else if ((event.position.dy < 200)) {
-                                  _scrollController.animateTo(
-                                    _scrollController.position.minScrollExtent,
-                                    duration: const Duration(milliseconds: 700),
-                                    curve: Curves.easeInOut,
-                                  );
-                                }
-                              }
-                            },
-                            child: Container(
-                                decoration: const BoxDecoration(
-                                  color: Color(0x99C9C9CC),
-                                  border: Border(
-                                    right: BorderSide(color: Color(0xFF224190), width: 2.0),
-                                    left: BorderSide(color: Color(0xFF224190), width: 2.0),
-                                    bottom: BorderSide(color: Color(0xFF224190), width: 2.0),
-                                  )
-                                ),
-                                height: MediaQuery.of(context).size.height - 158,
-                                width: double.infinity,
-                                child: Stack(
-                                  children: [
-                                    SingleChildScrollView(
-                                      controller: _scrollController,
-                                      child: catalogBuilder(item: _editorAll)
                                     ),
-                                    if (_dragging)
-                                      Positioned(
-                                        bottom: 20,
-                                        left: 20,
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            InkWell(
-                                              onTap: () {},
-                                              onHover: (isHovering) {
-                                                if (isHovering) {
-                                                  setState(() => _hoverOnAll = true);
-                                                }
-                                                else {
-                                                  setState(() => _hoverOnAll = false);
-                                                }
-                                              },
-                                              child: Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
-                                                alignment: Alignment.center,
-                                                child: ClipRRect(
-                                                  borderRadius: BorderRadius.circular(8.0),
-                                                  child: DragTarget<EItem>(
-                                                    onWillAcceptWithDetails: (details) {
-                                                      return (!_editorAll.editorItems.contains(details.data));
-                                                    },
-                                                    onAcceptWithDetails: (details) {
-                                                      ECategory parent = details.data.getParent(root: _editorAll)!;
-                                                      parent.editorItems.remove(details.data);
-
-                                                      details.data.rank = 0;
-                                                      details.data.parentId = _editorAll.id;
-                                                      _editorAll.editorItems.add(details.data);
-                                                    },
-                                                    builder: (context, accepted, rejected) {
-                                                      return AnimatedContainer(
-                                                        alignment: Alignment.center,
-                                                        duration: const Duration(milliseconds: 100),
-                                                        transformAlignment: Alignment.center,
-                                                        color: _hoverOnAll ? const Color(0xFF224190) : const Color(0xFF808082),
-                                                        width: _hoverOnAll ? 120 : 80,
-                                                        height: _hoverOnAll ? 60 : 40,
-                                                        child: const Icon(Icons.vertical_align_top, color: Colors.white)
-                                                      );
-                                                    }
+                                    MenuItemButton(
+                                      onPressed: () => showDialog<void>(
+                                        context: context,
+                                        builder: (BuildContext context) {
+                                          return AlertDialog(
+                                            backgroundColor: Colors.white,
+                                            surfaceTintColor: Colors.transparent,
+                                            title: Image.asset('assets/skullbadge_small.gif', height: 120),
+                                            content: Container(
+                                              alignment: Alignment.center,
+                                              height: 130,
+                                              width: 450,
+                                              child: Row(
+                                                crossAxisAlignment: CrossAxisAlignment.center,
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Image.asset('assets/icon/wt_icon.ico', height: 100),
+                                                  const SizedBox(width: 30),
+                                                  Column(
+                                                    mainAxisSize: MainAxisSize.min,
+                                                    mainAxisAlignment: MainAxisAlignment.center,
+                                                    children: [
+                                                      Text(AppInfo.packageInfo.appName, style: const TextStyle(fontSize: 28)),
+                                                      Text("AppVer: ${AppInfo.packageInfo.version}", style: const TextStyle(fontSize: 20)),
+                                                      TextButton(
+                                                        child: const Text("View Licenses"),
+                                                        onPressed: () => showLicensePage(
+                                                          context: context, 
+                                                          applicationName: AppInfo.packageInfo.appName, 
+                                                          applicationVersion: AppInfo.packageInfo.version, 
+                                                          applicationIcon: Image.asset('assets/icon/wt_icon.ico', height: 200)
+                                                        ),
+                                                      ),
+                                                    ]
                                                   )
-                                                )
+                                                ]
                                               )
                                             ),
-                                            const SizedBox(height: 20),
-                                            InkWell(
-                                              onTap: () {},
-                                              onHover: (isHovering) {
-                                                if (isHovering) {
-                                                  setState(() => _hoverOnDelete = true);
-                                                }
-                                                else {
-                                                  setState(() => _hoverOnDelete = false);
-                                                }
-                                              },
-                                              child: Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
-                                                child: ClipRRect(
-                                                  borderRadius: BorderRadius.circular(8.0),
-                                                  child: DragTarget<EItem>(
-                                                    onWillAcceptWithDetails: (details) {
-                                                      return true;
-                                                    },
-                                                    onAcceptWithDetails: (details) async {
-                                                      bool confirm = await _showAlertDialog(context, details.data);
-                                                      if (confirm) {
-                                                        ECategory parent = details.data.getParent(root: _editorAll)!;
-                                                        parent.editorItems.remove(details.data);
-                                                        switch (details.data) {
-                                                          case ECategory _ : {
-                                                            parent.category.catalogItems.remove((details.data as ECategory).category);
-                                                          }
-                                                          case EProduct _ : {
-                                                            parent.category.catalogItems.remove((details.data as EProduct).product);
-                                                          }
-                                                        }
-                                                        setState(() => _focusItem = null);
-                                                      }
-                                                    },
-                                                    builder: (context, accepted, rejected) {
-                                                      return AnimatedContainer(
-                                                        alignment: Alignment.center,
-                                                        duration: const Duration(milliseconds: 100),
-                                                        transformAlignment: Alignment.center,
-                                                        width: _hoverOnDelete ? 120 : 80,
-                                                        height: _hoverOnDelete ? 60 : 40,
-                                                        color: _hoverOnDelete ? const Color(0xFFC3291B) : const Color(0xFF808082),
-                                                        child: const Icon(Icons.delete, color: Colors.white)
-                                                      );
-                                                    }
-                                                  )
-                                                )
+                                            actions: <Widget>[
+                                              TextButton(
+                                                child: const Text("Close"),
+                                                onPressed: () => Navigator.of(context).pop()
                                               )
-                                            ),
-                                          ]
-                                        ),
+                                            ],
+                                            actionsAlignment: MainAxisAlignment.center,
+                                          );
+                                        }
                                       ),
-                                    ExpandableFab(
-                                      distance: 60,
-                                      children: [
-                                        ActionButton(
-                                          onPressed: () async {
-                                            _focusItem = null;
-                                            await toggleEditorItem(_focusItem);
-                                            setState(() {
-                                              _addingItem = true;
-                                              _itemSelection = ItemSelect.category;
-                                            });
-                                          },
-                                          icon: const Icon(Icons.folder),
-                                        ),
-                                        ActionButton(
-                                          onPressed: () async {
-                                            _focusItem = null;
-                                            await toggleEditorItem(_focusItem);
-                                            setState(() {
-                                              _addingItem = true;
-                                              _itemSelection = ItemSelect.product;
-                                            });
-                                          },
-                                          icon: const Icon(Icons.conveyor_belt),
-                                        ),
-                                      ],
+                                      child: const Row(
+                                        children: [
+                                          Icon(Icons.info_outline, color: Color(0xFF224190)),
+                                          SizedBox(width: 10),
+                                          Text("About")
+                                        ]
+                                      )
                                     )
-                                  ]
+                                  ],
+                                  builder: (BuildContext context, MenuController controller, Widget? child) {
+                                    return IconButton(
+                                      icon: const Icon(Icons.menu), 
+                                      color: const Color(0xFF224190),
+                                      onPressed: () {
+                                        if (controller.isOpen) {
+                                          controller.close();
+                                        }
+                                        else {
+                                          controller.open();
+                                        }
+                                      }
+                                    );
+                                  },
                                 )
                               )
                           )
+                      ),
+                      Center(
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 10.0), 
+                          child: Hero(
+                            tag: 'main-logo',
+                            child: Image.asset('assets/weightech_logo_beta.png', height: 100, alignment: Alignment.center,)
+                          ),
                         ),
-                        Flexible(
-                          flex: 5,
-                          child: 
-                            switch(_focusItem) {
-                              EProduct _ => productEditor(product : _focusItem as EProduct),
-                              ECategory _ => categoryEditor(category : _focusItem as ECategory),
-                              null => _addingItem ?
-                                switch(_itemSelection) {
-                                  ItemSelect.category => categoryEditor(),
-                                  ItemSelect.product => productEditor(),
-                                }
-                                : Container(
-                                  alignment: Alignment.center,
-                                  height: MediaQuery.of(context).size.height - 158,
-                                  child: const Text("To begin, select a product/category to the left, or select '+' to add a new item.", textAlign: TextAlign.center, style: TextStyle(fontSize: 16))
+                      ),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: 
+                          Padding(
+                            padding: const EdgeInsets.only(left: 30),
+                            child: 
+                              FadeTransition(
+                                opacity: _fadeAnimation,
+                                child: 
+                                  IconButton(
+                                    icon: const Icon(Icons.arrow_back),
+                                    iconSize: 30,
+                                    color: const Color(0xFF224190),
+                                    onPressed: () async {
+                                      bool confirm = await _showExitDialog(context);
+                                      if (confirm) {
+                                        setState(() => _loadingSomething = true);
+                                        await ProductManager.create();
+                                        if (context.mounted) {
+                                          Navigator.of(context).pop();
+                                        }
+                                      }
+                                    },
+                                  )
                               )
-                            }
+                          )
+                      ),
+                    ]
+                  ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 25),
+                alignment: Alignment.centerLeft,
+                child: SizeTransition(
+                  sizeFactor: _dividerWidthAnimation, 
+                  axis: Axis.vertical,
+                  child: FadeTransition(
+                    opacity: _fadeAnimation, 
+                    child: Column(
+                      children: [
+                        const Divider(color: Color(0xFF224190), height: 2, thickness: 2, indent: 0, endIndent: 0,),
+                        Container(
+                          alignment: Alignment.topCenter,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF224190),
+                          ),
+                          width: double.infinity,
+                          child: const Text("Catalog Editor", 
+                            textAlign: TextAlign.center, 
+                            style: TextStyle(fontSize: 32.0, fontWeight: FontWeight.bold, color: Colors.white),
+                          )
                         )
                       ]
                     )
-                    ),
-                  ),
-                ]
+                  )
+                ),
               ),
-              if (_loadingSomething)
-                const Center(
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 25),
+                child: SizeTransition(
+                  sizeFactor: _editorHeightAnimation,
+                  axis: Axis.vertical,
+                  axisAlignment: 1,
                   child: 
-                    CircularProgressIndicator(),
+                  Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Flexible(
+                      flex: 2,
+                      child: Listener(
+                        onPointerMove: (PointerMoveEvent event) {
+                          if (_dragging) {
+                            if ((event.position.dy > MediaQuery.of(context).size.height - 50)) {
+                              _scrollController.animateTo(
+                                _scrollController.position.maxScrollExtent,
+                                duration: const Duration(milliseconds: 700),
+                                curve: Curves.easeInOut,
+                              );
+                            }
+                            else if ((event.position.dy < 200)) {
+                              _scrollController.animateTo(
+                                _scrollController.position.minScrollExtent,
+                                duration: const Duration(milliseconds: 700),
+                                curve: Curves.easeInOut,
+                              );
+                            }
+                          }
+                        },
+                        child: Container(
+                            decoration: const BoxDecoration(
+                              color: Color(0x99C9C9CC),
+                              border: Border(
+                                right: BorderSide(color: Color(0xFF224190), width: 2.0),
+                                left: BorderSide(color: Color(0xFF224190), width: 2.0),
+                                bottom: BorderSide(color: Color(0xFF224190), width: 2.0),
+                              )
+                            ),
+                            height: MediaQuery.of(context).size.height - 158,
+                            width: double.infinity,
+                            child: Stack(
+                              children: [
+                                SingleChildScrollView(
+                                  controller: _scrollController,
+                                  child: catalogBuilder(item: _editorAll)
+                                ),
+                                if (_dragging)
+                                  Positioned(
+                                    bottom: 20,
+                                    left: 20,
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        InkWell(
+                                          onTap: () {},
+                                          onHover: (isHovering) {
+                                            if (isHovering) {
+                                              setState(() => _hoverOnAll = true);
+                                            }
+                                            else {
+                                              setState(() => _hoverOnAll = false);
+                                            }
+                                          },
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
+                                            alignment: Alignment.center,
+                                            child: ClipRRect(
+                                              borderRadius: BorderRadius.circular(8.0),
+                                              child: DragTarget<EItem>(
+                                                onWillAcceptWithDetails: (details) {
+                                                  return (!_editorAll.editorItems.contains(details.data));
+                                                },
+                                                onAcceptWithDetails: (details) {
+                                                  ECategory parent = details.data.getParent(root: _editorAll)!;
+                                                  parent.editorItems.remove(details.data);
+
+                                                  details.data.rank = 0;
+                                                  details.data.parentId = _editorAll.id;
+                                                  _editorAll.editorItems.add(details.data);
+                                                },
+                                                builder: (context, accepted, rejected) {
+                                                  return AnimatedContainer(
+                                                    alignment: Alignment.center,
+                                                    duration: const Duration(milliseconds: 100),
+                                                    transformAlignment: Alignment.center,
+                                                    color: _hoverOnAll ? const Color(0xFF224190) : const Color(0xFF808082),
+                                                    width: _hoverOnAll ? 120 : 80,
+                                                    height: _hoverOnAll ? 60 : 40,
+                                                    child: const Icon(Icons.vertical_align_top, color: Colors.white)
+                                                  );
+                                                }
+                                              )
+                                            )
+                                          )
+                                        ),
+                                        const SizedBox(height: 20),
+                                        InkWell(
+                                          onTap: () {},
+                                          onHover: (isHovering) {
+                                            if (isHovering) {
+                                              setState(() => _hoverOnDelete = true);
+                                            }
+                                            else {
+                                              setState(() => _hoverOnDelete = false);
+                                            }
+                                          },
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
+                                            child: ClipRRect(
+                                              borderRadius: BorderRadius.circular(8.0),
+                                              child: DragTarget<EItem>(
+                                                onWillAcceptWithDetails: (details) {
+                                                  return true;
+                                                },
+                                                onAcceptWithDetails: (details) async {
+                                                  bool confirm = await _showAlertDialog(context, details.data);
+                                                  if (confirm) {
+                                                    ECategory parent = details.data.getParent(root: _editorAll)!;
+                                                    parent.editorItems.remove(details.data);
+                                                    switch (details.data) {
+                                                      case ECategory _ : {
+                                                        parent.category.catalogItems.remove((details.data as ECategory).category);
+                                                      }
+                                                      case EProduct _ : {
+                                                        parent.category.catalogItems.remove((details.data as EProduct).product);
+                                                      }
+                                                    }
+                                                    setState(() => _focusItem = null);
+                                                  }
+                                                },
+                                                builder: (context, accepted, rejected) {
+                                                  return AnimatedContainer(
+                                                    alignment: Alignment.center,
+                                                    duration: const Duration(milliseconds: 100),
+                                                    transformAlignment: Alignment.center,
+                                                    width: _hoverOnDelete ? 120 : 80,
+                                                    height: _hoverOnDelete ? 60 : 40,
+                                                    color: _hoverOnDelete ? const Color(0xFFC3291B) : const Color(0xFF808082),
+                                                    child: const Icon(Icons.delete, color: Colors.white)
+                                                  );
+                                                }
+                                              )
+                                            )
+                                          )
+                                        ),
+                                      ]
+                                    ),
+                                  ),
+                                ExpandableFab(
+                                  distance: 60,
+                                  children: [
+                                    ActionButton(
+                                      onPressed: () async {
+                                        _focusItem = null;
+                                        await toggleEditorItem(_focusItem);
+                                        setState(() {
+                                          _addingItem = true;
+                                          _itemSelection = ItemSelect.category;
+                                        });
+                                      },
+                                      icon: const Icon(Icons.folder),
+                                    ),
+                                    ActionButton(
+                                      onPressed: () async {
+                                        _focusItem = null;
+                                        await toggleEditorItem(_focusItem);
+                                        setState(() {
+                                          _addingItem = true;
+                                          _itemSelection = ItemSelect.product;
+                                        });
+                                      },
+                                      icon: const Icon(Icons.conveyor_belt),
+                                    ),
+                                  ],
+                                )
+                              ]
+                            )
+                          )
+                      )
+                    ),
+                    Flexible(
+                      flex: 5,
+                      child: 
+                        switch(_focusItem) {
+                          EProduct _ => productEditor(product : _focusItem as EProduct),
+                          ECategory _ => categoryEditor(category : _focusItem as ECategory),
+                          null => _addingItem ?
+                            switch(_itemSelection) {
+                              ItemSelect.category => categoryEditor(),
+                              ItemSelect.product => productEditor(),
+                            }
+                            : Container(
+                              alignment: Alignment.center,
+                              height: MediaQuery.of(context).size.height - 158,
+                              child: const Text("To begin, select a product/category to the left, or select '+' to add a new item.", textAlign: TextAlign.center, style: TextStyle(fontSize: 16))
+                          )
+                        }
+                    )
+                  ]
                 )
+                ),
+              ),
             ]
-          )
-          )
-        );
-      }
+          ),
+          if (_loadingSomething)
+            const Center(
+              child: 
+                CircularProgressIndicator(),
+            )
+        ]
+      )
+      )
     );
   }
 
@@ -1767,8 +1832,9 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
       width: double.infinity,
       child:
         SingleChildScrollView(
-          child: 
-            Column(
+          child: Form (
+            key: _formKey,
+            child: Column(
               children: [
                 Container(
                   constraints: const BoxConstraints(minHeight: 360),
@@ -2312,41 +2378,44 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                   ),
                   child: _addingItem ? const Text("Add") : const Text("Save"),
                   onPressed: () {
-                    if (_addingItem) {
-                      Product newProduct = Product(
-                        name: _nameController.text,
-                        parentId: _selectedCategory.id,
-                        modelNumber: _modelNumberController.text,
-                        description: _descriptionController.text,
-                        brochure: Product.mapListToBrochure(_brochure)
-                      );
-                      EProduct newEProduct = EProduct(product: newProduct, rank: _selectedCategory.rank+1, imagePaths: _imagePaths, primaryImageIndex: _primaryImageIndex);
-                      _selectedCategory.addItem(newEProduct);
-                    }
-                    else if (product != null) {
-                      if (product.parentId != _selectedCategory.id) {
-                        product.getParent(root: _editorAll)?.editorItems.remove(product);
-                        product.parentId = _selectedCategory.id;
-                        _selectedCategory.addItem(product);
+                    if (_formKey.currentState!.validate()) {
+                      if (_addingItem) {
+                        Product newProduct = Product(
+                          name: _nameController.text,
+                          parentId: _selectedCategory.id,
+                          modelNumber: _modelNumberController.text,
+                          description: _descriptionController.text,
+                          brochure: Product.mapListToBrochure(_brochure)
+                        );
+                        EProduct newEProduct = EProduct(product: newProduct, rank: _selectedCategory.rank+1, imagePaths: _imagePaths, primaryImageIndex: _primaryImageIndex);
+                        _selectedCategory.addItem(newEProduct);
                       }
-                      product.product.name = _nameController.text;
-                      product.product.modelNumber = _modelNumberController.text;
-                      product.product.description = _descriptionController.text;
-                      product.product.brochure = Product.mapListToBrochure(_brochure);
-                      product.imagePaths = List.from(_imagePaths);
-                      product.imageFiles = List.from(_imageFiles);
-                      product.primaryImageIndex = _primaryImageIndex;
-                      product.rank = _selectedCategory.rank+1;
+                      else if (product != null) {
+                        if (product.parentId != _selectedCategory.id) {
+                          product.getParent(root: _editorAll)?.editorItems.remove(product);
+                          product.parentId = _selectedCategory.id;
+                          _selectedCategory.addItem(product);
+                        }
+                        product.product.name = _nameController.text;
+                        product.product.modelNumber = _modelNumberController.text;
+                        product.product.description = _descriptionController.text;
+                        product.product.brochure = Product.mapListToBrochure(_brochure);
+                        product.imagePaths = List.from(_imagePaths);
+                        product.imageFiles = List.from(_imageFiles);
+                        product.primaryImageIndex = _primaryImageIndex;
+                        product.rank = _selectedCategory.rank+1;
+                      }
+                      setState(() {
+                        _addingItem = false;
+                        _focusItem = null;
+                      });
                     }
-                    setState(() {
-                      _addingItem = false;
-                      _focusItem = null;
-                    });
                   }
                 ),
                 const SizedBox(height: 20),
               ]
             )
+          )
         )
     );
   }
@@ -2983,7 +3052,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
               content: const Text("Are you sure you want to exit? Your progress will not be saved."),
               actions: <Widget>[
                 TextButton(
-                  child: const Text("No"),
+                  child: const Text("Return"),
                   onPressed: () {
                     Navigator.of(context).pop(false);
                   }
@@ -2992,12 +3061,13 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                   style: hoverOnYes ? 
                     const ButtonStyle(
                       foregroundColor: MaterialStatePropertyAll<Color>(Colors.white), 
-                      backgroundColor: MaterialStatePropertyAll<Color>(Color(0xFFC3291B))) : 
+                      backgroundColor: MaterialStatePropertyAll<Color>(Color(0xFFC3291B))
+                    ) :
                     const ButtonStyle(),
                   onHover: (hovering) {
                     setState(() => hoverOnYes = hovering);
                   },
-                  child: Text("Yes", style: hoverOnYes ? const TextStyle(color: Colors.white) : null),
+                  child: Text("Exit", style: hoverOnYes ? const TextStyle(color: Colors.white) : const TextStyle(color: Color(0xFFC32918))),
                   onPressed: () {
                     Navigator.of(context).pop(true);
                   }

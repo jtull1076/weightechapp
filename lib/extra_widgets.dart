@@ -266,6 +266,7 @@ class CustomFeedbackForm extends StatefulWidget {
 class _CustomFeedbackFormState extends State<CustomFeedbackForm> {
   late TextEditingController controller;
   late bool _loading;
+  late String _feedbackText;
 
   @override
   void dispose() {
@@ -277,6 +278,7 @@ class _CustomFeedbackFormState extends State<CustomFeedbackForm> {
   void initState() {
     super.initState();
     controller = TextEditingController();
+    _feedbackText = '';
     _loading = false;
   }
 
@@ -306,6 +308,9 @@ class _CustomFeedbackFormState extends State<CustomFeedbackForm> {
                               TextField(
                                 maxLines: null,
                                 controller: controller,
+                                onChanged: (value) {
+                                  _feedbackText = value;
+                                },
                               ),
                           ),
                           // Added the below as a quick fix for https://github.com/ueman/feedback/issues/281
@@ -335,7 +340,7 @@ class _CustomFeedbackFormState extends State<CustomFeedbackForm> {
               const CircularProgressIndicator()
               : TextButton(
                 key: const Key('submit_feedback_button'),
-                onPressed: controller.text.isNotEmpty ? 
+                onPressed: _feedbackText.isNotEmpty ? 
                   () async {
                     setState(() => _loading = true);
                     await widget.onSubmit(controller.text);

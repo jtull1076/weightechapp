@@ -34,7 +34,7 @@ class FirebaseInfo {
     try {
       userCredential =
           await FirebaseAuth.instance.signInAnonymously();
-      Log.logger.i("Signed in with temporary account.");
+      Log.logger.i("-> Signed in with temporary account.");
     } on FirebaseAuthException catch (error, stackTrace) {
       switch (error.code) {
         case "operation-not-allowed":
@@ -45,13 +45,13 @@ class FirebaseInfo {
       }
     }
 
-    Log.logger.i("Setting up Firestore Database...");
+    Log.logger.i("-> Setting up Firestore Database...");
     database = FirebaseFirestore.instanceFor(app: firebaseApp);
 
-    Log.logger.i("Setting up Firebase Storage...");
+    Log.logger.i("-> Setting up Firebase Storage...");
     storage = FirebaseStorage.instanceFor(app: firebaseApp, bucket: 'gs://weightechapp.appspot.com');
     
-    Log.logger.i("Getting access tokens...");
+    Log.logger.i("-> Getting access tokens...");
     await database.collection("tokens").doc("github").get().then((DocumentSnapshot doc) {
       githubToken = (doc.data() as Map<String, dynamic>)['access_token']!;
     });
@@ -59,17 +59,16 @@ class FirebaseInfo {
 }
 
 
-class ProductManager extends ChangeNotifier {
+class ProductManager {
   static ProductCategory? all;
   static DateTime? timestamp;
 
   ProductManager._();
 
-  static Future<ProductManager> create() async {
+  static Future<void> create() async {
     Map<String, dynamic> catalogJson = await getCatalogFromFirebase();
     all = ProductCategory.fromJson(catalogJson);
     //timestamp = catalogJson["timestamp"];
-    return ProductManager._();
   }
 
   List<ProductCategory> getAllCategories(ProductCategory? category) {
