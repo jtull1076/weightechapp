@@ -1,3 +1,4 @@
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shortid/shortid.dart';
@@ -5,14 +6,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:async';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_database/firebase_database.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
-import 'package:weightechapp/firebase_options.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:path/path.dart' as path_handler;
 import 'dart:math' as math;
 import 'package:string_validator/string_validator.dart';
@@ -20,43 +16,6 @@ import 'package:weightechapp/utils.dart';
 
 
 
-class FirebaseInfo {
-  static late FirebaseApp firebaseApp; // Initialize Firebase
-  static late FirebaseFirestore database;
-  static late FirebaseStorage storage;
-  static late UserCredential userCredential;
-  static late String githubToken;
-  FirebaseInfo();
-
-  Future<void> init() async {
-    firebaseApp = await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-
-    try {
-      userCredential =
-          await FirebaseAuth.instance.signInAnonymously();
-      Log.logger.i("-> Signed in with temporary account.");
-    } on FirebaseAuthException catch (error, stackTrace) {
-      switch (error.code) {
-        case "operation-not-allowed":
-          Log.logger.e("Anonymous auth hasn't been enabled for this project.");
-          break;
-        default:
-          Log.logger.e("Unknown error.", error: error, stackTrace: stackTrace);
-      }
-    }
-
-    Log.logger.i("-> Setting up Firestore Database...");
-    database = FirebaseFirestore.instanceFor(app: firebaseApp);
-
-    Log.logger.i("-> Setting up Firebase Storage...");
-    storage = FirebaseStorage.instanceFor(app: firebaseApp, bucket: 'gs://weightechapp.appspot.com');
-    
-    Log.logger.i("-> Getting access tokens...");
-    await database.collection("tokens").doc("github").get().then((DocumentSnapshot doc) {
-      githubToken = (doc.data() as Map<String, dynamic>)['access_token']!;
-    });
-  }
-}
 
 
 class ProductManager {
@@ -66,7 +25,7 @@ class ProductManager {
   ProductManager._();
 
   static Future<void> create() async {
-    Map<String, dynamic> catalogJson = await getCatalogFromFirebase();
+    Map<String, dynamic> catalogJson = await getCatalogFromFirestore();
     all = ProductCategory.fromJson(catalogJson);
     //timestamp = catalogJson["timestamp"];
   }
@@ -124,17 +83,14 @@ class ProductManager {
     return result;
   }
 
-  static Future<void> postCatalogToFirebase() async {
+  static Future<void> postCatalogToFirestore() async {
     Map<String,dynamic> catalogJson = all!.toJson();
     catalogJson['timestamp'] = DateTime.now();
-    await FirebaseInfo.database.collection("catalog").add(catalogJson).then((DocumentReference doc) => Log.logger.t('Firebase DocumentSnapshot added with ID: ${doc.id}'));
+    await FirebaseUtils.postCatalogToFirestore(catalogJson);
   }
 
-  static Future<Map<String,dynamic>> getCatalogFromFirebase() async {
-    return await FirebaseInfo.database.collection("catalog").orderBy("timestamp", descending: true).limit(1).get().then((event) {
-      Log.logger.t('Firebase DocumentSnapshot retrieved with ID: ${event.docs[0].id}');
-      return event.docs[0].data();
-    });
+  static Future<Map<String,dynamic>> getCatalogFromFirestore() async {
+    return await FirebaseUtils.getCatalogFromFirestore();
   }
 }
 
@@ -178,12 +134,9 @@ sealed class CatalogItem {
                   Container (
                     alignment: Alignment.center,
                     padding: const EdgeInsets.only(left: 14.0, right: 14.0, top: 30, bottom: 30),
-                    child: Hero(
-                      tag: '${name}_htag', 
-                      child: ClipRRect(
+                    child: ClipRRect(
                         borderRadius: BorderRadius.circular(10),
                         child: Image(image: imageProvider!, fit: BoxFit.fitWidth),
-                      ),
                     ),
                   )
               ),
@@ -239,7 +192,7 @@ sealed class CatalogItem {
   }
 
   void storeImage(File imageFile) {
-    final storageRef = FirebaseInfo.storage.ref("images");
+    final storageRef = FirebaseUtils.storage.ref("devImages");
     final categoryImageRef = storageRef.child("${id}_0");
     try {
       categoryImageRef.putFile(imageFile);
@@ -515,7 +468,7 @@ class Product extends CatalogItem {
 
 
   void storeListOfImages(List<File> imageFiles){
-    final storageRef = FirebaseInfo.storage.ref("images");
+    final storageRef = FirebaseUtils.storage.ref("devImages");
     for ( int i=0 ; i < imageFiles.length ; i++ ) {
       final imageRef = storageRef.child("${id}_$i");
       try {
@@ -564,17 +517,20 @@ sealed class EItem {
   static Future<void> updateProductCatalog(ECategory editorCatalog) async {
     await updateImages(editorCatalog);
     ProductManager.all = editorCatalog.category;
-    await ProductManager.postCatalogToFirebase();
+    await ProductManager.postCatalogToFirestore();
     Log.logger.i("Catalog update completed.");
   }
 
   static Future<void> updateImages(ECategory editorCatalog) async {
-    final storageRef = FirebaseInfo.storage.ref().child("images");
+    final storageRef = FirebaseUtils.storage.ref().child("devImages");
 
     Future<void> traverseItems(ECategory category) async {
       if (category.imageFile != null) {
         final refName = "${category.id}_0${path_handler.extension(category.imageFile!.path)}";
-        await storageRef.child(refName).putFile(category.imageFile!).then((value) async {
+
+        final SettableMetadata metadata = SettableMetadata(contentType: 'images/${path_handler.extension(category.imageFile!.path)}');
+
+        await storageRef.child(refName).putFile(category.imageFile!, metadata).then((value) async {
           await storageRef.child(refName).getDownloadURL().then((value) {
             category.category.imageUrl = value;
             Log.logger.i("Category image url updated.");
@@ -592,7 +548,7 @@ sealed class EItem {
               if (item.product.productImageUrls != null) {
                 await Future.wait([
                   for (var url in item.product.productImageUrls!)
-                    FirebaseInfo.storage.refFromURL(url).delete(),
+                    FirebaseUtils.storage.refFromURL(url).delete(),
                 ]);
               }
 
@@ -604,19 +560,27 @@ sealed class EItem {
                 String baseRefName = '';
                 if (i == item.primaryImageIndex) {
                   baseRefName = "${item.id}_0";
-                  final extension = path_handler.extension(imageFile.path);
+                  String extension = path_handler.extension(imageFile.path).substring(1);
+
+                  if (extension == 'jpg') {
+                    extension = 'jpeg';
+                  }
                   
-                  await storageRef.child("$baseRefName$extension").putFile(imageFile).then((value) async {
-                    final imageUrl = await storageRef.child("$baseRefName$extension").getDownloadURL();
+                  await storageRef.child("$baseRefName.$extension").putFile(imageFile, SettableMetadata(contentType: 'images/$extension')).then((value) async {
+                    final imageUrl = await storageRef.child("$baseRefName.$extension").getDownloadURL();
                     item.product.productImageUrls!.insert(0, imageUrl);
                   });
                 }
                 else {
                   baseRefName = "${item.id}_${nonPrimaryCount+1}";
-                  final extension = path_handler.extension(imageFile.path);
+                  String extension = path_handler.extension(imageFile.path).substring(1);
 
-                  await storageRef.child("$baseRefName$extension").putFile(imageFile).then((value) async {
-                    final imageUrl = await storageRef.child("$baseRefName$extension").getDownloadURL();
+                  if (extension == 'jpg') {
+                    extension = 'jpeg';
+                  }
+
+                  await storageRef.child("$baseRefName.$extension").putFile(imageFile, SettableMetadata(contentType: 'images/$extension')).then((value) async {
+                    final imageUrl = await storageRef.child("$baseRefName.$extension").getDownloadURL();
                     item.product.productImageUrls!.add(imageUrl);
                   });
                   nonPrimaryCount++;
@@ -890,7 +854,7 @@ class ECategory extends EItem {
         return;
       }
       else if (isURL(imagePath)) {
-        final imageRef = FirebaseInfo.storage.refFromURL(imagePath!);
+        final imageRef = FirebaseUtils.storage.refFromURL(imagePath!);
         final file = File('${basePath.path}/${imageRef.name}');
 
         await imageRef.writeToFile(file);
@@ -1007,7 +971,7 @@ class EProduct extends EItem {
       imageFiles = [];
       for (var path in imagePaths!) {
         if (isURL(path)) {
-          final imageRef = FirebaseInfo.storage.refFromURL(path);
+          final imageRef = FirebaseUtils.storage.refFromURL(path);
           final file = File('${basePath.path}/${imageRef.name}');
 
           await imageRef.writeToFile(file);

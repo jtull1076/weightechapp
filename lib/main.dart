@@ -12,7 +12,6 @@ import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:weightechapp/extra_widgets.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:provider/provider.dart';
 import 'dart:async';
 import 'dart:ui';
 import 'dart:io';
@@ -24,12 +23,12 @@ import 'package:feedback_github/feedback_github.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:shortid/shortid.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:path/path.dart' as p;
 import 'package:string_validator/string_validator.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
-import 'package:updat/updat_window_manager.dart';
-import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:http/http.dart' as http;
+import 'package:file_saver/file_saver.dart';
 
 
 //MARK: MAIN
@@ -115,7 +114,7 @@ class _StartupPageState extends State<StartupPage> with TickerProviderStateMixin
 
     Log.logger.i('...Initializing Firebase...');
     _progressStreamController.add('...Initializing Firebase...');
-    await FirebaseInfo().init();
+    await FirebaseUtils().init();
     await Future.delayed(const Duration(seconds: 1));
 
     Log.logger.i('...Initializing Product Manager...');
@@ -172,7 +171,7 @@ class _StartupPageState extends State<StartupPage> with TickerProviderStateMixin
                             "https://api.github.com/repos/jtull1076/weightechapp/releases/latest"
                             ),
                             headers: {
-                              'Authorization': 'Bearer ${FirebaseInfo.githubToken}'
+                              'Authorization': 'Bearer ${FirebaseUtils.githubToken}'
                             }
                           );
                           final latestVersion = jsonDecode(data.body)["tag_name"];
@@ -190,7 +189,7 @@ class _StartupPageState extends State<StartupPage> with TickerProviderStateMixin
                             "https://api.github.com/repos/jtull1076/weightechapp/releases/latest"
                             ),
                             headers: {
-                              'Authorization': 'Bearer ${FirebaseInfo.githubToken}'
+                              'Authorization': 'Bearer ${FirebaseUtils.githubToken}'
                             }
                           );
                           Log.logger.i('Changelog: ${jsonDecode(data.body)["body"]}');
@@ -1355,7 +1354,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                         BetterFeedback.of(context).showAndUploadToGitHub(
                                           username: 'jtull1076',
                                           repository: 'weightechapp',
-                                          authToken:  FirebaseInfo.githubToken,
+                                          authToken:  FirebaseUtils.githubToken,
                                           labels: ['feedback'],
                                           assignees: ['jtull1076'],
                                           imageId: id,
@@ -2100,11 +2099,12 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                         itemBuilder:(context, index) {
 
                                           bool isFromCloud = false;
+                                          bool isDownloading = false;
 
                                           final image = _imageFiles[index];
                                           String imageText = '';
                                           if (isURL(_imagePaths[index])) {
-                                            final ref = FirebaseInfo.storage.refFromURL(_imagePaths[index]);
+                                            final ref = FirebaseUtils.storage.refFromURL(_imagePaths[index]);
                                             imageText = ref.name;
                                             isFromCloud = true;
                                           }
@@ -2136,11 +2136,61 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                                             child: Row(
                                                               children: [
                                                                 Expanded(child: Text(imageText, overflow: TextOverflow.ellipsis)),
-                                                                if (isFromCloud) const SizedBox(width: 7),
-                                                                if (isFromCloud) const Icon(Icons.cloud_outlined, color: Color(0xFFA9A9AA), size: 12.0)
+                                                                // if (isFromCloud) const SizedBox(width: 1),
+                                                                // if (isFromCloud) const Icon(Icons.cloud_outlined, color: Color(0xFFA9A9AA), size: 12.0)
                                                               ]
                                                             )
                                                           ),
+                                                          const SizedBox(width: 10),
+                                                          (isFromCloud) ?
+                                                            StatefulBuilder(
+                                                              builder: (context, setState) {
+                                                                return Row(
+                                                                  children: [
+                                                                    IconButton(
+                                                                      style: const ButtonStyle(
+                                                                        minimumSize: MaterialStatePropertyAll<Size>(Size(25,25)),
+                                                                        fixedSize: MaterialStatePropertyAll<Size>(Size(25,25))
+                                                                      ),
+                                                                      padding: EdgeInsets.zero,
+                                                                      icon: isDownloading ? 
+                                                                        LoadingAnimationWidget.bouncingBall(color: const Color(0xFFA9A9AA), size: 15) 
+                                                                        : const Icon(Icons.cloud_download_outlined),
+                                                                      color: const Color(0xFFA9A9AA),
+                                                                      hoverColor: const Color(0xFFD9D9DD),
+                                                                      iconSize: 18,
+                                                                      onPressed: () async {
+                                                                        setState(() => isDownloading = true);
+                                                                        _imageFiles[index].setLastModified(DateTime.now());
+                                                                        await FileSaver.instance.saveFile(name: imageText, file: _imageFiles[index]);
+                                                                        await getDownloadsDirectory().then((dir) async {
+                                                                          if (dir != null) {
+                                                                            launchUrl(dir.uri);
+                                                                          }
+                                                                        });
+                                                                        setState(() => isDownloading = false);
+                                                                      }
+                                                                    ),
+                                                                  ]
+                                                                );
+                                                              }
+                                                            )
+                                                          : IconButton(
+                                                              style: const ButtonStyle(
+                                                                minimumSize: MaterialStatePropertyAll<Size>(Size(25,25)),
+                                                                fixedSize: MaterialStatePropertyAll<Size>(Size(25,25))
+                                                              ),
+                                                              padding: EdgeInsets.zero,
+                                                              icon: const Icon(Icons.computer),
+                                                              color: const Color(0xFFA9A9AA),
+                                                              hoverColor: const Color(0xFFD9D9DD),
+                                                              iconSize: 16,
+                                                              onPressed: () async {
+                                                                final dir = p.dirname(_imagePaths[index]);
+                                                                final uri = Uri.parse(dir);
+                                                                launchUrl(uri);
+                                                              }
+                                                            ),
                                                           const SizedBox(width: 10),
                                                           IconButton(
                                                             style: const ButtonStyle(
