@@ -2392,6 +2392,17 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                       }
                       else if (product != null) {
                         if (product.parentId != _selectedCategory.id) {
+
+                          // THIS SHOULD BE CHANGED TO MULTIPLE SUBFUNCTIONS IN eProduct, eCategory, Product, AND ProductCategory
+                          
+                          //ECategory parent = details.data.getParent(root: EItem.all)!;
+                          // parent.editorItems.remove(product);
+                          // parent.category.catalogItems.remove((details.data as EProduct).product);
+                  
+                          //product.rank = _selectedCategory.rank + 1;
+                          //product.parentId = _selectedCategory.id;
+                          //_selectedCategory.add(product);
+                          
                           product.getParent(root: _editorAll)?.editorItems.remove(product);
                           product.parentId = _selectedCategory.id;
                           _selectedCategory.addItem(product);
