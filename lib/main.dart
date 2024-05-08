@@ -2445,19 +2445,17 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                       else if (product != null) {
                         if (product.parentId != _selectedCategory.id) {
 
-                          // THIS SHOULD BE CHANGED TO MULTIPLE SUBFUNCTIONS IN eProduct, eCategory, Product, AND ProductCategory
+                          // TODO: THIS SHOULD BE CHANGED TO MULTIPLE SUBFUNCTIONS IN eProduct, eCategory, Product, AND ProductCategory
                           
-                          //ECategory parent = details.data.getParent(root: EItem.all)!;
-                          // parent.editorItems.remove(product);
-                          // parent.category.catalogItems.remove((details.data as EProduct).product);
+                          ECategory parent = product.getParent(root: EItem.all)!;
+                          parent.editorItems.remove(product);
+                          parent.category.catalogItems.remove(product.product);
                   
-                          //product.rank = _selectedCategory.rank + 1;
-                          //product.parentId = _selectedCategory.id;
-                          //_selectedCategory.add(product);
-                          
-                          product.getParent(root: _editorAll)?.editorItems.remove(product);
+                          product.rank = _selectedCategory.rank + 1;
                           product.parentId = _selectedCategory.id;
-                          _selectedCategory.addItem(product);
+                          product.product.parentId = _selectedCategory.id;
+                          _selectedCategory.editorItems.add(product);
+                          _selectedCategory.category.catalogItems.add(product.product);
                         }
                         product.product.name = _nameController.text;
                         product.product.modelNumber = _modelNumberController.text;
@@ -2466,7 +2464,6 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                         product.imagePaths = List.from(_imagePaths);
                         product.imageFiles = List.from(_imageFiles);
                         product.primaryImageIndex = _primaryImageIndex;
-                        product.rank = _selectedCategory.rank+1;
                       }
                       setState(() {
                         _addingItem = false;
@@ -2813,7 +2810,9 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                       if (category.parentId != _selectedCategory.id) {
                         category.getParent(root: _editorAll)?.editorItems.remove(category);
                         category.parentId = _selectedCategory.id;
+                        category.category.parentId = _selectedCategory.id;
                         _selectedCategory.addItem(category);
+                        _selectedCategory.category.catalogItems.add(category.category);
                       }
                       category.category.name = _nameController.text;
                       category.imagePath = _imagePaths.isNotEmpty ? _imagePaths[0] : null;

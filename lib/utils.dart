@@ -117,11 +117,11 @@ class FirebaseUtils {
   }
 
   static Future<void> postCatalogToFirestore(Map<String, dynamic> json) async {
-    await database.collection("catalog").add(json).then((DocumentReference doc) => Log.logger.t('Firestore DocumentSnapshot added with ID: ${doc.id}'));
+    await database.collection("devCatalog").add(json).then((DocumentReference doc) => Log.logger.t('Firestore DocumentSnapshot added with ID: ${doc.id}'));
   }
 
   static Future<Map<String,dynamic>> getCatalogFromFirestore() async {
-    return await database.collection("catalog").orderBy("timestamp", descending: true).limit(1).get().then((event) {
+    return await database.collection("devCatalog").orderBy("timestamp", descending: true).limit(1).get().then((event) {
       Log.logger.t('Firebase DocumentSnapshot retrieved with ID: ${event.docs[0].id}');
       return event.docs[0].data();
     });
