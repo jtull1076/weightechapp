@@ -162,46 +162,48 @@ class _StartupPageState extends State<StartupPage> with TickerProviderStateMixin
                 else if (snapshot.connectionState == ConnectionState.done) {
                   return Stack(
                     children: [
-                      UpdatWidget(
-                        currentVersion: AppInfo.packageInfo.version,
-                        getLatestVersion: () async {
-                          // Use Github latest endpoint
-                          final data = await http.get(
-                            Uri.parse(
-                            "https://api.github.com/repos/jtull1076/weightechapp/releases/latest"
-                            ),
-                            headers: {
-                              'Authorization': 'Bearer ${FirebaseUtils.githubToken}'
+                      Center(
+                        child: UpdatWidget(
+                          currentVersion: AppInfo.packageInfo.version,
+                          getLatestVersion: () async {
+                            // Use Github latest endpoint
+                            final data = await http.get(
+                              Uri.parse(
+                              "https://api.github.com/repos/jtull1076/weightechapp/releases/latest"
+                              ),
+                              headers: {
+                                'Authorization': 'Bearer ${FirebaseUtils.githubToken}'
+                              }
+                            );
+                            final latestVersion = jsonDecode(data.body)["tag_name"];
+                            final verCompare = AppInfo.versionCompare(latestVersion, AppInfo.packageInfo.version);
+                            Log.logger.t('Latest version: $latestVersion : This app version is ${(verCompare == 0) ? "up-to-date." : (verCompare == 1) ? "deprecated." : "in development."}');
+                            return latestVersion;
+                          },
+                          getBinaryUrl: (version) async {
+                            return "https://github.com/jtull1076/weightechapp/releases/download/$version/weightechsales-windows-$version.exe";
+                          },
+                          appName: "WeighTech Inc. Sales",
+                          getChangelog: (_, __) async {
+                            final data = await http.get(
+                              Uri.parse(
+                              "https://api.github.com/repos/jtull1076/weightechapp/releases/latest"
+                              ),
+                              headers: {
+                                'Authorization': 'Bearer ${FirebaseUtils.githubToken}'
+                              }
+                            );
+                            Log.logger.i('Changelog: ${jsonDecode(data.body)["body"]}');
+                            return jsonDecode(data.body)["body"];
+                          },
+                          callback: (status) {
+                            if (status == UpdatStatus.upToDate) {
+                              WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+                                Navigator.of(context).pushReplacement(PageRouteBuilder(pageBuilder: (BuildContext context, _, __) => const IdlePage()));
+                              });
                             }
-                          );
-                          final latestVersion = jsonDecode(data.body)["tag_name"];
-                          final verCompare = AppInfo.versionCompare(latestVersion, AppInfo.packageInfo.version);
-                          Log.logger.t('Latest version: $latestVersion : This app version is ${(verCompare == 0) ? "up-to-date." : (verCompare == 1) ? "deprecated." : "in development."}');
-                          return latestVersion;
-                        },
-                        getBinaryUrl: (version) async {
-                          return "https://github.com/jtull1076/weightechapp/releases/download/$version/weightechsales-windows-$version.exe";
-                        },
-                        appName: "WeighTech Inc. Sales",
-                        getChangelog: (_, __) async {
-                          final data = await http.get(
-                            Uri.parse(
-                            "https://api.github.com/repos/jtull1076/weightechapp/releases/latest"
-                            ),
-                            headers: {
-                              'Authorization': 'Bearer ${FirebaseUtils.githubToken}'
-                            }
-                          );
-                          Log.logger.i('Changelog: ${jsonDecode(data.body)["body"]}');
-                          return jsonDecode(data.body)["body"];
-                        },
-                        callback: (status) {
-                          if (status == UpdatStatus.upToDate) {
-                            WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-                              Navigator.of(context).pushReplacement(PageRouteBuilder(pageBuilder: (BuildContext context, _, __) => const IdlePage()));
-                            });
                           }
-                        }
+                        )
                       ),
                       const Center(child: Text("...Checking for updates..."))
                     ]

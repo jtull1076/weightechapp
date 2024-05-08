@@ -545,12 +545,12 @@ sealed class EItem {
           case EProduct _: {
             if (item.imagePaths != null) {
 
-              if (item.product.productImageUrls != null) {
-                await Future.wait([
-                  for (var url in item.product.productImageUrls!)
-                    FirebaseUtils.storage.refFromURL(url).delete(),
-                ]);
-              }
+              // if (item.product.productImageUrls != null) {
+              //   await Future.wait([
+              //     for (var url in item.product.productImageUrls!)
+              //       FirebaseUtils.storage.refFromURL(url).delete(),
+              //   ]);
+              // }
 
               item.product.productImageUrls = [];
 
