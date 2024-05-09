@@ -468,7 +468,7 @@ class Product extends CatalogItem {
 
 
   void storeListOfImages(List<File> imageFiles){
-    final storageRef = FirebaseUtils.storage.ref("devImages");
+    final storageRef = FirebaseUtils.storage.ref("images");
     for ( int i=0 ; i < imageFiles.length ; i++ ) {
       final imageRef = storageRef.child("${id}_$i");
       try {
