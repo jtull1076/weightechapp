@@ -42,11 +42,11 @@ Future<void> main() async {
 
 
   await Log().init();
-  Log.logger.i("...Logger initialized...");
+  Log.logger.t("...Logger initialized...");
 
-  Log.logger.i("...Getting app info...");
+  Log.logger.t("...Getting app info...");
   await AppInfo().init();
-  Log.logger.t('Version: ${AppInfo.packageInfo.version}, Build: ${AppInfo.packageInfo.buildNumber}');
+  Log.logger.i('Version: ${AppInfo.packageInfo.version}, Build: ${AppInfo.packageInfo.buildNumber}');
 
   runApp(
     BetterFeedback(
@@ -108,21 +108,21 @@ class _StartupPageState extends State<StartupPage> with TickerProviderStateMixin
 
   Future<void> _runStartupTasks() async { 
 
-    Log.logger.i('...Clearing existing cache');
+    Log.logger.t('...Clearing existing cache');
     _progressStreamController.add('...Clearing cache...');
     await DefaultCacheManager().emptyCache();
 
-    Log.logger.i('...Initializing Firebase...');
+    Log.logger.t('...Initializing Firebase...');
     _progressStreamController.add('...Initializing Firebase...');
     await FirebaseUtils().init();
     await Future.delayed(const Duration(seconds: 1));
 
-    Log.logger.i('...Initializing Product Manager...');
+    Log.logger.t('...Initializing Product Manager...');
     _progressStreamController.add('...Initializing Product Manager...');
     await ProductManager.create();
     await Future.delayed(const Duration(seconds: 1));
 
-    Log.logger.i('...App Startup...');
+    Log.logger.t('...App Startup...');
     _progressStreamController.add('...App Startup...');
     await Future.delayed(const Duration(seconds: 1));
 
@@ -177,7 +177,7 @@ class _StartupPageState extends State<StartupPage> with TickerProviderStateMixin
                             );
                             final latestVersion = jsonDecode(data.body)["tag_name"];
                             final verCompare = AppInfo.versionCompare(latestVersion, AppInfo.packageInfo.version);
-                            Log.logger.t('Latest version: $latestVersion : This app version is ${(verCompare == 0) ? "up-to-date." : (verCompare == 1) ? "deprecated." : "in development."}');
+                            Log.logger.i('Latest version: $latestVersion : This app version is ${(verCompare == 0) ? "up-to-date." : (verCompare == 1) ? "deprecated." : "in development."}');
                             return latestVersion;
                           },
                           getBinaryUrl: (version) async {
@@ -193,7 +193,7 @@ class _StartupPageState extends State<StartupPage> with TickerProviderStateMixin
                                 'Authorization': 'Bearer ${FirebaseUtils.githubToken}'
                               }
                             );
-                            Log.logger.i('Changelog: ${jsonDecode(data.body)["body"]}');
+                            Log.logger.t('Changelog: ${jsonDecode(data.body)["body"]}');
                             return jsonDecode(data.body)["body"];
                           },
                           callback: (status) {
@@ -334,7 +334,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     _timer = Timer(const Duration(minutes: 10), () {
       if (mounted){
         Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => IdlePage()));
-        Log.logger.i("--Idle Timeout--");
+        Log.logger.t("--Idle Timeout--");
       }
     });
   }
@@ -348,7 +348,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   void catalogNavigation(BuildContext context, dynamic item){
     if (item is ProductCategory) {
-      Log.logger.i('...Rerouting to ${item.name} listing...');
+      Log.logger.t('...Rerouting to ${item.name} listing...');
       _timer.cancel();
       Navigator.push(context, 
         PageRouteBuilder(
@@ -366,7 +366,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       );
     }
     else if (item is Product) {
-      Log.logger.i('...Rerouting to ${item.name} product page...');
+      Log.logger.t('...Rerouting to ${item.name} product page...');
       _timer.cancel();
       Navigator.push(context, 
         PageRouteBuilder(
@@ -445,7 +445,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   children: [
                     GestureDetector(
                       onDoubleTap: (){
-                        Log.logger.i('---Return to Idle Interaction---');
+                        Log.logger.t('---Return to Idle Interaction---');
                         Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const IdlePage()));
                       },
                       child: Padding(padding: const EdgeInsets.only(top: 10.0), child: Hero(tag: 'main-logo', child: Image.asset('assets/weightech_logo_beta.png', height: 100, alignment: Alignment.center,))),
@@ -500,7 +500,7 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
     _timer = Timer(const Duration(minutes: 10), () {
       if (mounted){
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const IdlePage()));
-        Log.logger.i("--Idle Timeout--");
+        Log.logger.t("--Idle Timeout--");
       }
     });
 
@@ -533,7 +533,7 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                     child: 
                       GestureDetector(
                         onDoubleTap: (){
-                          Log.logger.i('---Return to Idle Interaction---');
+                          Log.logger.t('---Return to Idle Interaction---');
                           _timer.cancel();
                           Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const IdlePage()));
                         },
@@ -979,7 +979,7 @@ class _ListingPageState extends State<ListingPage> with TickerProviderStateMixin
 
   void catalogNavigation(BuildContext context, dynamic item){
     if (item is ProductCategory) {
-      Log.logger.i('...Rerouting to ${item.name} listing...');
+      Log.logger.t('...Rerouting to ${item.name} listing...');
       _timer.cancel();
       Navigator.push(context, 
         PageRouteBuilder(
@@ -997,7 +997,7 @@ class _ListingPageState extends State<ListingPage> with TickerProviderStateMixin
       );
     }
     else if (item is Product) {
-      Log.logger.i('Rerouting to ${item.name} product page.');
+      Log.logger.t('Rerouting to ${item.name} product page.');
       _timer.cancel();
       Navigator.push(context, 
         PageRouteBuilder(
@@ -1027,7 +1027,7 @@ class _ListingPageState extends State<ListingPage> with TickerProviderStateMixin
     _timer = Timer(const Duration(minutes: 10), () {
       if (mounted){
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const IdlePage()));
-        Log.logger.i("--Idle Timeout--");
+        Log.logger.t("--Idle Timeout--");
       }
     });
 
@@ -1113,7 +1113,7 @@ class _ListingPageState extends State<ListingPage> with TickerProviderStateMixin
                               child: 
                                 GestureDetector(
                                   onDoubleTap: (){
-                                    Log.logger.i('---Return to Idle Interaction---');
+                                    Log.logger.t('---Return to Idle Interaction---');
                                     Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const IdlePage()));
                                   },
                                   child: Padding(
@@ -1305,7 +1305,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
         hoverColor: const Color(0xFF224190),
         label: const Text("Save & Exit"),
         onPressed: () async {
-          Log.logger.i("...Saving product catalog...");
+          Log.logger.t("...Saving product catalog...");
           setState(() {
             _ignoringPointer = true;
           });
@@ -1630,16 +1630,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                                 onAcceptWithDetails: (details) async {
                                                   bool confirm = await _showAlertDialog(context, details.data);
                                                   if (confirm) {
-                                                    ECategory parent = details.data.getParent(root: _editorAll)!;
-                                                    parent.editorItems.remove(details.data);
-                                                    switch (details.data) {
-                                                      case ECategory _ : {
-                                                        parent.category.catalogItems.remove((details.data as ECategory).category);
-                                                      }
-                                                      case EProduct _ : {
-                                                        parent.category.catalogItems.remove((details.data as EProduct).product);
-                                                      }
-                                                    }
+                                                    details.data.removeFromParent();
                                                     setState(() => _focusItem = null);
                                                   }
                                                 },
@@ -1910,23 +1901,23 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                       onDragDone: (detail) {
                                         List<String> paths = [];
 
-                                        Log.logger.i("...Image drop-upload encounter...");
+                                        Log.logger.t("...Image drop-upload encounter...");
                                         for (var file in detail.files) {
                                           if (_imagePaths.contains(file.path)) {
-                                            Log.logger.i("-> Image already assigned to item.");
+                                            Log.logger.t("-> Image already assigned to item.");
                                             continue;
                                           }
                                           String extension = file.path.substring(file.path.length - 4);
                                           if (extension == ".jpg" || extension == ".png") {
-                                            Log.logger.i("-> Image added to paths: ${file.path}");
+                                            Log.logger.t("-> Image added to paths: ${file.path}");
                                             paths.add(file.path);
                                           }
                                           else if (file.path.substring(file.path.length - 5) == ".jpeg") {
-                                            Log.logger.i("-> Image added to paths: ${file.path}");
+                                            Log.logger.t("-> Image added to paths: ${file.path}");
                                             paths.add(file.path);
                                           }
                                           else {
-                                            Log.logger.i("-> Invalid file type: File type $extension not supported.");
+                                            Log.logger.t("-> Invalid file type: File type $extension not supported.");
                                           }
                                         }
 
@@ -1989,20 +1980,20 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
 
                                                                 for (var path in result.paths) {
                                                                   if (_imagePaths.contains(path)) {
-                                                                    Log.logger.i("Image already assigned to item.");
+                                                                    Log.logger.t("Image already assigned to item.");
                                                                     continue;
                                                                   }
                                                                   String extension = path!.substring(path.length - 4);
                                                                   if (extension == ".jpg" || extension == ".png") {
-                                                                    Log.logger.i("Image added to paths: $path");
+                                                                    Log.logger.t("Image added to paths: $path");
                                                                     paths.add(path);
                                                                   }
                                                                   else if (path.substring(path.length - 5) == ".jpeg") {
-                                                                    Log.logger.i("Image added to paths: $path");
+                                                                    Log.logger.t("Image added to paths: $path");
                                                                     paths.add(path);
                                                                   }
                                                                   else {
-                                                                    Log.logger.i("Invalid file type: File type $extension not supported.");
+                                                                    Log.logger.t("Invalid file type: File type $extension not supported.");
                                                                   }
                                                                 }
 
@@ -2014,7 +2005,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                                                 });
                                                               }
                                                               else {
-                                                                Log.logger.i("-> File upload aborted/failed.");
+                                                                Log.logger.t("-> File upload aborted/failed.");
                                                               }
                                                             });
                                                       },
@@ -2043,7 +2034,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                                       foregroundColor: MaterialStatePropertyAll<Color>(Colors.black)
                                                     ),                 
                                                     onPressed: () async {
-                                                      Log.logger.i("...Image upload encountered...");
+                                                      Log.logger.t("...Image upload encountered...");
                                                       FilePickerResult? _ = 
                                                         await FilePicker.platform.
                                                           pickFiles(allowMultiple: true, type: FileType.image, allowedExtensions: ['png', 'jpg'])
@@ -2053,20 +2044,20 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
 
                                                               for (var path in result.paths) {
                                                                 if (_imagePaths.contains(path)) {
-                                                                  Log.logger.i("-> Image already assigned to item.");
+                                                                  Log.logger.t("-> Image already assigned to item.");
                                                                   continue;
                                                                 }
                                                                 String extension = path!.substring(path.length - 4);
                                                                 if (extension == ".jpg" || extension == ".png") {
-                                                                  Log.logger.i("-> Image added to paths: $path");
+                                                                  Log.logger.t("-> Image added to paths: $path");
                                                                   paths.add(path);
                                                                 }
                                                                 else if (path.substring(path.length - 5) == ".jpeg") {
-                                                                  Log.logger.i("-> Image added to paths: $path");
+                                                                  Log.logger.t("-> Image added to paths: $path");
                                                                   paths.add(path);
                                                                 }
                                                                 else {
-                                                                  Log.logger.i("-> Invalid file type: File type $extension not supported.");
+                                                                  Log.logger.t("-> Invalid file type: File type $extension not supported.");
                                                                 }
                                                               }
 
@@ -2078,7 +2069,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                                               });
                                                             }
                                                             else {
-                                                              Log.logger.i("-> File upload aborted/failed.");
+                                                              Log.logger.t("-> File upload aborted/failed.");
                                                             }
                                                           });
                                                     },
@@ -2444,18 +2435,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                       }
                       else if (product != null) {
                         if (product.parentId != _selectedCategory.id) {
-
-                          // TODO: THIS SHOULD BE CHANGED TO MULTIPLE SUBFUNCTIONS IN eProduct, eCategory, Product, AND ProductCategory
-                          
-                          ECategory parent = product.getParent(root: EItem.all)!;
-                          parent.editorItems.remove(product);
-                          parent.category.catalogItems.remove(product.product);
-                  
-                          product.rank = _selectedCategory.rank + 1;
-                          product.parentId = _selectedCategory.id;
-                          product.product.parentId = _selectedCategory.id;
-                          _selectedCategory.editorItems.add(product);
-                          _selectedCategory.category.catalogItems.add(product.product);
+                          product.reassignParent(newParent: _selectedCategory);
                         }
                         product.product.name = _nameController.text;
                         product.product.modelNumber = _modelNumberController.text;
@@ -2560,20 +2540,20 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
 
                                         for (var file in detail.files) {
                                           if (_imagePaths.contains(file.path)) {
-                                            Log.logger.i("Image already assigned to item.");
+                                            Log.logger.t("Image already assigned to item.");
                                             continue;
                                           }
                                           String extension = file.path.substring(file.path.length - 4);
                                           if (extension == ".jpg" || extension == ".png") {
-                                            Log.logger.i("Image added to paths: ${file.path}");
+                                            Log.logger.t("Image added to paths: ${file.path}");
                                             paths.add(file.path);
                                           }
                                           else if (file.path.substring(file.path.length - 5) == ".jpeg") {
-                                            Log.logger.i("Image added to paths: ${file.path}");
+                                            Log.logger.t("Image added to paths: ${file.path}");
                                             paths.add(file.path);
                                           }
                                           else {
-                                            Log.logger.i("Invalid file type: File type $extension not supported.");
+                                            Log.logger.t("Invalid file type: File type $extension not supported.");
                                           }
                                         }
 
@@ -2636,20 +2616,20 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
 
                                                                 for (var path in result.paths) {
                                                                   if (_imagePaths.contains(path)) {
-                                                                    Log.logger.i("Image already assigned to item.");
+                                                                    Log.logger.t("Image already assigned to item.");
                                                                     continue;
                                                                   }
                                                                   String extension = path!.substring(path.length - 4);
                                                                   if (extension == ".jpg" || extension == ".png") {
-                                                                    Log.logger.i("Image added to paths: $path");
+                                                                    Log.logger.t("Image added to paths: $path");
                                                                     paths.add(path);
                                                                   }
                                                                   else if (path.substring(path.length - 5) == ".jpeg") {
-                                                                    Log.logger.i("Image added to paths: $path");
+                                                                    Log.logger.t("Image added to paths: $path");
                                                                     paths.add(path);
                                                                   }
                                                                   else {
-                                                                    Log.logger.i("Invalid file type: File type $extension not supported.");
+                                                                    Log.logger.t("Invalid file type: File type $extension not supported.");
                                                                   }
                                                                 }
 
@@ -2661,7 +2641,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                                                 });
                                                               }
                                                               else {
-                                                                Log.logger.i("File upload aborted/failed.");
+                                                                Log.logger.t("File upload aborted/failed.");
                                                               }
                                                             });
                                                       },
@@ -2742,20 +2722,20 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
 
                                                                     for (var path in result.paths) {
                                                                       if (_imagePaths.contains(path)) {
-                                                                        Log.logger.i("Image already assigned to item.");
+                                                                        Log.logger.t("Image already assigned to item.");
                                                                         continue;
                                                                       }
                                                                       String extension = path!.substring(path.length - 4);
                                                                       if (extension == ".jpg" || extension == ".png") {
-                                                                        Log.logger.i("Image added to paths: $path");
+                                                                        Log.logger.t("Image added to paths: $path");
                                                                         paths.add(path);
                                                                       }
                                                                       else if (path.substring(path.length - 5) == ".jpeg") {
-                                                                        Log.logger.i("Image added to paths: $path");
+                                                                        Log.logger.t("Image added to paths: $path");
                                                                         paths.add(path);
                                                                       }
                                                                       else {
-                                                                        Log.logger.i("Invalid file type: File type $extension not supported.");
+                                                                        Log.logger.t("Invalid file type: File type $extension not supported.");
                                                                       }
                                                                     }
 
@@ -2767,7 +2747,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                                                     });
                                                                   }
                                                                   else {
-                                                                    Log.logger.i("File upload aborted/failed.");
+                                                                    Log.logger.t("File upload aborted/failed.");
                                                                   }
                                                                 });
                                                           },
@@ -2803,16 +2783,12 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                         name: _nameController.text,
                         parentId: _selectedCategory.id,
                       );
-                      ECategory newEProduct = ECategory(category: newCategory, rank: _selectedCategory.rank+1, editorItems: [], imagePath: _imagePaths.isNotEmpty ? _imagePaths[0] : null);
-                      _selectedCategory.addItem(newEProduct);
+                      ECategory newECategory = ECategory(category: newCategory, rank: _selectedCategory.rank+1, editorItems: [], imagePath: _imagePaths.isNotEmpty ? _imagePaths[0] : null);
+                      _selectedCategory.addItem(newECategory);
                     }
                     else if (category != null) {
                       if (category.parentId != _selectedCategory.id) {
-                        category.getParent(root: _editorAll)?.editorItems.remove(category);
-                        category.parentId = _selectedCategory.id;
-                        category.category.parentId = _selectedCategory.id;
-                        _selectedCategory.addItem(category);
-                        _selectedCategory.category.catalogItems.add(category.category);
+                        category.reassignParent(newParent: _selectedCategory);
                       }
                       category.category.name = _nameController.text;
                       category.imagePath = _imagePaths.isNotEmpty ? _imagePaths[0] : null;

@@ -93,7 +93,7 @@ class FirebaseUtils {
     try {
       userCredential =
           await FirebaseAuth.instance.signInAnonymously();
-      Log.logger.i("-> Signed in with temporary account.");
+      Log.logger.t("-> Signed in with temporary account.");
     } on FirebaseAuthException catch (error, stackTrace) {
       switch (error.code) {
         case "operation-not-allowed":
@@ -104,25 +104,25 @@ class FirebaseUtils {
       }
     }
 
-    Log.logger.i("-> Setting up Firestore Database...");
+    Log.logger.t("-> Setting up Firestore Database...");
     database = FirebaseFirestore.instanceFor(app: firebaseApp);
 
-    Log.logger.i("-> Setting up Firebase Storage...");
+    Log.logger.t("-> Setting up Firebase Storage...");
     storage = FirebaseStorage.instanceFor(app: firebaseApp, bucket: 'gs://weightechapp.appspot.com');
     
-    Log.logger.i("-> Getting access tokens...");
+    Log.logger.t("-> Getting access tokens...");
     await database.collection("tokens").doc("github").get().then((DocumentSnapshot doc) {
       githubToken = (doc.data() as Map<String, dynamic>)['access_token']!;
     });
   }
 
   static Future<void> postCatalogToFirestore(Map<String, dynamic> json) async {
-    await database.collection("catalog").add(json).then((DocumentReference doc) => Log.logger.t('Firestore DocumentSnapshot added with ID: ${doc.id}'));
+    await database.collection("catalog").add(json).then((DocumentReference doc) => Log.logger.i('Firestore DocumentSnapshot added with ID: ${doc.id}'));
   }
 
   static Future<Map<String,dynamic>> getCatalogFromFirestore() async {
     return await database.collection("catalog").orderBy("timestamp", descending: true).limit(1).get().then((event) {
-      Log.logger.t('Firebase DocumentSnapshot retrieved with ID: ${event.docs[0].id}');
+      Log.logger.i('Firebase DocumentSnapshot retrieved with ID: ${event.docs[0].id}');
       return event.docs[0].data();
     });
   }
@@ -136,7 +136,7 @@ class FirebaseUtils {
 
       imageRef.writeToFile(file);
 
-      Log.logger.i("Downloaded image at $url to ${downloadsDirectory.path}");
+      Log.logger.t("Downloaded image at $url to ${downloadsDirectory.path}");
     }
     catch (e, stackTrace) {
       Log.logger.e("Failed to download file at $url.", error: e, stackTrace: stackTrace);

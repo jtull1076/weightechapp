@@ -150,7 +150,7 @@ sealed class CatalogItem {
                 color: Colors.transparent,
                 child: InkWell(
                   onTap: () {
-                    Log.logger.i('Item tapped: $name');
+                    Log.logger.t('Item tapped: $name');
                     onTapCallback();
                   }
                 )
@@ -187,7 +187,7 @@ sealed class CatalogItem {
     if (parentId != null) {
       return ProductManager.getItemById(parentId!) as ProductCategory;
     }
-    Log.logger.i("Parent doesn't exist");
+    Log.logger.t("Parent doesn't exist");
     return null;
   }
 
@@ -197,7 +197,7 @@ sealed class CatalogItem {
     try {
       categoryImageRef.putFile(imageFile);
     } on FirebaseException catch (e) {
-      Log.logger.i("Failed to add ${id}_0 to Firebase. Error code: ${e.code}");
+      Log.logger.t("Failed to add ${id}_0 to Firebase. Error code: ${e.code}");
     }
   }
 }
@@ -265,13 +265,13 @@ class ProductCategory extends CatalogItem {
   void addProductByParentId(Product newProduct) {
     if (id == newProduct.parentId) {
       addProduct(newProduct);
-      Log.logger.i('${newProduct.name} (id: ${newProduct.id}) added to $name (id: $id)');
+      Log.logger.t('${newProduct.name} (id: ${newProduct.id}) added to $name (id: $id)');
       return;
     }
     for (var item in catalogItems) {
       if (item is ProductCategory && item.id == newProduct.parentId) {
         item.addProduct(newProduct);
-        Log.logger.i('${newProduct.name} (id: ${newProduct.id}) added to ${item.name} (id: ${item.id})');
+        Log.logger.t('${newProduct.name} (id: ${newProduct.id}) added to ${item.name} (id: ${item.id})');
         return;
       }
     }
@@ -281,7 +281,7 @@ class ProductCategory extends CatalogItem {
         item.addProductByParentId(newProduct); // Recursively search in subcategories
       }
     }
-    Log.logger.i('Parent category with ID ${newProduct.parentId} not found in category $name (id: $id).');
+    Log.logger.t('Parent category with ID ${newProduct.parentId} not found in category $name (id: $id).');
   }
 
   
@@ -293,10 +293,10 @@ class ProductCategory extends CatalogItem {
   }
 
   factory ProductCategory.fromJson(Map<String, dynamic> json) {
-    // Log.logger.i("Converting the following JSON to a ProductCategory. Here's the JSON:");
-    // Log.logger.i("------");
-    // Log.logger.i((const JsonEncoder.withIndent('   ')).convert(json));
-    // Log.logger.i("------");
+    // Log.logger.t("Converting the following JSON to a ProductCategory. Here's the JSON:");
+    // Log.logger.t("------");
+    // Log.logger.t((const JsonEncoder.withIndent('   ')).convert(json));
+    // Log.logger.t("------");
     return ProductCategory(
       name: json['name'],
       id: json['id'],
@@ -335,7 +335,7 @@ class Product extends CatalogItem {
         try {
           super.imageProvider = CachedNetworkImageProvider(super.imageUrl!);
         } on HttpExceptionWithStatus catch (e) {
-          Log.logger.i("Failed to retrieve image at $imageUrl. Error: $e");
+          Log.logger.t("Failed to retrieve image at $imageUrl. Error: $e");
           super.imageUrl = null;
           super.imageProvider = Image.asset('assets/weightech_logo.png').image;
         }
@@ -345,7 +345,7 @@ class Product extends CatalogItem {
           CachedNetworkImageProvider newImageProvider = CachedNetworkImageProvider(url);
           productImageProviders.add(newImageProvider);
         } on HttpExceptionWithStatus catch (e) {
-          Log.logger.i("Failed to retrieve image at $imageUrl. Error: $e");
+          Log.logger.t("Failed to retrieve image at $imageUrl. Error: $e");
           productImageUrls!.remove(url);
         }
       }
@@ -474,7 +474,7 @@ class Product extends CatalogItem {
       try {
         imageRef.putFile(imageFiles[i]);
       } on FirebaseException catch (e) {
-        Log.logger.i("Failed to add ${id}_$i to Firebase. Error code: ${e.code}");
+        Log.logger.t("Failed to add ${id}_$i to Firebase. Error code: ${e.code}");
       }
     }
   }
@@ -518,7 +518,7 @@ sealed class EItem {
     await updateImages(editorCatalog);
     ProductManager.all = editorCatalog.category;
     await ProductManager.postCatalogToFirestore();
-    Log.logger.i("Catalog update completed.");
+    Log.logger.t("Catalog update completed.");
   }
 
   static Future<void> updateImages(ECategory editorCatalog) async {
@@ -533,7 +533,7 @@ sealed class EItem {
         await storageRef.child(refName).putFile(category.imageFile!, metadata).then((value) async {
           await storageRef.child(refName).getDownloadURL().then((value) {
             category.category.imageUrl = value;
-            Log.logger.i("Category image url updated.");
+            Log.logger.t("Category image url updated.");
           });
         });
       }
@@ -594,7 +594,7 @@ sealed class EItem {
     }
 
     await traverseItems(editorCatalog);
-    Log.logger.i("Images updated.");
+    Log.logger.t("Images updated.");
   }
 
   static EItem? getItemById({required root, required id}) {
@@ -657,7 +657,32 @@ sealed class EItem {
     return result;
   }
 
-  ECategory? getParent({required root});
+  ECategory? getParent({required root}) {
+    return getItemById(root: root, id: parentId) as ECategory;
+  }
+
+  void removeFromParent() {
+    final ECategory parent = getItemById(root: all, id: parentId) as ECategory;
+
+    parent.editorItems.remove(this);
+    parentId = null;
+
+    switch (this) {
+      case ECategory _ : {
+        parent.category.catalogItems.remove((this as ECategory).category);
+        Log.logger.i("Removed ${(this as ECategory).category.name} from ${parent.category.name}");
+      }
+      case EProduct _ : {
+        parent.category.catalogItems.remove((this as EProduct).product);
+        Log.logger.i("Removed ${(this as EProduct).product.name} from ${parent.category.name}");
+      }
+    }
+  }
+
+  void reassignParent({required ECategory newParent}) {
+    removeFromParent();
+    newParent.addItem(this);
+  }
 }
 
 class ECategory extends EItem {
@@ -787,10 +812,6 @@ class ECategory extends EItem {
     );
   }
 
-  @override
-  ECategory? getParent({required root}) {
-    return EItem.getItemById(root: root, id: parentId) as ECategory;
-  }
 
   List<ECategory> getSubCategories({List<ECategory>? categoriesToExclude}) {
     List<ECategory> subCategories = [];
@@ -821,12 +842,16 @@ class ECategory extends EItem {
     switch (item) {
       case ECategory _ :
         item.parentId = id;
+        item.rank = rank+1;
         editorItems.add(item);
         category.catalogItems.add(item.category);
+        Log.logger.i("Added ${item.category.name} to ${category.name}");
       case EProduct _ :
         item.parentId = id;
+        item.rank = rank+1;
         editorItems.add(item);
         category.catalogItems.add(item.product);
+        Log.logger.i("Added ${item.product.name} to ${category.name}");
     }
   }
 
@@ -939,11 +964,6 @@ class EProduct extends EItem {
           )
         )
     );
-  }
-
-  @override
-  ECategory? getParent({required root}) {
-    return EItem.getItemById(root: root, id: parentId) as ECategory;
   }
 
   Future<void> setImagePaths() async {
