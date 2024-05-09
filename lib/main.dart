@@ -97,12 +97,14 @@ class StartupPage extends StatefulWidget {
 class _StartupPageState extends State<StartupPage> with TickerProviderStateMixin {
   late String _startupTaskMessage;
   late StreamController<String> _progressStreamController;
+  late bool _updateReady;
 
   @override
   void initState() {
     super.initState();
     _startupTaskMessage = '';
     _progressStreamController = StreamController<String>();
+    _updateReady = false;
     _runStartupTasks();
   }
 
@@ -115,16 +117,13 @@ class _StartupPageState extends State<StartupPage> with TickerProviderStateMixin
     Log.logger.t('...Initializing Firebase...');
     _progressStreamController.add('...Initializing Firebase...');
     await FirebaseUtils().init();
-    await Future.delayed(const Duration(seconds: 1));
 
     Log.logger.t('...Initializing Product Manager...');
     _progressStreamController.add('...Initializing Product Manager...');
     await ProductManager.create();
-    await Future.delayed(const Duration(seconds: 1));
 
     Log.logger.t('...App Startup...');
     _progressStreamController.add('...App Startup...');
-    await Future.delayed(const Duration(seconds: 1));
 
     _progressStreamController.close();
   }
@@ -162,6 +161,7 @@ class _StartupPageState extends State<StartupPage> with TickerProviderStateMixin
                 else if (snapshot.connectionState == ConnectionState.done) {
                   return Stack(
                     children: [
+                      const Center(child: Text("...Checking for updates...")),
                       Center(
                         child: UpdatWidget(
                           currentVersion: AppInfo.packageInfo.version,
@@ -202,10 +202,12 @@ class _StartupPageState extends State<StartupPage> with TickerProviderStateMixin
                                 Navigator.of(context).pushReplacement(PageRouteBuilder(pageBuilder: (BuildContext context, _, __) => const IdlePage()));
                               });
                             }
+                            // else if (status == UpdatStatus.readyToInstall) {
+                            //   setState(() => _updateReady = true);
+                            // }
                           }
                         )
                       ),
-                      const Center(child: Text("...Checking for updates..."))
                     ]
                   );
                 }
