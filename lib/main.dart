@@ -831,7 +831,7 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                           itemBuilder: (BuildContext context, int itemIndex, int pageViewIndex) {
                             return ClipRRect(
                               borderRadius: BorderRadius.circular(30.0),
-                              child: Image(image: widget.product.productImageProviders[itemIndex], fit: BoxFit.fitWidth, width: double.infinity),
+                              child: Image(image: widget.product.productImageProviders[itemIndex],),
                             );
                           }
                         ),
