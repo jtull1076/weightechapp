@@ -3,8 +3,10 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+  bitsdojo_window_windows
   cloud_firestore
   desktop_drop
+  desktop_window
   file_saver
   file_selector_windows
   firebase_auth
