@@ -43,9 +43,9 @@ dependencies:
   firebase_auth: ^4.19.4
   file_saver: ^0.2.12
   fluent_ui: ^4.8.7
-  bitsdojo_window: ^0.1.6
   fluentui_system_icons: ^1.1.238
   desktop_window: ^0.4.0
+  window_manager: ^0.3.8
 
 dev_dependencies:
   flutter_test:

@@ -1,6 +1,6 @@
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:flutter/material.dart';
-import 'package:fluent_ui/fluent_ui.dart' as fluent;
+import 'package:flutter/material.dart' show Card, TextCapitalization, Material, InkWell;
+import 'package:fluent_ui/fluent_ui.dart' hide Card;
 import 'package:path_provider/path_provider.dart';
 import 'package:shortid/shortid.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -14,6 +14,7 @@ import 'package:path/path.dart' as path_handler;
 import 'dart:math' as math;
 import 'package:string_validator/string_validator.dart';
 import 'package:weightechapp/utils.dart';
+import 'package:weightechapp/themes.dart';
 
 
 
@@ -498,18 +499,15 @@ class BrochureHeader implements BrochureItem {
     return ListTile(
       leading: const Padding(
         padding: EdgeInsets.only(top: 15),
-        child: Icon(Icons.drag_handle, size: 30), 
+        child: Icon(FluentIcons.drag_object, size: 30), 
       ),
-      title: TextFormField(
+      title: TextFormBox(
         controller: controller, 
         maxLines: null,
         onChanged: (value) {
           header = value;
         },
-        decoration: 
-          const InputDecoration(
-            label: Text("Header")
-          ),
+        placeholder: "Header",
         validator: (String? value) => (value == null) ? 'Cannot be empty.' : null,
         textCapitalization: TextCapitalization.words,
         style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -533,18 +531,15 @@ class BrochureSubheader implements BrochureItem {
       child: ListTile(
         leading: const Padding(
           padding: EdgeInsets.only(top: 15),
-          child: Icon(Icons.drag_handle, size: 30), 
+          child: Icon(FluentIcons.drag_object, size: 30), 
         ),
-        title: TextFormField(
+        title: TextFormBox(
           controller: controller, 
           maxLines: null,
           onChanged: (value) {
             subheader = value;
           },
-          decoration: 
-            const InputDecoration(
-              label: Text("Subheader")
-            ),
+          placeholder: "Subheader",
           validator: (String? value) => (value == null) ? 'Cannot be empty.' : null,
           textCapitalization: TextCapitalization.words, 
           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold,)
@@ -570,18 +565,15 @@ class BrochureEntry implements BrochureItem {
         ListTile(
           leading: const Padding(
             padding: EdgeInsets.only(top: 15),
-            child: Icon(Icons.drag_handle, size: 30), 
+            child: Icon(FluentIcons.drag_object, size: 30), 
           ),
-          title: TextFormField(
+          title: TextFormBox(
             controller: controller,
             maxLines: null,
             onChanged: (value) {
               entry = value;
             },
-            decoration: 
-              const InputDecoration(
-                label: Text("Entry")
-              ),
+            placeholder: "Entry",
             validator: (String? value) => (value == null) ? 'Cannot be empty.' : null,
           )
         )

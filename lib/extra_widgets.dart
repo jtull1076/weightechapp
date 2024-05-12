@@ -3,7 +3,6 @@ import 'package:feedback/feedback.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'dart:async';
-import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart' as fluent_icons;
 

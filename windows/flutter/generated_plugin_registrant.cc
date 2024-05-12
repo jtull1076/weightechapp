@@ -6,7 +6,6 @@
 
 #include "generated_plugin_registrant.h"
 
-#include <bitsdojo_window_windows/bitsdojo_window_plugin.h>
 #include <cloud_firestore/cloud_firestore_plugin_c_api.h>
 #include <desktop_drop/desktop_drop_plugin.h>
 #include <desktop_window/desktop_window_plugin.h>
@@ -20,8 +19,6 @@
 #include <window_manager/window_manager_plugin.h>
 
 void RegisterPlugins(flutter::PluginRegistry* registry) {
-  BitsdojoWindowPluginRegisterWithRegistrar(
-      registry->GetRegistrarForPlugin("BitsdojoWindowPlugin"));
   CloudFirestorePluginCApiRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("CloudFirestorePluginCApi"));
   DesktopDropPluginRegisterWithRegistrar(
