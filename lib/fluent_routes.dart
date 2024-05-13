@@ -29,6 +29,7 @@ import 'package:string_validator/string_validator.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:file_saver/file_saver.dart';
+import 'package:animated_reorderable_list/animated_reorderable_list.dart';
 
 
 class StartupPage extends StatefulWidget {
@@ -233,7 +234,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
     _catalogCopy = CatalogItem.fromJson(ProductManager.all!.toJson()) as ProductCategory;
 
     _editorAll = EItem.createEditorCatalog(ProductManager.all!);
-    _editorAll.showChildren = true;
+    _editorAll.expanded = true;
     
     _itemsToDisplay = _editorAll.editorItems;
     _selectedCategory = _editorAll;
@@ -255,10 +256,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
     toggleEditorItem(_focusItem);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      //Future.delayed(const Duration(seconds: 5), () =>
-      _animationController.forward().whenComplete(() {
-         setState(() => _ignoringPointer = false);
-      });
+      setState(() => _ignoringPointer = false);
       //);
     });
   }
@@ -466,88 +464,135 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
   Widget buildItemsList({required ECategory item}) {
     return Column(
       children: [
-        ReorderableListView.builder(
+        AnimatedList(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          buildDefaultDragHandles: false,
-          itemCount: item.editorItems.length, 
-          itemBuilder: (context, index) {
+          initialItemCount: item.editorItems.length, 
+          itemBuilder: (context, index, animation) {
             var subItem = item.editorItems[index];
             switch (subItem) {
               case ECategory _ : {
-                return Padding(
+                return Column(
                   key: Key(subItem.id),
-                  padding: EdgeInsets.only(left: subItem.rank*20),
-                  child: Column(
-                    children: [
-                      subItem.buildListTile(
-                        index: index, 
-                        onArrowCallback: () => setState(() => subItem.showChildren = !subItem.showChildren), 
-                        onEditCallback: () async => toggleEditorItem(subItem),
-                        onDragStarted: () => setState(() {
-                          subItem.showChildren = false; 
-                          _dragging = true;
-                        }),
-                        onDragCompleted: () => setState(() {
-                          _dragging = false;
-                          _hoverOnAll = false;
-                          _hoverOnDelete = false;
-                        }),
-                        onDragCanceled: () => setState(() {
-                          _dragging = false;
-                          _hoverOnAll = false;
-                          _hoverOnDelete = false;
-                        }),                       
-                        ticker: this,
-                      ),
-                      const Divider(),
-                      if (subItem.showChildren) buildItemsList(item: subItem),
-                    ]
-                  )
+                  children: [
+                    subItem.buildListTile(
+                      index: index, 
+                      onArrowCallback: () => setState(() => subItem.expanded = !subItem.expanded), 
+                      onEditCallback: () async => toggleEditorItem(subItem),
+                      onDragStarted: () => setState(() {
+                        subItem.expanded = false; 
+                        _dragging = true;
+                      }),
+                      onDragCompleted: () => setState(() {
+                        _dragging = false;
+                        _hoverOnAll = false;
+                        _hoverOnDelete = false;
+                      }),
+                      onDragCanceled: () => setState(() {
+                        _dragging = false;
+                        _hoverOnAll = false;
+                        _hoverOnDelete = false;
+                      }),                       
+                      ticker: this,
+                    ),
+                    if (subItem.expanded) 
+                      buildItemsList(item: subItem),
+                    if (subItem.expanded)
+                      DragTarget<EItem> (
+                        onWillAcceptWithDetails: (details) {
+
+                          return (details.data != subItem);
+                        },
+                        onAcceptWithDetails: (details) {
+                          ECategory parent = details.data.getParent(root: EItem.all)!;
+                          ECategory newParent = subItem.getParent(root: EItem.all)!;
+                          int newIndex = newParent.editorItems.indexOf(subItem) + 1;
+
+                          parent.editorItems.remove(details.data);
+
+                          details.data.rank = subItem.rank;
+                          details.data.parentId = subItem.parentId;
+
+                          newParent.editorItems.insert(newIndex, details.data);
+
+                          switch (details.data) {
+                            case ECategory _ : {
+                              parent.category.catalogItems.remove((details.data as ECategory).category);
+                              newParent.category.catalogItems.insert(newIndex, (details.data as ECategory).category);
+                              (details.data as ECategory).category.parentId = subItem.parentId;
+                            }
+                            case EProduct _ : {
+                              parent.category.catalogItems.remove((details.data as EProduct).product);
+                              newParent.category.catalogItems.insert(newIndex, (details.data as EProduct).product);
+                              (details.data as EProduct).product.parentId = subItem.parentId;
+                            }
+                          }
+                        },
+                        builder: (context, accepted, reject) {
+                          if (accepted.isNotEmpty) {
+                            return const Divider(
+                              style: DividerThemeData(
+                                thickness: 2.0,
+                                decoration: BoxDecoration(
+                                  color: Color(0xFFC9C9CC),
+                                )
+                              )
+                            );
+                          }
+                          else {
+                            return Divider(
+                              style: DividerThemeData(
+                                thickness: 2.0,
+                                horizontalMargin: EdgeInsets.only(left: subItem.rank*20+20, right: 20),
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFF303030),
+                                )
+                              )
+                            );
+                          }
+                        }
+                    )
+                  ]
                 );
               }
               case EProduct _ : {
-                return Padding(
+                return Column(
                   key: Key(subItem.id),
-                  padding: EdgeInsets.only(left: subItem.rank*20 + 26),
-                  child: Column(
-                    children: [
-                      subItem.buildListTile(
-                        index: index, 
-                        onEditCallback: () async => await toggleEditorItem(subItem),
-                        onDragCompleted: () => setState(() {
-                          _dragging = false;
-                          _hoverOnAll = false;
-                          _hoverOnDelete = false;
-                        }),
-                        onDragStarted: () => setState(() {
-                          _dragging = true;
-                        }),
-                        onDragCanceled: () => setState(() {
-                          _dragging = false;
-                          _hoverOnAll = false;
-                          _hoverOnDelete = false;
-                        })
-                      ),
-                      const Divider()
-                    ]
-                  )
+                  children: [
+                    subItem.buildListTile(
+                      index: index, 
+                      onEditCallback: () async => await toggleEditorItem(subItem),
+                      onDragCompleted: () => setState(() {
+                        _dragging = false;
+                        _hoverOnAll = false;
+                        _hoverOnDelete = false;
+                      }),
+                      onDragStarted: () => setState(() {
+                        _dragging = true;
+                      }),
+                      onDragCanceled: () => setState(() {
+                        _dragging = false;
+                        _hoverOnAll = false;
+                        _hoverOnDelete = false;
+                      })
+                    ),
+                  ]
                 );
               }
             }
-          }, 
-          onReorder: (int oldIndex, int newIndex) {
-            if (newIndex > item.editorItems.length) newIndex = item.editorItems.length;
-            if (oldIndex < newIndex) newIndex--;
-            var dragItem = item.editorItems.removeAt(oldIndex);
-            item.editorItems.insert(newIndex, dragItem);
           },
-          onReorderStart: (_) {
-            setState(() => _dragging = true);
-          },
-          onReorderEnd: (_) {
-            setState(() => _dragging = false);
-          }
+          // onReorder: (int oldIndex, int newIndex) {
+          //   if (newIndex > item.editorItems.length) newIndex = item.editorItems.length;
+          //   if (oldIndex < newIndex) newIndex--;
+          //   var dragItem = item.editorItems.removeAt(oldIndex);
+          //   item.editorItems.insert(newIndex, dragItem);
+          // },
+          // onReorderStart: (_) {
+          //   setState(() => _dragging = true);
+          // },
+          // onReorderEnd: (_) {
+          //   setState(() => _dragging = false);
+          // }
         ),
       ]
     );
@@ -1934,6 +1979,13 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
       else {
         _itemsToDisplay.insert(index, item);
       }
+    }
+    resetIndices();
+  }
+
+  void resetIndices() {
+    for (int i = 0; i < _itemsToDisplay.length; i++) {
+      _itemsToDisplay[i].viewIndex = i;
     }
   }
 }

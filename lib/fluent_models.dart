@@ -8,12 +8,14 @@ import 'dart:async';
 import 'package:path/path.dart' as path_handler;
 import 'dart:math' as math;
 import 'package:string_validator/string_validator.dart';
+import 'package:weightechapp/themes.dart';
 import 'package:weightechapp/utils.dart';
 
 
 sealed class EItem {
   late int rank;
   final String id;
+  int? viewIndex;
   String? parentId;
   EItem({required this.id, required this.rank, this.parentId});
 
@@ -217,17 +219,28 @@ sealed class EItem {
 
 class ECategory extends EItem {
   final ProductCategory category;
+  final GlobalKey key = GlobalKey();
   List<EItem> editorItems;
   String? imagePath;
   File? imageFile;
-  bool showChildren = false;
+  bool expanded = false;
   ECategory({required this.category, required super.rank, required this.editorItems, this.imagePath}) : super(id: category.id, parentId: category.parentId);
 
-  bool open = false;
   bool play = false;
 
   
-  Widget buildListTile({int? index, VoidCallback? onArrowCallback, VoidCallback? onEditCallback, VoidCallback? onDragStarted, VoidCallback? onDragCompleted, VoidCallback? onDragCanceled, TickerProvider? ticker}) {
+  Widget buildListTile({
+    int? index, 
+    VoidCallback? onWillAccept, 
+    VoidCallback? onLeave, 
+    VoidCallback? onArrowCallback, 
+    VoidCallback? onEditCallback, 
+    VoidCallback? onDragStarted, 
+    VoidCallback? onDragCompleted, 
+    VoidCallback? onDragCanceled, 
+    TickerProvider? ticker
+    }) 
+    {
     Tween<double>? openTween;
     Tween<double>? closeTween;
     AnimationController? controller; 
@@ -240,98 +253,266 @@ class ECategory extends EItem {
       controller.forward();
     }
 
-    return DragTarget<EItem>(
-      onWillAcceptWithDetails: (details) {
-        return (!editorItems.contains(details.data) && details.data != this);
-      },
-      onAcceptWithDetails: (details) {
-        ECategory parent = details.data.getParent(root: EItem.all)!;
-        parent.editorItems.remove(details.data);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // DragTarget<EItem> (
+        //   onWillAcceptWithDetails: (details) {
+        //     return (details.data != this);
+        //   },
+        //   onAcceptWithDetails: (details) {
+        //     ECategory parent = details.data.getParent(root: EItem.all)!;
+        //     ECategory newParent = getParent(root: EItem.all)!;
+        //     int newIndex = newParent.editorItems.indexOf(this);
 
-        details.data.rank = rank + 1;
-        details.data.parentId = id;
-        editorItems.add(details.data);
+        //     parent.editorItems.remove(details.data);
 
-        switch (details.data) {
-          case ECategory _ : {
-            parent.category.catalogItems.remove((details.data as ECategory).category);
-            category.catalogItems.add((details.data as ECategory).category);
-            (details.data as ECategory).category.parentId = id;
+        //     details.data.rank = rank;
+        //     details.data.parentId = parentId;
+
+        //     editorItems.insert(newIndex, details.data);
+
+        //     switch (details.data) {
+        //       case ECategory _ : {
+        //         parent.category.catalogItems.remove((details.data as ECategory).category);
+        //         newParent.category.catalogItems.insert(newIndex, (details.data as ECategory).category);
+        //         (details.data as ECategory).category.parentId = parentId;
+        //       }
+        //       case EProduct _ : {
+        //         parent.category.catalogItems.remove((details.data as EProduct).product);
+        //         newParent.category.catalogItems.insert(newIndex, (details.data as EProduct).product);
+        //         (details.data as EProduct).product.parentId = parentId;
+        //       }
+        //     }
+        //   },
+        //   builder: (context, accepted, reject) {
+        //     if (accepted.isNotEmpty) {
+        //       return const Divider(
+        //         style: DividerThemeData(
+        //           thickness: 2.0,
+        //           decoration: BoxDecoration(
+        //             color: Color(0xFFC9C9CC),
+        //           )
+        //         )
+        //       );
+        //     }
+        //     else {
+        //       return const Divider(
+        //         style: DividerThemeData(
+        //           thickness: 2.0,
+        //           horizontalMargin: EdgeInsets.symmetric(horizontal: 20),
+        //           decoration: BoxDecoration(
+        //             color: Color(0xFF303030),
+        //           )
+        //         )
+        //       );
+        //     }
+        //   }
+        // ),
+        DragTarget<EItem>(
+          onWillAcceptWithDetails: (details) {
+            if (onWillAccept != null) onWillAccept();
+            return (!editorItems.contains(details.data) && details.data != this);
+          },
+          onLeave: (details) {
+            if (onLeave != null) onLeave();
+          },
+          onAcceptWithDetails: (details) {
+            ECategory parent = details.data.getParent(root: EItem.all)!;
+            parent.editorItems.remove(details.data);
+
+            details.data.rank = rank + 1;
+            details.data.parentId = id;
+            editorItems.add(details.data);
+
+            switch (details.data) {
+              case ECategory _ : {
+                parent.category.catalogItems.remove((details.data as ECategory).category);
+                category.catalogItems.add((details.data as ECategory).category);
+                (details.data as ECategory).category.parentId = id;
+              }
+              case EProduct _ : {
+                parent.category.catalogItems.remove((details.data as EProduct).product);
+                category.catalogItems.add((details.data as EProduct).product);
+                (details.data as EProduct).product.parentId = id;
+              }
+            }
+          },
+          builder: (context, accepted, rejected) {
+            Widget widget = Draggable<EItem> (
+              data: this,
+              onDragStarted: () {
+                if (onDragStarted != null) onDragStarted();
+              },
+              onDragCompleted: () {
+                if (onDragCompleted != null) onDragCompleted();
+              },
+              onDraggableCanceled: (v, o) {
+                if (onDragCanceled != null) onDragCanceled();
+              },
+              feedback: Container(
+                height: (key.currentContext != null) ? (key.currentContext!.findRenderObject() as RenderBox).size.height : null,
+                width: (key.currentContext != null) ? (key.currentContext!.findRenderObject() as RenderBox).size.width : null,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF303030),
+                  borderRadius: BorderRadius.circular(4.0),
+                ),
+                child: ListTile(
+                  title: Row(
+                    children: [
+                      const Icon(FluentIcons.folder_16_regular,),
+                      const SizedBox(width: 10),
+                      Expanded(child: Text(category.name, style: const TextStyle(fontSize: 14))),
+                    ]
+                  )
+                )
+              ),
+              child: ListTile(
+                key: key,
+                onPressed: () {
+                  if (onEditCallback != null) {onEditCallback();}
+                },
+                title: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(width: rank*20),
+                    if (onArrowCallback != null) 
+                      expanded ?
+                        IconButton(
+                          onPressed: () {
+                            play = true;
+                            onArrowCallback();
+                          }, 
+                          icon: (openTween != null && play) ? 
+                            RotationTransition(turns: openTween.animate(controller!), child: const Icon(FluentIcons.chevron_down_16_regular)) 
+                            : const Icon(FluentIcons.chevron_down_16_regular)
+                        )
+                        : IconButton(
+                          onPressed: () {
+                            play = true;
+                            onArrowCallback();
+                          },
+                          icon: (closeTween != null && play) ? 
+                            RotationTransition(turns: closeTween.animate(controller!), child: const Icon(FluentIcons.chevron_down_16_regular)) 
+                            : Transform.rotate(angle: -90*math.pi/180, child: const Icon(FluentIcons.chevron_down_16_regular)),
+                        ),
+                    const Icon(FluentIcons.folder_16_regular,),
+                    const SizedBox(width: 10),
+                    Expanded(child: Text(category.name, style: const TextStyle(fontSize: 14))),
+                  ]
+                ),
+                trailing: (index != null) ? ReorderableDragStartListener(index: index, child: const Icon(FluentIcons.drag_20_regular)) : const SizedBox(),
+              )
+            );
+            play = false;
+            return widget;
           }
-          case EProduct _ : {
-            parent.category.catalogItems.remove((details.data as EProduct).product);
-            category.catalogItems.add((details.data as EProduct).product);
-            (details.data as EProduct).product.parentId = id;
-          }
-        }
-      },
-      builder: (context, accepted, rejected) {
-        Widget widget = Draggable<EItem> (
-          data: this,
-          onDragStarted: () {
-            if (onDragStarted != null) onDragStarted();
-          },
-          onDragCompleted: () {
-            if (onDragCompleted != null) onDragCompleted();
-          },
-          onDraggableCanceled: (v, o) {
-            if (onDragCanceled != null) onDragCanceled();
-          },
-          feedback: Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border.all(color: Colors.black, width: 1.0),
-              borderRadius: BorderRadius.circular(8.0),
-            ),
-            padding: const EdgeInsets.all(10),
-            child: Row(
-              children: [
-                const Icon(FluentIcons.drag_20_regular),
-                const SizedBox(width: 5),
-                Text(category.name)
-              ]
-            )
-          ),
-          child: ListTile(
-            onPressed: () {
-              if (onEditCallback != null) {onEditCallback();}
-            },
-            title: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (onArrowCallback != null) 
-                  open ?
-                    IconButton(
-                      onPressed: () {
-                        open = false;
-                        play = true;
-                        onArrowCallback();
-                      }, 
-                      icon: (openTween != null && play) ? 
-                        RotationTransition(turns: openTween.animate(controller!), child: const Icon(FluentIcons.chevron_down_16_regular)) 
-                        : const Icon(FluentIcons.chevron_down_16_regular)
+        ),
+        expanded
+          ? DragTarget<EItem> (
+              onWillAcceptWithDetails: (details) {
+                return (details.data != this);
+              },
+              onAcceptWithDetails: (details) {
+                ECategory parent = details.data.getParent(root: EItem.all)!;
+                parent.editorItems.remove(details.data);
+
+                details.data.rank = rank + 1;
+                details.data.parentId = id;
+                editorItems.insert(0, details.data);
+
+                switch (details.data) {
+                  case ECategory _ : {
+                    parent.category.catalogItems.remove((details.data as ECategory).category);
+                    category.catalogItems.insert(0, (details.data as ECategory).category);
+                    (details.data as ECategory).category.parentId = id;
+                  }
+                  case EProduct _ : {
+                    parent.category.catalogItems.remove((details.data as EProduct).product);
+                    category.catalogItems.insert(0, (details.data as EProduct).product);
+                    (details.data as EProduct).product.parentId = id;
+                  }
+                }
+              },
+              builder: (context, accepted, reject) {
+                if (accepted.isNotEmpty) {
+                  return const Divider(
+                    style: DividerThemeData(
+                      thickness: 2.0,
+                      decoration: BoxDecoration(
+                        color: Color(0xFFC9C9CC),
+                      )
                     )
-                    : IconButton(
-                      onPressed: () {
-                        open = true;
-                        play = true;
-                        onArrowCallback();
-                      },
-                      icon: (closeTween != null && play) ? 
-                        RotationTransition(turns: closeTween.animate(controller!), child: const Icon(FluentIcons.chevron_down_16_regular)) 
-                        : Transform.rotate(angle: -90*math.pi/180, child: const Icon(FluentIcons.chevron_down_16_regular)),
-                    ),
-                const Icon(FluentIcons.folder_16_regular,),
-                const SizedBox(width: 10),
-                Expanded(child: Text(category.name, style: const TextStyle(fontSize: 14))),
-              ]
-            ),
-            trailing: (index != null) ? ReorderableDragStartListener(index: index, child: const Icon(FluentIcons.drag_20_regular)) : const SizedBox(),
+                  );
+                }
+                else {
+                  return const Divider(
+                    style: DividerThemeData(
+                      thickness: 2.0,
+                      horizontalMargin: EdgeInsets.symmetric(horizontal: 20),
+                      decoration: BoxDecoration(
+                        color: Color(0xFF303030),
+                      )
+                    )
+                  );
+                }
+              }
           )
-        );
-        play = false;
-        return widget;
-      }
+          : 
+          DragTarget<EItem> (
+              onWillAcceptWithDetails: (details) {
+                return (details.data != this);
+              },
+              onAcceptWithDetails: (details) {
+                ECategory parent = details.data.getParent(root: EItem.all)!;
+                ECategory newParent = getParent(root: EItem.all)!;
+                int newIndex = newParent.editorItems.indexOf(this) + 1;
+
+                parent.editorItems.remove(details.data);
+
+                details.data.rank = rank;
+                details.data.parentId = parentId;
+
+                newParent.editorItems.insert(newIndex, details.data);
+
+                switch (details.data) {
+                  case ECategory _ : {
+                    parent.category.catalogItems.remove((details.data as ECategory).category);
+                    newParent.category.catalogItems.insert(newIndex, (details.data as ECategory).category);
+                    (details.data as ECategory).category.parentId = parentId;
+                  }
+                  case EProduct _ : {
+                    parent.category.catalogItems.remove((details.data as EProduct).product);
+                    newParent.category.catalogItems.insert(newIndex, (details.data as EProduct).product);
+                    (details.data as EProduct).product.parentId = parentId;
+                  }
+                }
+              },
+              builder: (context, accepted, reject) {
+                if (accepted.isNotEmpty) {
+                  return const Divider(
+                    style: DividerThemeData(
+                      thickness: 2.0,
+                      decoration: BoxDecoration(
+                        color: Color(0xFFC9C9CC),
+                      )
+                    )
+                  );
+                }
+                else {
+                  return Divider(
+                    style: DividerThemeData(
+                      thickness: 2.0,
+                      horizontalMargin: EdgeInsets.only(left: rank*20+20, right: 20),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF303030),
+                      )
+                    )
+                  );
+                }
+              }
+          )
+      ]
     );
   }
 
@@ -435,47 +616,109 @@ class EProduct extends EItem {
   }
 
   Widget buildListTile({int? index, VoidCallback? onEditCallback, VoidCallback? onDragCompleted, VoidCallback? onDragStarted, VoidCallback? onDragCanceled}) {
-    return Draggable<EItem> (
-      data: this,
-      onDragStarted: () {
-        if (onDragStarted != null) onDragStarted();
-      },
-      onDragCompleted: () {
-        if (onDragCompleted != null) onDragCompleted();
-      },
-      onDraggableCanceled: (v, o) {
-        if (onDragCanceled != null) onDragCanceled();
-      },
-      feedback: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border.all(color: Colors.black, width: 1.0),
-          borderRadius: BorderRadius.circular(8.0),
-        ),
-        padding: const EdgeInsets.all(10),
-        child: Row(
-          children: [
-            const Icon(FluentIcons.drag_20_regular),
-            const SizedBox(width: 5),
-            Text(product.name)
-          ]
-        )
-      ),
-      dragAnchorStrategy: pointerDragAnchorStrategy,
-      child: 
-        ListTile(
-          onPressed: () {
-            if (onEditCallback != null) {onEditCallback();}
+    return Column(
+      mainAxisSize: MainAxisSize.min, 
+      children: [
+        Draggable<EItem> (
+          data: this,
+          onDragStarted: () {
+            if (onDragStarted != null) onDragStarted();
           },
-          title: Row(
-            children: [
-              const Icon(FluentIcons.production_20_regular,),
-              const SizedBox(width: 10),
-              Expanded(child: Text(product.name, style: const TextStyle(fontSize: 14))), 
-            ]  
+          onDragCompleted: () {
+            if (onDragCompleted != null) onDragCompleted();
+          },
+          onDraggableCanceled: (v, o) {
+            if (onDragCanceled != null) onDragCanceled();
+          },
+          feedback: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border.all(color: Colors.black, width: 1.0),
+              borderRadius: BorderRadius.circular(8.0),
+            ),
+            padding: const EdgeInsets.all(10),
+            child: Row(
+              children: [
+                const Icon(FluentIcons.drag_20_regular),
+                const SizedBox(width: 5),
+                Text(product.name)
+              ]
+            )
           ),
-          trailing: (index != null) ? ReorderableDragStartListener(index: index, child: const Icon(FluentIcons.drag_20_regular)) : const SizedBox(),
-        )
+          dragAnchorStrategy: pointerDragAnchorStrategy,
+          child: 
+            ListTile(
+              key: Key('listTile_$id'),
+              onPressed: () {
+                if (onEditCallback != null) {onEditCallback();}
+              },
+              title: Row(
+                children: [
+                  SizedBox(width: rank*20 + 26),
+                  const Icon(FluentIcons.production_20_regular,),
+                  const SizedBox(width: 10),
+                  Expanded(child: Text(product.name, style: const TextStyle(fontSize: 14))), 
+                ]  
+              ),
+              trailing: (index != null) ? ReorderableDragStartListener(index: index, child: const Icon(FluentIcons.drag_20_regular)) : const SizedBox(),
+            )
+        ),
+        DragTarget<EItem> (
+          onWillAcceptWithDetails: (details) {
+            return (details.data != this);
+          },
+          onAcceptWithDetails: (details) {
+            ECategory parent = details.data.getParent(root: EItem.all)!;
+            ECategory newParent = getParent(root: EItem.all)!;
+            int newIndex = newParent.editorItems.indexOf(this) + 1;
+
+            parent.editorItems.remove(details.data);
+
+            details.data.rank = rank;
+            details.data.parentId = parentId;
+
+            newParent.editorItems.insert(newIndex, details.data);
+
+            switch (details.data) {
+              case ECategory _ : {
+                parent.category.catalogItems.remove((details.data as ECategory).category);
+                newParent.category.catalogItems.insert(newIndex, (details.data as ECategory).category);
+                (details.data as ECategory).category.parentId = parentId;
+              }
+              case EProduct _ : {
+                parent.category.catalogItems.remove((details.data as EProduct).product);
+                newParent.category.catalogItems.insert(newIndex, (details.data as EProduct).product);
+                (details.data as EProduct).product.parentId = parentId;
+              }
+            }
+          },
+          builder: (context, accepted, reject) {
+            if (accepted.isNotEmpty) {
+              return const Divider(
+                style: DividerThemeData(
+                  thickness: 2.0,
+                  verticalMargin: EdgeInsets.only(top: 6, bottom: 6),
+                  decoration: BoxDecoration(
+                    color: Color(0xFFC9C9CC),
+                  )
+                )
+              );
+            }
+            else {
+              return Divider(
+                style: DividerThemeData(
+                  thickness: 2.0,
+                  verticalMargin: const EdgeInsets.only(top: 6, bottom: 6),
+                  horizontalMargin: EdgeInsets.only(left: rank*20 + 26, right: 20),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF303030),
+                  )
+                )
+              );
+            }
+          }
+        ),
+      ]
     );
   }
 
