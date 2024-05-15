@@ -98,6 +98,7 @@ class _StartupPageState extends State<StartupPage> with TickerProviderStateMixin
   late String _startupTaskMessage;
   late StreamController<String> _progressStreamController;
   late bool _updateReady;
+  late bool _checkingForUpdate;
 
   @override
   void initState() {
@@ -105,6 +106,7 @@ class _StartupPageState extends State<StartupPage> with TickerProviderStateMixin
     _startupTaskMessage = '';
     _progressStreamController = StreamController<String>();
     _updateReady = false;
+    _checkingForUpdate = false;
     _runStartupTasks();
   }
 
@@ -161,7 +163,7 @@ class _StartupPageState extends State<StartupPage> with TickerProviderStateMixin
                 else if (snapshot.connectionState == ConnectionState.done) {
                   return Stack(
                     children: [
-                      const Center(child: Text("...Checking for updates...")),
+                      if (_checkingForUpdate) const Center(child: Text("...Checking for updates...")),
                       Center(
                         child: UpdatWidget(
                           currentVersion: AppInfo.packageInfo.version,
@@ -197,6 +199,12 @@ class _StartupPageState extends State<StartupPage> with TickerProviderStateMixin
                             return jsonDecode(data.body)["body"];
                           },
                           callback: (status) {
+                            if (status == UpdatStatus.checking) {
+                              setState(() => _checkingForUpdate = true);
+                            }
+                            if (status == UpdatStatus.available || status == UpdatStatus.availableWithChangelog) {
+                              setState(() => _checkingForUpdate = false);
+                            }
                             if (status == UpdatStatus.upToDate) {
                               WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
                                 Navigator.of(context).pushReplacement(PageRouteBuilder(pageBuilder: (BuildContext context, _, __) => const IdlePage()));
