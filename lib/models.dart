@@ -516,6 +516,7 @@ sealed class EItem {
 
   static Future<void> updateProductCatalog(ECategory editorCatalog) async {
     await updateImages(editorCatalog);
+    Log.logger.t("Product images updated.");
     ProductManager.all = editorCatalog.category;
     await ProductManager.postCatalogToFirestore();
     Log.logger.t("Catalog update completed.");
@@ -530,12 +531,16 @@ sealed class EItem {
 
         final SettableMetadata metadata = SettableMetadata(contentType: 'images/${path_handler.extension(category.imageFile!.path)}');
 
-        await storageRef.child(refName).putFile(category.imageFile!, metadata).then((value) async {
-          await storageRef.child(refName).getDownloadURL().then((value) {
-            category.category.imageUrl = value;
-            Log.logger.t("Category image url updated.");
+        try {
+          await storageRef.child(refName).putFile(category.imageFile!, metadata).then((value) async {
+            await storageRef.child(refName).getDownloadURL().then((value) {
+              category.category.imageUrl = value;
+              Log.logger.t("Category image url updated.");
+            });
           });
-        });
+        } catch (e, stackTrace) {
+          Log.logger.e("Error encountered while updating category image", error: e, stackTrace: stackTrace);
+        }
       }
       for (var item in category.editorItems) {
         switch (item) {
@@ -566,10 +571,14 @@ sealed class EItem {
                     extension = 'jpeg';
                   }
                   
-                  await storageRef.child("$baseRefName.$extension").putFile(imageFile, SettableMetadata(contentType: 'images/$extension')).then((value) async {
-                    final imageUrl = await storageRef.child("$baseRefName.$extension").getDownloadURL();
-                    item.product.productImageUrls!.insert(0, imageUrl);
-                  });
+                  try {
+                    await storageRef.child("$baseRefName.$extension").putFile(imageFile, SettableMetadata(contentType: 'images/$extension')).then((value) async {
+                      final imageUrl = await storageRef.child("$baseRefName.$extension").getDownloadURL();
+                      item.product.productImageUrls!.insert(0, imageUrl);
+                    });
+                  } catch (e, stackTrace) {
+                    Log.logger.e("Error encountered while updating primary product image.", error: e, stackTrace: stackTrace);
+                  }
                 }
                 else {
                   baseRefName = "${item.id}_${nonPrimaryCount+1}";
@@ -579,11 +588,15 @@ sealed class EItem {
                     extension = 'jpeg';
                   }
 
-                  await storageRef.child("$baseRefName.$extension").putFile(imageFile, SettableMetadata(contentType: 'images/$extension')).then((value) async {
-                    final imageUrl = await storageRef.child("$baseRefName.$extension").getDownloadURL();
-                    item.product.productImageUrls!.add(imageUrl);
-                  });
-                  nonPrimaryCount++;
+                  try {
+                    await storageRef.child("$baseRefName.$extension").putFile(imageFile, SettableMetadata(contentType: 'images/$extension')).then((value) async {
+                      final imageUrl = await storageRef.child("$baseRefName.$extension").getDownloadURL();
+                      item.product.productImageUrls!.add(imageUrl);
+                    });
+                    nonPrimaryCount++;
+                  } catch (e, stackTrace) {
+                    Log.logger.e("Error encountered while updating non-primary product images.", error: e, stackTrace: stackTrace);
+                  }
                 }
                 
               }

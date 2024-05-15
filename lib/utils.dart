@@ -49,7 +49,7 @@ class Log {
       filter: AppLogFilter(),
       printer: AppLogPrinter(),
       output: FileOutput(
-        file: File("${appDocsDir.path}/app-${DateTime.now().toIso8601String().replaceAll(":", "-")}.log"),
+        file: File("${appDocsDir.path}/logs/app-${DateTime.now().toIso8601String().replaceAll(":", "-")}.log"),
       )
     );
   }
@@ -70,9 +70,9 @@ class AppLogFilter extends LogFilter {
 class AppLogPrinter extends PrettyPrinter {
   AppLogPrinter() 
   : super(
-    excludeBox: {Level.info : true},
+    excludeBox: {Level.info : true, Level.trace: true},
     methodCount: 0,
-    errorMethodCount: 5,
+    errorMethodCount: 10,
     lineLength: 120,
     colors: true, 
     printEmojis: true
