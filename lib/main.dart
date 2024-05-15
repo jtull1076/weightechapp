@@ -1806,8 +1806,11 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
           onReorder: (int oldIndex, int newIndex) {
             if (newIndex > item.editorItems.length) newIndex = item.editorItems.length;
             if (oldIndex < newIndex) newIndex--;
-            var dragItem = item.editorItems.removeAt(oldIndex);
-            item.editorItems.insert(newIndex, dragItem);
+            var dragEItem = item.editorItems.removeAt(oldIndex);
+            var dragItem = item.category.catalogItems.removeAt(oldIndex);
+            
+            item.editorItems.insert(newIndex, dragEItem);
+            item.category.catalogItems.insert(newIndex, dragItem);
           },
           onReorderStart: (_) {
             setState(() => _dragging = true);
