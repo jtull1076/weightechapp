@@ -292,7 +292,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       _timer.cancel();
       Navigator.push(context, 
         PageRouteBuilder(
-          pageBuilder: (context, animation, secondaryAnimation) => ListingPage(category: item),
+          pageBuilder: (context, animation, secondaryAnimation) => ListingPage(category: item, animateDivider: true),
           transitionsBuilder: (context, animation, secondaryAnimation, child){
             var begin = 0.0;
             var end = 1.0;
@@ -310,7 +310,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       _timer.cancel();
       Navigator.push(context, 
         PageRouteBuilder(
-          pageBuilder: (context, animation, secondaryAnimation) => ProductPage(product: item),
+          pageBuilder: (context, animation, secondaryAnimation) => ProductPage(product: item, animateDivider: true),
           transitionsBuilder: (context, animation, secondaryAnimation, child){
             var begin = 0.0;
             var end = 1.0;
@@ -413,7 +413,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 /// 
 /// See also: [_ProductPageState]
 class ProductPage extends StatefulWidget {
-  ProductPage({super.key, required this.product, this.animateDivider = true});
+  ProductPage({super.key, required this.product, this.animateDivider = false});
 
   final Product product;
   final bool animateDivider;
@@ -901,10 +901,11 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
 
 /// A class defining the stateless [ListingPage]. These are used to navigate the catalog tree. 
 class ListingPage extends StatefulWidget {
-  ListingPage({super.key, required this.category}) : catalogItems = category.catalogItems;
+  ListingPage({super.key, required this.category, this.animateDivider = false}) : catalogItems = category.catalogItems;
 
   final ProductCategory category;
   final List<CatalogItem> catalogItems;
+  final bool animateDivider;
 
   @override
   State<ListingPage> createState() => _ListingPageState();
@@ -923,7 +924,7 @@ class _ListingPageState extends State<ListingPage> with TickerProviderStateMixin
       _timer.cancel();
       Navigator.push(context, 
         PageRouteBuilder(
-          pageBuilder: (context, animation, secondaryAnimation) => ListingPage(category: item),
+          pageBuilder: (context, animation, secondaryAnimation) => ListingPage(category: item, animateDivider: false),
           transitionsBuilder: (context, animation, secondaryAnimation, child){
             var begin = 0.0;
             var end = 1.0;
