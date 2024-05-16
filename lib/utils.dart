@@ -8,13 +8,16 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:weightechapp/firebase_options.dart';
+import 'package:shortid/shortid.dart';
 
 class AppInfo {
   static late PackageInfo packageInfo;
+  static late String sessionId;
   AppInfo();
   
   Future<void> init() async {
     packageInfo = await PackageInfo.fromPlatform();
+    sessionId = shortid.generate();
   }
 
   static int versionCompare(String newVersion, String currentVersion){
@@ -49,9 +52,10 @@ class Log {
       filter: AppLogFilter(),
       printer: AppLogPrinter(),
       output: FileOutput(
-        file: (await File("${appDocsDir.path}/logs/app-${DateTime.now().toIso8601String().replaceAll(":", "-")}.log").create(recursive: true)),
-      )
+        file: await File("${appDocsDir.path}/logs/app-${AppInfo.sessionId}.log").create(recursive: true))
     );
+    Log.logger.t("...Logger initialized...");
+    Log.logger.t(DateTime.now().toString());
   }
 }
 

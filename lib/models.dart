@@ -192,7 +192,7 @@ sealed class CatalogItem {
   }
 
   void storeImage(File imageFile) {
-    final storageRef = FirebaseUtils.storage.ref("images");
+    final storageRef = FirebaseUtils.storage.ref("devImages");
     final categoryImageRef = storageRef.child("${id}_0");
     try {
       categoryImageRef.putFile(imageFile);
@@ -468,7 +468,7 @@ class Product extends CatalogItem {
 
 
   void storeListOfImages(List<File> imageFiles){
-    final storageRef = FirebaseUtils.storage.ref("images");
+    final storageRef = FirebaseUtils.storage.ref("devImages");
     for ( int i=0 ; i < imageFiles.length ; i++ ) {
       final imageRef = storageRef.child("${id}_$i");
       try {
