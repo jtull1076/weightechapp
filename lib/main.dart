@@ -200,7 +200,9 @@ class _StartupPageState extends State<StartupPage> with TickerProviderStateMixin
                           },
                           callback: (status) {
                             if (status == UpdatStatus.checking) {
-                              setState(() => _checkingForUpdate = true);
+                              WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+                                setState(() => _checkingForUpdate = true);
+                              });
                             }
                             if (status == UpdatStatus.available || status == UpdatStatus.availableWithChangelog) {
                               setState(() => _checkingForUpdate = false);
@@ -362,7 +364,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       _timer.cancel();
       Navigator.push(context, 
         PageRouteBuilder(
-          pageBuilder: (context, animation, secondaryAnimation) => ListingPage(category: item),
+          pageBuilder: (context, animation, secondaryAnimation) => ListingPage(category: item, animateDivider: true,),
           transitionsBuilder: (context, animation, secondaryAnimation, child){
             var begin = 0.0;
             var end = 1.0;
@@ -380,7 +382,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       _timer.cancel();
       Navigator.push(context, 
         PageRouteBuilder(
-          pageBuilder: (context, animation, secondaryAnimation) => ProductPage(product: item),
+          pageBuilder: (context, animation, secondaryAnimation) => ProductPage(product: item, animateDivider: true,),
           transitionsBuilder: (context, animation, secondaryAnimation, child){
             var begin = 0.0;
             var end = 1.0;
@@ -971,10 +973,11 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
 
 /// A class defining the stateless [ListingPage]. These are used to navigate the catalog tree. 
 class ListingPage extends StatefulWidget {
-  ListingPage({super.key, required this.category}) : catalogItems = category.catalogItems;
+  ListingPage({super.key, required this.category, this.animateDivider = false}) : catalogItems = category.catalogItems;
 
   final ProductCategory category;
   final List<CatalogItem> catalogItems;
+  bool animateDivider;
 
   @override
   State<ListingPage> createState() => _ListingPageState();
@@ -993,7 +996,7 @@ class _ListingPageState extends State<ListingPage> with TickerProviderStateMixin
       _timer.cancel();
       Navigator.push(context, 
         PageRouteBuilder(
-          pageBuilder: (context, animation, secondaryAnimation) => ListingPage(category: item),
+          pageBuilder: (context, animation, secondaryAnimation) => ListingPage(category: item, animateDivider: false),
           transitionsBuilder: (context, animation, secondaryAnimation, child){
             var begin = 0.0;
             var end = 1.0;
@@ -1163,10 +1166,29 @@ class _ListingPageState extends State<ListingPage> with TickerProviderStateMixin
                         Padding(
                           padding: const EdgeInsets.only(left: 25.0, right: 25.0),
                           child: 
-                            SizeTransition(
-                              sizeFactor: _dividerHeightAnimation, 
-                              axis: Axis.vertical, 
-                              child: Container(
+                            widget.animateDivider ?
+                              SizeTransition(
+                                sizeFactor: _dividerHeightAnimation, 
+                                axis: Axis.vertical, 
+                                child: Container(
+                                  alignment: Alignment.topCenter,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF224190),
+                                    border: Border.all(color: const Color(0xFF224190))
+                                  ),
+                                  width: double.infinity,
+                                  child: 
+                                    Padding(
+                                      padding: const EdgeInsets.all(2.0),
+                                      child:
+                                        Text(widget.category.name, 
+                                          textAlign: TextAlign.center, 
+                                          style: const TextStyle(fontSize: 32.0, fontWeight: FontWeight.bold, color: Colors.white),
+                                        )
+                                    )
+                                )
+                              )
+                            : Container(
                                 alignment: Alignment.topCenter,
                                 decoration: BoxDecoration(
                                   color: const Color(0xFF224190),
@@ -1177,13 +1199,16 @@ class _ListingPageState extends State<ListingPage> with TickerProviderStateMixin
                                   Padding(
                                     padding: const EdgeInsets.all(2.0),
                                     child:
-                                      Text(widget.category.name, 
-                                        textAlign: TextAlign.center, 
-                                        style: const TextStyle(fontSize: 32.0, fontWeight: FontWeight.bold, color: Colors.white),
+                                      FadeTransition(
+                                        opacity: _fadeAnimation,
+                                        child: 
+                                          Text(widget.category.name, 
+                                            textAlign: TextAlign.center, 
+                                            style: const TextStyle(fontSize: 32.0, fontWeight: FontWeight.bold, color: Colors.white),
+                                          )
                                       )
                                   )
-                              )
-                            ),
+                                )
                         ),
                       ]
                     ),                      
@@ -1387,7 +1412,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                           return AlertDialog(
                                             backgroundColor: Colors.white,
                                             surfaceTintColor: Colors.transparent,
-                                            title: Image.asset('assets/skullbadge_small.gif', height: 120),
+                                            title: Image.asset('assets/skullanimation_v2.gif', height: 120),
                                             content: Container(
                                               alignment: Alignment.center,
                                               height: 130,

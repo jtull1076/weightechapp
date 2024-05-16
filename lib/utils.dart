@@ -49,7 +49,7 @@ class Log {
       filter: AppLogFilter(),
       printer: AppLogPrinter(),
       output: FileOutput(
-        file: File("${appDocsDir.path}/logs/app-${DateTime.now().toIso8601String().replaceAll(":", "-")}.log"),
+        file: (await File("${appDocsDir.path}/logs/app-${DateTime.now().toIso8601String().replaceAll(":", "-")}.log").create(recursive: true)),
       )
     );
   }

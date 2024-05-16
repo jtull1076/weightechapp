@@ -5,7 +5,7 @@ class WeightechThemes {
   static final ThemeData lightTheme = ThemeData(
     scaffoldBackgroundColor: Colors.white,
     cardTheme: CardTheme(
-      color: Colors.white,
+      color: Colors.white, // image backgrounds are 0xFFECECEC
       elevation: 4,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8)

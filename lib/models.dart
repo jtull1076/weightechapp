@@ -136,7 +136,7 @@ sealed class CatalogItem {
                     padding: const EdgeInsets.only(left: 14.0, right: 14.0, top: 30, bottom: 30),
                     child: ClipRRect(
                         borderRadius: BorderRadius.circular(10),
-                        child: Image(image: imageProvider!, fit: BoxFit.fitWidth),
+                        child: Image(image: imageProvider!, fit: BoxFit.fitWidth), // consider using ResizeImage, with policy fit.
                     ),
                   )
               ),
@@ -964,8 +964,9 @@ class EProduct extends EItem {
             visualDensity: VisualDensity.compact,
             title: Row(
               children: [
+                const SizedBox(width: 24),
                 const Icon(Icons.conveyor_belt, size: 20,),
-                const SizedBox(width: 10),
+                const SizedBox(width: 5),
                 Expanded(child: Text(product.name, style: const TextStyle(color: Colors.black, fontSize: 14.0))), 
               ]  
             ),
