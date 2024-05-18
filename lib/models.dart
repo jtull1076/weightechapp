@@ -1,13 +1,16 @@
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart';
 import 'package:shortid/shortid.dart';
 import 'dart:io';
 import 'dart:async';
+import 'dart:convert';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:weightechapp/utils.dart';
-
+import 'package:string_validator/string_validator.dart' show isURL;
 
 
 
@@ -15,13 +18,43 @@ import 'package:weightechapp/utils.dart';
 class ProductManager {
   static ProductCategory? all;
   static DateTime? timestamp;
+  static bool isBackup = false;
 
   ProductManager._();
 
   static Future<void> create() async {
-    Map<String, dynamic> catalogJson = await getCatalogFromFirestore();
+    Map<String, dynamic> catalogJson;
+
+    try {
+      catalogJson = await getCatalogFromFirestore();
+      all = ProductCategory.fromJson(catalogJson);
+      if (await _thisBackupExists(refId: FirebaseUtils.catalogReferenceId!)) {
+        Log.logger.t("Backup already exists for catalog with reference ${FirebaseUtils.catalogReferenceId}");
+      }
+      else {
+        Log.logger.t("Creating backup for catalog with reference ${FirebaseUtils.catalogReferenceId}...");
+        await backupCatalog();
+        Log.logger.t("Backup created successfully.");
+      }
+    } catch (e) {
+      if (FirebaseUtils.connectionMade) {
+        Log.logger.t("Error fetching Firebase catalog.");
+        rethrow;
+      }
+      else {
+        Log.logger.t("Error with Firebase connection. Checking for backups...");
+        if (await _anyBackupExists()) {
+          Log.logger.t("Backup found.");
+          catalogJson = await _getBackupCatalog();
+        }
+        else {
+          Log.logger.w("No backups found.");
+          throw("No backups found.");
+        }
+      }
+    }
+
     all = ProductCategory.fromJson(catalogJson);
-    //timestamp = catalogJson["timestamp"];
   }
 
   List<ProductCategory> getAllCategories(ProductCategory? category) {
@@ -86,6 +119,88 @@ class ProductManager {
   static Future<Map<String,dynamic>> getCatalogFromFirestore() async {
     return await FirebaseUtils.getCatalogFromFirestore();
   }
+
+  static Future<Map<String,dynamic>> _getBackupCatalog() async {
+    Directory defaultBackupDirectory = (await getExternalStorageDirectory())!;
+    Directory backupDirectory = Directory('${defaultBackupDirectory.path}/backups');
+
+    final List<FileSystemEntity> entities = await backupDirectory.list().toList();
+    final Iterable<File> files = entities.whereType<File>();
+
+    File backupFile = files.where((element) => extension(element.path) == '.txt',).first;
+
+    try {
+      String backupString = backupFile.readAsStringSync();
+      Map<String,dynamic> catalog = jsonDecode(backupString);
+      Log.logger.i("Backup retrieve with reference ${basenameWithoutExtension(backupFile.path)}.");
+      return catalog;
+    } catch (e) {
+      throw();
+    }
+  }
+
+  static Future<bool> _thisBackupExists({required String refId}) async {
+    Directory defaultBackupDirectory = (await getExternalStorageDirectory())!;
+    return await File('${defaultBackupDirectory.path}/backups/$refId.txt').exists();
+  }
+
+  static Future<bool> _anyBackupExists() async {
+    Directory defaultBackupDirectory = (await getExternalStorageDirectory())!;
+    return Directory('${defaultBackupDirectory.path}/backups').existsSync();
+  }
+
+  static Future<void> backupCatalog({Directory? directory}) async {
+    directory ??= (await getExternalStorageDirectory())!;
+    File backupFile = await File('${directory.path}/backups/${FirebaseUtils.catalogReferenceId}.txt').create(recursive: true);
+    
+    ProductCategory copyOfAll = ProductCategory.fromJson(all!.toJson());
+    
+    try {
+      await _storeBackupImages(catalog: copyOfAll, directory: directory).then((_) {
+        backupFile.writeAsString(jsonEncode(copyOfAll), mode: FileMode.write);
+      });
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  static Future<void> _storeBackupImages({required ProductCategory catalog, required Directory directory}) async {
+    Directory imageDirectory = await Directory('${directory.path}/backups/images').create(recursive: true);
+    final List<FileSystemEntity> entities = await imageDirectory.list().toList();
+
+    for (var entity in entities) {
+      entity.deleteSync();
+    }
+
+    Future<void> traverseCatalog(CatalogItem item) async {
+      switch (item) {
+        case ProductCategory _ : {
+          if (item.imageUrl != null) {
+            FirebaseUtils.downloadFromFirebaseStorage(url: item.imageUrl!, directory: imageDirectory).then((value) {
+              item.imageUrl = value;
+            });
+          }
+          for (var subItem in item.catalogItems) {
+            await traverseCatalog(subItem);
+          }
+        }
+        case Product _ : {
+          if (item.productImageUrls?.isNotEmpty ?? false) {
+            for (int i = 0; i < item.productImageUrls!.length; i++) {
+              FirebaseUtils.downloadFromFirebaseStorage(url: item.productImageUrls![i], directory: imageDirectory).then((value) {
+                item.productImageUrls![i] = value!;
+                if (i==0) {
+                  item.imageUrl = value;
+                }
+              });
+            }
+          }
+        }
+      }
+    }
+
+    await traverseCatalog(catalog);
+  }
 }
 
 sealed class CatalogItem {
@@ -100,8 +215,13 @@ sealed class CatalogItem {
   {
     if (imageUrl != null) {
       try {
-        imageProvider = CachedNetworkImageProvider(imageUrl!);
-      } on HttpExceptionWithStatus catch (e) {
+        if (isURL(imageUrl)) {
+          imageProvider = CachedNetworkImageProvider(imageUrl!);
+        }
+        else {
+          imageProvider = FileImage(File(imageUrl!));
+        }
+      } catch (e) {
         Log.logger.e("Failed to retrieve image at $imageUrl. Error: $e");
         imageUrl = null;
         imageProvider = Image.asset('assets/weightech_logo.png').image;
@@ -127,10 +247,10 @@ sealed class CatalogItem {
                 child: 
                   Container (
                     alignment: Alignment.center,
-                    padding: const EdgeInsets.only(left: 14.0, right: 14.0, top: 30, bottom: 30),
+                    padding: const EdgeInsets.only(left: 14.0, right: 14.0, top: 30, bottom: 14),
                     child: ClipRRect(
                         borderRadius: BorderRadius.circular(10),
-                        child: Image(image: imageProvider!, fit: BoxFit.fitWidth,),
+                        child: Image(image: ResizeImage(imageProvider!, policy: ResizeImagePolicy.fit, height: 400, width: 400), fit: BoxFit.fitWidth,),
                     ),
                   )
               ),
@@ -305,7 +425,7 @@ class ProductCategory extends CatalogItem {
 class Product extends CatalogItem {
   String? modelNumber;
   List<String>? productImageUrls;
-  List<CachedNetworkImageProvider> productImageProviders;
+  List<ImageProvider> productImageProviders;
   String? description;
   List<Map<String, dynamic>>? brochure;
   static const String buttonRoute = '/product';
@@ -327,8 +447,13 @@ class Product extends CatalogItem {
       super.imageUrl = productImageUrls![0];
       if (imageUrl != null) {
         try {
-          super.imageProvider = CachedNetworkImageProvider(super.imageUrl!);
-        } on HttpExceptionWithStatus catch (e) {
+          if (isURL(imageUrl)) {
+            super.imageProvider = CachedNetworkImageProvider(super.imageUrl!);
+          }
+          else {
+            super.imageProvider = FileImage(File(super.imageUrl!));
+          }
+        } catch (e) {
           Log.logger.t("Failed to retrieve image at $imageUrl. Error: $e");
           super.imageUrl = null;
           super.imageProvider = Image.asset('assets/weightech_logo.png').image;
@@ -336,9 +461,15 @@ class Product extends CatalogItem {
       }
       for (String url in productImageUrls!) {
         try {
-          CachedNetworkImageProvider newImageProvider = CachedNetworkImageProvider(url);
-          productImageProviders.add(newImageProvider);
-        } on HttpExceptionWithStatus catch (e) {
+          if (isURL(url)) {
+            CachedNetworkImageProvider newImageProvider = CachedNetworkImageProvider(url);
+            productImageProviders.add(newImageProvider);
+          }
+          else {
+            productImageProviders.add(FileImage(File(url)));
+            debugPrint('added Image file');
+          }
+        } catch (e) {
           Log.logger.t("Failed to retrieve image at $imageUrl. Error: $e");
           productImageUrls!.remove(url);
         }

@@ -85,6 +85,8 @@ class FirebaseUtils {
   static late FirebaseStorage storage;
   static late UserCredential userCredential;
   static late String githubToken;
+  static bool connectionMade = false;
+  static late String? catalogReferenceId;
   FirebaseUtils();
 
   Future<void> init() async {
@@ -121,25 +123,41 @@ class FirebaseUtils {
   }
 
   static Future<Map<String,dynamic>> getCatalogFromFirestore() async {
-    return await database.collection("catalog").orderBy("timestamp", descending: true).limit(1).get().then((event) {
-      Log.logger.i('Firebase DocumentSnapshot retrieved with ID: ${event.docs[0].id}');
-      return event.docs[0].data();
-    });
+    try {
+      return await database.collection("catalog").orderBy("timestamp", descending: true).limit(1).get().then((event) {
+        if (event.metadata.isFromCache == true) {
+          throw();
+        }
+        
+        var catalogReference = event.docs[0];
+        catalogReferenceId = catalogReference.id;
+        connectionMade = true;
+        Log.logger.i('Firebase DocumentSnapshot retrieved with ID: $catalogReferenceId');
+
+        return catalogReference.data();
+      });
+    } catch (e, stackTrace) { 
+      Log.logger.e("Error: could not retrieve database. Trying backup...", error: e, stackTrace: stackTrace);
+      rethrow; 
+    }
   }
 
-  static Future<void> downloadFromFirebaseStorage({required String url}) async {
-    final downloadsDirectory = await getDownloadsDirectory();
+  static Future<String?> downloadFromFirebaseStorage({required String url, Directory? directory}) async {
+    
+    directory ??= await getDownloadsDirectory();
     
     try {
       final imageRef = FirebaseUtils.storage.refFromURL(url);
-      final file = File('${downloadsDirectory!.path}/${imageRef.name}');
+      final file = File('${directory!.path}/${imageRef.name}');
 
       imageRef.writeToFile(file);
 
-      Log.logger.t("Downloaded image at $url to ${downloadsDirectory.path}");
+      Log.logger.t("Downloaded image at $url to ${directory.path}");
+      return '${directory.path}/${imageRef.name}';
     }
     catch (e, stackTrace) {
       Log.logger.e("Failed to download file at $url.", error: e, stackTrace: stackTrace);
+      throw();
     }
   }
 }
