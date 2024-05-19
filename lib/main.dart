@@ -85,11 +85,15 @@ class _StartupPageState extends State<StartupPage> with TickerProviderStateMixin
       });
     }
 
+    Log.logger.t('...Precaching images...');
+    _progressStreamController.add('...Caching images...');
+    if (mounted) await ProductManager.precacheImages(context);
+
     Log.logger.t('...App Startup...');
     _progressStreamController.add('...App Startup...');
 
-    _progressStreamController.close();
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+      _progressStreamController.close();
       Navigator.of(context).pushReplacement(PageRouteBuilder(pageBuilder: (BuildContext context, _, __) => const IdlePage()));
     });
   }

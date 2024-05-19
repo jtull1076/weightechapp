@@ -201,6 +201,25 @@ class ProductManager {
 
     await traverseCatalog(catalog);
   }
+
+  static Future<void> precacheImages(BuildContext context) async {
+
+    Future<void> traverseCatalog(CatalogItem item) async {
+      switch (item) {
+        case ProductCategory _ : {
+          item.precacheImages(context);
+          for (var subItem in item.catalogItems) {
+            traverseCatalog(subItem);
+          }
+        }
+        case Product _ : {
+          item.precacheImages(context);
+        }
+      }
+    }
+
+    await traverseCatalog(all!);
+  }
 }
 
 sealed class CatalogItem {
@@ -210,7 +229,7 @@ sealed class CatalogItem {
   String? imageUrl;
   ImageProvider? imageProvider;
 
-  CatalogItem({required this.name, this.parentId, String? id, this.imageUrl, BuildContext? context}) 
+  CatalogItem({required this.name, this.parentId, String? id, this.imageUrl}) 
   : id = id ?? shortid.generate()
   {
     if (imageUrl != null) {
@@ -312,6 +331,12 @@ sealed class CatalogItem {
       categoryImageRef.putFile(imageFile);
     } on FirebaseException catch (e) {
       Log.logger.t("Failed to add ${id}_0 to Firebase. Error code: ${e.code}");
+    }
+  }
+
+  void precacheImages(BuildContext context) async {
+    if (imageProvider != null) {
+      await precacheImage(imageProvider!, context, onError: (error, stackTrace) {debugPrint('Image for $name failed to load: $error');});
     }
   }
 }
@@ -416,7 +441,7 @@ class ProductCategory extends CatalogItem {
       id: json['id'],
       parentId: json['parentId'],
       imageUrl: json['imageUrl'],
-      catalogItems: (json['catalogItems'] as List<dynamic>).map((itemJson) => CatalogItem.fromJson(itemJson)).toList()
+      catalogItems: (json['catalogItems'] as List<dynamic>).map((itemJson) => CatalogItem.fromJson(itemJson)).toList(),
     );
   }
 
@@ -439,7 +464,6 @@ class Product extends CatalogItem {
     this.modelNumber,
     this.description,
     this.brochure,
-    BuildContext? context,
   }) 
   : productImageProviders = []
   {
@@ -467,7 +491,6 @@ class Product extends CatalogItem {
           }
           else {
             productImageProviders.add(FileImage(File(url)));
-            debugPrint('added Image file');
           }
         } catch (e) {
           Log.logger.t("Failed to retrieve image at $imageUrl. Error: $e");
@@ -587,7 +610,7 @@ class Product extends CatalogItem {
       description: json['description'],
       brochure: List<Map<String,dynamic>>.from(json['brochure']),
       parentId: json['parentId'],
-      productImageUrls: List<String>.from(json['imageUrls'] ?? [])
+      productImageUrls: List<String>.from(json['imageUrls'] ?? []),
     );
   }
 
@@ -600,6 +623,18 @@ class Product extends CatalogItem {
         imageRef.putFile(imageFiles[i]);
       } on FirebaseException catch (e) {
         Log.logger.t("Failed to add ${id}_$i to Firebase. Error code: ${e.code}");
+      }
+    }
+  }
+
+  @override
+  void precacheImages(BuildContext context) async {
+    if (imageProvider != null) {
+      await precacheImage(imageProvider!, context);
+    }
+    if (productImageProviders.isNotEmpty) {
+      for (var provider in productImageProviders) {
+        if (context.mounted) await precacheImage(provider, context);
       }
     }
   }
