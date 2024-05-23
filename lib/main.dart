@@ -196,14 +196,14 @@ class _StartupPageState extends State<StartupPage> with TickerProviderStateMixin
                           },
                           callback: (status) {
                             if (status == UpdatStatus.checking) {
-                              WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-                                setState(() => _checkingForUpdate = true);
-                              });
+                              // WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+                              //   setState(() => _checkingForUpdate = true);
+                              // });
                             }
                             if (status == UpdatStatus.available || status == UpdatStatus.availableWithChangelog) {
-                              WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-                                setState(() => _checkingForUpdate = false);
-                              });
+                              // WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+                              //   setState(() => _checkingForUpdate = false);
+                              // });
                             }
                             if (status == UpdatStatus.upToDate) {
                               WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
