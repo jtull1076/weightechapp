@@ -9,6 +9,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:weightechapp/firebase_options.dart';
 import 'package:shortid/shortid.dart';
+import 'package:retry/retry.dart';
 
 class AppInfo {
   static late PackageInfo packageInfo;
@@ -121,14 +122,18 @@ class FirebaseUtils {
   }
 
   static Future<void> postCatalogToFirestore(Map<String, dynamic> json) async {
-    await database.collection("catalog").add(json).then((DocumentReference doc) => Log.logger.i('Firestore DocumentSnapshot added with ID: ${doc.id}'));
+    await retry(
+      () => database.collection("catalog").add(json).then((DocumentReference doc) => Log.logger.i('Firestore DocumentSnapshot added with ID: ${doc.id}')),
+    );
   }
 
   static Future<Map<String,dynamic>> getCatalogFromFirestore() async {
-    return await database.collection("catalog").orderBy("timestamp", descending: true).limit(1).get().then((event) {
-      Log.logger.i('Firebase DocumentSnapshot retrieved with ID: ${event.docs[0].id}');
-      return event.docs[0].data();
-    });
+    return await retry(
+      () => database.collection("catalog").orderBy("timestamp", descending: true).limit(1).get().then((event) {
+        Log.logger.i('Firebase DocumentSnapshot retrieved with ID: ${event.docs[0].id}');
+        return event.docs[0].data();
+      }),
+    );
   }
 
   static Future<void> downloadFromFirebaseStorage({required String url}) async {
