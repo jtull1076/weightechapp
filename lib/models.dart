@@ -310,8 +310,7 @@ class ProductCategory extends CatalogItem {
 
 class Product extends CatalogItem {
   String? modelNumber;
-  List<String>? productImageUrls;
-  List<CachedNetworkImageProvider> productImageProviders;
+  List<String>? productMediaUrls;
   String? description;
   List<Map<String, dynamic>>? brochure;
   static const String buttonRoute = '/product';
@@ -321,35 +320,25 @@ class Product extends CatalogItem {
     super.parentId,
     super.id,
     super.imageUrl,
-    this.productImageUrls,
+    this.productMediaUrls,
     this.modelNumber,
     this.description,
     this.brochure,
     BuildContext? context,
-  }) 
-  : productImageProviders = []
+  })
   {
-    if (super.imageUrl == null && (productImageUrls?.isNotEmpty ?? false)) {
-      super.imageUrl = productImageUrls![0];
-      if (imageUrl != null) {
-        try {
-          super.imageProvider = CachedNetworkImageProvider(super.imageUrl!);
-        } on HttpExceptionWithStatus catch (e) {
-          Log.logger.t("Failed to retrieve image at $imageUrl. Error: $e");
-          super.imageUrl = null;
-          super.imageProvider = Image.asset('assets/weightech_logo.png').image;
-        }
-      }
-      for (String url in productImageUrls!) {
-        try {
-          CachedNetworkImageProvider newImageProvider = CachedNetworkImageProvider(url);
-          productImageProviders.add(newImageProvider);
-        } on HttpExceptionWithStatus catch (e) {
-          Log.logger.t("Failed to retrieve image at $imageUrl. Error: $e");
-          productImageUrls!.remove(url);
-        }
-      }
+    productMediaUrls ??= [];
+    if (super.imageUrl == null && (productMediaUrls?.isNotEmpty ?? false)) {
+      super.imageUrl = productMediaUrls![0];
     }
+      for (String url in productMediaUrls!) {
+        try {
+          DefaultCacheManager().downloadFile(url);
+        } catch (e) {
+          Log.logger.t("Failed to retrieve image at $imageUrl. Error: $e");
+          productMediaUrls!.remove(url);
+        }
+      }
   }
 
   //
@@ -450,7 +439,7 @@ class Product extends CatalogItem {
     json['description'] = description;
     json['brochure'] = brochure;
     json['parentId'] = parentId;
-    json['imageUrls'] = productImageUrls;
+    json['imageUrls'] = productMediaUrls;
     return json;
   }
 
@@ -462,7 +451,7 @@ class Product extends CatalogItem {
       description: json['description'],
       brochure: List<Map<String,dynamic>>.from(json['brochure']),
       parentId: json['parentId'],
-      productImageUrls: List<String>.from(json['imageUrls'] ?? [])
+      productMediaUrls: List<String>.from(json['imageUrls'] ?? [])
     );
   }
 
@@ -523,7 +512,7 @@ sealed class EItem {
   }
 
   static Future<void> updateImages(ECategory editorCatalog) async {
-    final storageRef = FirebaseUtils.storage.ref().child("devImages");
+    final storageRef = FirebaseUtils.storage.ref().child("devImages2");
 
     Future<void> traverseItems(ECategory category) async {
       if (category.imageFile != null) {
@@ -548,7 +537,7 @@ sealed class EItem {
             await traverseItems(item);
           }
           case EProduct _: {
-            if (item.imagePaths != null) {
+            if (item.mediaPaths != null) {
 
               // if (item.product.productImageUrls != null) {
               //   await Future.wait([
@@ -557,11 +546,11 @@ sealed class EItem {
               //   ]);
               // }
 
-              item.product.productImageUrls = [];
+              item.product.productMediaUrls = [];
 
               int nonPrimaryCount = 0;
-              for (int i = 0; i < item.imageFiles!.length; i++) {
-                File imageFile = item.imageFiles![i];
+              for (int i = 0; i < item.mediaFiles!.length; i++) {
+                File imageFile = item.mediaFiles![i];
                 String baseRefName = '';
                 if (i == item.primaryImageIndex) {
                   baseRefName = "${item.id}_0";
@@ -574,7 +563,7 @@ sealed class EItem {
                   try {
                     await storageRef.child("$baseRefName.$extension").putFile(imageFile, SettableMetadata(contentType: 'images/$extension')).then((value) async {
                       final imageUrl = await storageRef.child("$baseRefName.$extension").getDownloadURL();
-                      item.product.productImageUrls!.insert(0, imageUrl);
+                      item.product.productMediaUrls!.insert(0, imageUrl);
                     });
                   } catch (e, stackTrace) {
                     Log.logger.e("Error encountered while updating primary product image.", error: e, stackTrace: stackTrace);
@@ -591,7 +580,7 @@ sealed class EItem {
                   try {
                     await storageRef.child("$baseRefName.$extension").putFile(imageFile, SettableMetadata(contentType: 'images/$extension')).then((value) async {
                       final imageUrl = await storageRef.child("$baseRefName.$extension").getDownloadURL();
-                      item.product.productImageUrls!.add(imageUrl);
+                      item.product.productMediaUrls!.add(imageUrl);
                     });
                     nonPrimaryCount++;
                   } catch (e, stackTrace) {
@@ -907,18 +896,18 @@ class ECategory extends EItem {
 
 class EProduct extends EItem {
   final Product product;
-  List<String>? imagePaths;
-  List<File>? imageFiles;
+  List<String>? mediaPaths;
+  List<File>? mediaFiles;
   int primaryImageIndex;
-  EProduct({required this.product, required super.rank, this.imagePaths, primaryImageIndex}) : primaryImageIndex = primaryImageIndex ?? 0, super(id: product.id, parentId: product.parentId) {
-    if (imagePaths != null) {
-      imageFiles = [];
-      for (var path in imagePaths!) {
+  EProduct({required this.product, required super.rank, this.mediaPaths, primaryImageIndex}) : primaryImageIndex = primaryImageIndex ?? 0, super(id: product.id, parentId: product.parentId) {
+    if (mediaPaths != null) {
+      mediaFiles = [];
+      for (var path in mediaPaths!) {
         try {
-          imageFiles!.add(File(path));
+          mediaFiles!.add(File(path));
         }
         catch (e, trace) {
-          Log.logger.w("Failed to add image at $path", error: e, stackTrace: trace);
+          Log.logger.w("Failed to add file at $path", error: e, stackTrace: trace);
         }
       }
     }
@@ -981,38 +970,36 @@ class EProduct extends EItem {
   }
 
   Future<void> setImagePaths() async {
-    if (imagePaths != null) {
+    if (mediaPaths != null) {
       return;
     }
     else {
-      imagePaths = [];
-      if (product.productImageProviders.isNotEmpty) {
-        if (product.productImageUrls != null) {
-          for (var url in product.productImageUrls!) {
-            imagePaths!.add(url);
-          }
+      mediaPaths = [];
+      if (product.productMediaUrls?.isNotEmpty ?? false) {
+        for (var url in product.productMediaUrls!) {
+          mediaPaths!.add(url);
         }
       }
     }
   }
 
   Future<void> setImageFiles() async {
-    if (imageFiles != null) {
+    if (mediaFiles != null) {
       return;
     }
     else {
       final basePath = await getTemporaryDirectory();
-      imageFiles = [];
-      for (var path in imagePaths!) {
+      mediaFiles = [];
+      for (var path in mediaPaths!) {
         if (isURL(path)) {
           final imageRef = FirebaseUtils.storage.refFromURL(path);
           final file = File('${basePath.path}/${imageRef.name}');
 
           await imageRef.writeToFile(file);
-          imageFiles!.add(file);
+          mediaFiles!.add(file);
         }
         else {
-          imageFiles!.add(File(path));
+          mediaFiles!.add(File(path));
         }
       }
     }

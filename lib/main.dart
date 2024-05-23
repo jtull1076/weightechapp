@@ -29,11 +29,15 @@ import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:http/http.dart' as http;
 import 'package:file_saver/file_saver.dart';
+import 'package:media_kit/media_kit.dart';
+import 'package:media_kit_video/media_kit_video.dart';
 
 
 //MARK: MAIN
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized(); // Initialize Flutter Bindings
+
+  MediaKit.ensureInitialized();
 
   await windowManager.ensureInitialized();
   if (Platform.isWindows) {
@@ -665,7 +669,7 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                   children: [
                     CarouselSlider.builder(
                       options: CarouselOptions(
-                        enableInfiniteScroll: widget.product.productImageProviders.length > 1 ? true : false, 
+                        enableInfiniteScroll: widget.product.productMediaUrls!.length > 1 ? true : false, 
                         enlargeCenterPage: true,
                         enlargeFactor: 1,
                         onPageChanged: (index, reason) {
@@ -674,19 +678,34 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                           });
                         },
                       ),
-                      itemCount: widget.product.productImageProviders.length,
+                      itemCount: widget.product.productMediaUrls!.length,
                       itemBuilder: (BuildContext context, int itemIndex, int pageViewIndex) {
-                        return ClipRRect(
-                          borderRadius: BorderRadius.circular(30.0),
-                          child: Image(image: widget.product.productImageProviders[itemIndex], fit: BoxFit.fitWidth, width: double.infinity)
+                        return FutureBuilder(
+                          future: DefaultCacheManager().getSingleFile(widget.product.productMediaUrls![itemIndex]),
+                          builder: ((context, snapshot) {
+                            if (snapshot.hasData) {
+                              if (p.extension(snapshot.data!.path) == '.mp4') {
+                                late final player = Player();
+                                late final controller = VideoController(player);
+                                player.open(Media(snapshot.data!.path));
+                                return Video(controller: controller, fit: BoxFit.fitWidth, width: double.infinity);
+                              }
+                              else {
+                                return Image.file(snapshot.data!, fit: BoxFit.fitWidth, width: double.infinity);
+                              }
+                            }
+                            else {
+                              return LoadingAnimationWidget.bouncingBall(color: const Color(0xFF224190), size: 50);
+                            }
+                          })
                         );
                       }
                     ),
                     const SizedBox(height: 10),
-                    if (widget.product.productImageProviders.length > 1)
+                    if (widget.product.productMediaUrls!.length > 1)
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
-                        children: widget.product.productImageProviders.asMap().entries.map((entry) {
+                        children: widget.product.productMediaUrls!.asMap().entries.map((entry) {
                           return Container(
                               width: 10.0,
                               height: 10.0,
@@ -826,7 +845,7 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                       children: [
                         CarouselSlider.builder(
                           options: CarouselOptions(
-                            enableInfiniteScroll: widget.product.productImageProviders.length > 1 ? true : false, 
+                            enableInfiniteScroll: widget.product.productMediaUrls!.length > 1 ? true : false, 
                             enlargeCenterPage: true,
                             enlargeFactor: 1,
                             onPageChanged: (index, reason) {
@@ -835,19 +854,34 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                               });
                             },
                           ),
-                          itemCount: widget.product.productImageProviders.length,
+                          itemCount: widget.product.productMediaUrls!.length,
                           itemBuilder: (BuildContext context, int itemIndex, int pageViewIndex) {
-                            return ClipRRect(
-                              borderRadius: BorderRadius.circular(30.0),
-                              child: Image(image: widget.product.productImageProviders[itemIndex],),
+                            return FutureBuilder(
+                              future: DefaultCacheManager().getSingleFile(widget.product.productMediaUrls![itemIndex]),
+                              builder: ((context, snapshot) {
+                                if (snapshot.hasData) {
+                                  if (p.extension(snapshot.data!.path) == '.mp4') {
+                                    late final player = Player();
+                                    late final controller = VideoController(player);
+                                    player.open(Media(snapshot.data!.path));
+                                    return Video(controller: controller, fit: BoxFit.fitWidth, width: double.infinity);
+                                  }
+                                  else {
+                                    return Image.file(snapshot.data!, fit: BoxFit.fitWidth, width: double.infinity);
+                                  }
+                                }
+                                else {
+                                  return LoadingAnimationWidget.bouncingBall(color: const Color(0xFF224190), size: 50);
+                                }
+                              })
                             );
                           }
                         ),
                         const SizedBox(height: 10),
-                        if (widget.product.productImageProviders.length > 1)
+                        if (widget.product.productMediaUrls!.length > 1)
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
-                            children: widget.product.productImageProviders.asMap().entries.map((entry) {
+                            children: widget.product.productMediaUrls!.asMap().entries.map((entry) {
                               return Container(
                                   width: 10.0,
                                   height: 10.0,
@@ -1265,8 +1299,8 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
 
   final ScrollController _scrollController = ScrollController();
 
-  late List<String> _imagePaths;
-  late List<File> _imageFiles;
+  late List<String> _mediaPaths;
+  late List<File> _mediaFiles;
   late int _primaryImageIndex;
   late bool _fileDragging;
   late bool _hoverOnAll;
@@ -1298,8 +1332,8 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
     _hoverOnDelete = false;
 
     _brochureActiveIndex = -1;
-    _imagePaths = [];
-    _imageFiles = [];
+    _mediaPaths = [];
+    _mediaFiles = [];
     _primaryImageIndex = 0;
     _fileDragging = false;
 
@@ -1941,7 +1975,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
 
                                         Log.logger.t("...Image drop-upload encounter...");
                                         for (var file in detail.files) {
-                                          if (_imagePaths.contains(file.path)) {
+                                          if (_mediaPaths.contains(file.path)) {
                                             Log.logger.t("-> Image already assigned to item.");
                                             continue;
                                           }
@@ -1954,22 +1988,26 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                             Log.logger.t("-> Image added to paths: ${file.path}");
                                             paths.add(file.path);
                                           }
+                                          else if (file.path.substring(file.path.length - 4) == ".mp4") {
+                                            Log.logger.t("-> Video added to paths: ${file.path}");
+                                            paths.add(file.path);
+                                          }
                                           else {
                                             Log.logger.t("-> Invalid file type: File type $extension not supported.");
                                           }
                                         }
 
                                         setState(() {
-                                          _imagePaths.addAll(paths);
+                                          _mediaPaths.addAll(paths);
                                           for (var path in paths) {
-                                            _imageFiles.add(File(path));
+                                            _mediaFiles.add(File(path));
                                           }
                                         });
                                       },
                                       onDragEntered: (details) => setState(() => _fileDragging = true),
                                       onDragExited: (details) => setState(() => _fileDragging = false),
                                       child: SizedBox(
-                                        height: (_imagePaths.isNotEmpty) ? 100 : 250,
+                                        height: (_mediaPaths.isNotEmpty) ? 100 : 250,
                                         child: AnimatedContainer(
                                           duration: const Duration(milliseconds: 250),
                                           padding: EdgeInsets.symmetric(horizontal: _fileDragging ? 0 : 15, vertical: _fileDragging ? 0 : 15),
@@ -1984,11 +2022,11 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                               borderRadius: BorderRadius.circular(10),
                                               color: _fileDragging ? const Color(0x88396CED) : const Color(0x55C9C9CC),
                                             ),
-                                            height: (_imagePaths.isNotEmpty) ? 100 : 250,
+                                            height: (_mediaPaths.isNotEmpty) ? 100 : 250,
                                             padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 5),
                                             alignment: Alignment.center,
                                             child: 
-                                              _imagePaths.isEmpty ?
+                                              _mediaPaths.isEmpty ?
                                                 Column(
                                                   mainAxisAlignment: MainAxisAlignment.center,
                                                   children: [
@@ -2017,7 +2055,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                                                 List<String> paths = [];
 
                                                                 for (var path in result.paths) {
-                                                                  if (_imagePaths.contains(path)) {
+                                                                  if (_mediaPaths.contains(path)) {
                                                                     Log.logger.t("Image already assigned to item.");
                                                                     continue;
                                                                   }
@@ -2030,15 +2068,19 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                                                     Log.logger.t("Image added to paths: $path");
                                                                     paths.add(path);
                                                                   }
+                                                                  else if (extension == ".mp4") {
+                                                                    Log.logger.t("-> Video added to paths: $path");
+                                                                    paths.add(path);
+                                                                  }
                                                                   else {
                                                                     Log.logger.t("Invalid file type: File type $extension not supported.");
                                                                   }
                                                                 }
 
                                                                 setState(() {
-                                                                  _imagePaths.addAll(paths);
+                                                                  _mediaPaths.addAll(paths);
                                                                   for (var path in paths) {
-                                                                    _imageFiles.add(File(path));
+                                                                    _mediaFiles.add(File(path));
                                                                   }
                                                                 });
                                                               }
@@ -2050,7 +2092,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                                       child: const Text("Browse Files")
                                                     ),
                                                     const SizedBox(height: 10),
-                                                    const Text("File must be .jpg or .png", style: TextStyle(fontSize: 12.0, fontStyle: FontStyle.italic))
+                                                    const Text("File must be .jpg, .png, or .mp4", style: TextStyle(fontSize: 12.0, fontStyle: FontStyle.italic))
                                                   ]
                                                 )
                                               : Row(
@@ -2081,7 +2123,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                                               List<String> paths = [];
 
                                                               for (var path in result.paths) {
-                                                                if (_imagePaths.contains(path)) {
+                                                                if (_mediaPaths.contains(path)) {
                                                                   Log.logger.t("-> Image already assigned to item.");
                                                                   continue;
                                                                 }
@@ -2094,15 +2136,19 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                                                   Log.logger.t("-> Image added to paths: $path");
                                                                   paths.add(path);
                                                                 }
+                                                                else if (extension == ".mp4") {
+                                                                  Log.logger.t("-> Video added to paths: $path");
+                                                                  paths.add(path);
+                                                                }
                                                                 else {
                                                                   Log.logger.t("-> Invalid file type: File type $extension not supported.");
                                                                 }
                                                               }
 
                                                               setState(() {
-                                                                _imagePaths.addAll(paths);
+                                                                _mediaPaths.addAll(paths);
                                                                 for (var path in paths) {
-                                                                  _imageFiles.add(File(path));
+                                                                  _mediaFiles.add(File(path));
                                                                 }
                                                               });
                                                             }
@@ -2126,16 +2172,16 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                         shrinkWrap: true,
                                         buildDefaultDragHandles: false,
                                         physics: const NeverScrollableScrollPhysics(),
-                                        itemCount: _imagePaths.length,
+                                        itemCount: _mediaPaths.length,
                                         itemBuilder:(context, index) {
 
                                           bool isFromCloud = false;
                                           bool isDownloading = false;
 
-                                          final image = _imageFiles[index];
+                                          final image = _mediaFiles[index];
                                           String imageText = '';
-                                          if (isURL(_imagePaths[index])) {
-                                            final ref = FirebaseUtils.storage.refFromURL(_imagePaths[index]);
+                                          if (isURL(_mediaPaths[index])) {
+                                            final ref = FirebaseUtils.storage.refFromURL(_mediaPaths[index]);
                                             imageText = ref.name;
                                             isFromCloud = true;
                                           }
@@ -2192,8 +2238,8 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                                                       iconSize: 18,
                                                                       onPressed: () async {
                                                                         setState(() => isDownloading = true);
-                                                                        _imageFiles[index].setLastModified(DateTime.now());
-                                                                        await FileSaver.instance.saveFile(name: imageText, file: _imageFiles[index]);
+                                                                        _mediaFiles[index].setLastModified(DateTime.now());
+                                                                        await FileSaver.instance.saveFile(name: imageText, file: _mediaFiles[index]);
                                                                         await getDownloadsDirectory().then((dir) async {
                                                                           if (dir != null) {
                                                                             launchUrl(dir.uri);
@@ -2217,26 +2263,31 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                                               hoverColor: const Color(0xFFD9D9DD),
                                                               iconSize: 16,
                                                               onPressed: () async {
-                                                                final dir = p.dirname(_imagePaths[index]);
+                                                                final dir = p.dirname(_mediaPaths[index]);
                                                                 final uri = Uri.parse(dir);
                                                                 launchUrl(uri);
                                                               }
                                                             ),
                                                           const SizedBox(width: 10),
-                                                          IconButton(
-                                                            style: const ButtonStyle(
-                                                              backgroundColor: MaterialStatePropertyAll<Color>(Color(0xFFA9A9AA)),
-                                                              minimumSize: MaterialStatePropertyAll<Size>(Size(25,25)),
-                                                              fixedSize: MaterialStatePropertyAll<Size>(Size(25,25))
+                                                          if (p.extension(_mediaPaths[index]) != '.mp4')
+                                                            Row(
+                                                              children: [
+                                                                IconButton(
+                                                                  style: const ButtonStyle(
+                                                                    backgroundColor: MaterialStatePropertyAll<Color>(Color(0xFFA9A9AA)),
+                                                                    minimumSize: MaterialStatePropertyAll<Size>(Size(25,25)),
+                                                                    fixedSize: MaterialStatePropertyAll<Size>(Size(25,25))
+                                                                  ),
+                                                                  padding: EdgeInsets.zero,
+                                                                  icon: const Icon(Icons.star),
+                                                                  color: (index == _primaryImageIndex) ? Colors.yellow : Colors.white,
+                                                                  hoverColor: const Color(0xFF808082),
+                                                                  iconSize: 18,
+                                                                  onPressed: () => setState(() => _primaryImageIndex = index)
+                                                                ),
+                                                                const SizedBox(width: 10),
+                                                              ]
                                                             ),
-                                                            padding: EdgeInsets.zero,
-                                                            icon: const Icon(Icons.star),
-                                                            color: (index == _primaryImageIndex) ? Colors.yellow : Colors.white,
-                                                            hoverColor: const Color(0xFF808082),
-                                                            iconSize: 18,
-                                                            onPressed: () => setState(() => _primaryImageIndex = index)
-                                                          ),
-                                                          const SizedBox(width: 10),
                                                           IconButton(
                                                             style: const ButtonStyle(
                                                               backgroundColor: MaterialStatePropertyAll<Color>(Color(0xFFA9A9AA)),
@@ -2249,7 +2300,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                                             hoverColor: const Color(0xFF224190),
                                                             iconSize: 18,
                                                             onPressed: () async {
-                                                              await _previewImage(context, image);
+                                                              await _previewMedia(context, image);
                                                             }
                                                           ),
                                                           const SizedBox(width: 10),
@@ -2265,8 +2316,8 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                                             hoverColor: const Color(0xFFC3291B),
                                                             iconSize: 18,
                                                             onPressed: () => setState(() {
-                                                              _imagePaths.removeAt(index);
-                                                              _imageFiles.removeAt(index);
+                                                              _mediaPaths.removeAt(index);
+                                                              _mediaFiles.removeAt(index);
                                                             })
                                                           )
 
@@ -2280,13 +2331,13 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                         },
                                         onReorder: (oldIndex, newIndex) {
                                           // These two lines are workarounds for ReorderableListView problems
-                                          if (newIndex > _imagePaths.length) newIndex = _imagePaths.length;
+                                          if (newIndex > _mediaPaths.length) newIndex = _mediaPaths.length;
                                           if (oldIndex < newIndex) newIndex--;
 
-                                          String pathToMove = _imagePaths.removeAt(oldIndex);
-                                          File fileToMove = _imageFiles.removeAt(oldIndex);
-                                          _imagePaths.insert(newIndex, pathToMove);
-                                          _imageFiles.insert(newIndex, fileToMove);
+                                          String pathToMove = _mediaPaths.removeAt(oldIndex);
+                                          File fileToMove = _mediaFiles.removeAt(oldIndex);
+                                          _mediaPaths.insert(newIndex, pathToMove);
+                                          _mediaFiles.insert(newIndex, fileToMove);
                                           setState(() {});
                                         }
                                       )
@@ -2468,7 +2519,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                           description: _descriptionController.text,
                           brochure: Product.mapListToBrochure(_brochure)
                         );
-                        EProduct newEProduct = EProduct(product: newProduct, rank: _selectedCategory.rank+1, imagePaths: List.from(_imagePaths), primaryImageIndex: _primaryImageIndex);
+                        EProduct newEProduct = EProduct(product: newProduct, rank: _selectedCategory.rank+1, mediaPaths: List.from(_mediaPaths), primaryImageIndex: _primaryImageIndex);
                         _selectedCategory.addItem(newEProduct);
                       }
                       else if (product != null) {
@@ -2479,8 +2530,8 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                         product.product.modelNumber = _modelNumberController.text;
                         product.product.description = _descriptionController.text;
                         product.product.brochure = Product.mapListToBrochure(_brochure);
-                        product.imagePaths = List.from(_imagePaths);
-                        product.imageFiles = List.from(_imageFiles);
+                        product.mediaPaths = List.from(_mediaPaths);
+                        product.mediaFiles = List.from(_mediaFiles);
                         product.primaryImageIndex = _primaryImageIndex;
                       }
                       setState(() {
@@ -2577,7 +2628,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                         List<String> paths = [];
 
                                         for (var file in detail.files) {
-                                          if (_imagePaths.contains(file.path)) {
+                                          if (_mediaPaths.contains(file.path)) {
                                             Log.logger.t("Image already assigned to item.");
                                             continue;
                                           }
@@ -2596,10 +2647,10 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                         }
 
                                         setState(() {
-                                          _imagePaths = [];
-                                          _imageFiles = [];
-                                          _imagePaths.add(paths[0]);
-                                          _imageFiles.add(File(paths[0]));
+                                          _mediaPaths = [];
+                                          _mediaFiles = [];
+                                          _mediaPaths.add(paths[0]);
+                                          _mediaFiles.add(File(paths[0]));
                                         });
                                       },
                                       onDragEntered: (details) => setState(() => _fileDragging = true),
@@ -2624,7 +2675,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                             padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 5),
                                             alignment: Alignment.center,
                                             child: 
-                                              _imagePaths.isEmpty ?
+                                              _mediaPaths.isEmpty ?
                                                 Column(
                                                   mainAxisAlignment: MainAxisAlignment.center,
                                                   children: [
@@ -2653,7 +2704,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                                                 List<String> paths = [];
 
                                                                 for (var path in result.paths) {
-                                                                  if (_imagePaths.contains(path)) {
+                                                                  if (_mediaPaths.contains(path)) {
                                                                     Log.logger.t("Image already assigned to item.");
                                                                     continue;
                                                                   }
@@ -2672,15 +2723,16 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                                                 }
 
                                                                 setState(() {
-                                                                  _imagePaths = [];
-                                                                  _imageFiles = [];
-                                                                  _imagePaths.add(paths[0]);
-                                                                  _imageFiles.add(File(paths[0]));
+                                                                  _mediaPaths = [];
+                                                                  _mediaFiles = [];
+                                                                  _mediaPaths.add(paths[0]);
+                                                                  _mediaFiles.add(File(paths[0]));
                                                                 });
                                                               }
                                                               else {
                                                                 Log.logger.t("File upload aborted/failed.");
                                                               }
+                                                              return null;
                                                             });
                                                       },
                                                       child: const Text("Browse Files")
@@ -2698,7 +2750,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                                       borderRadius: BorderRadius.circular(8),
                                                       child: Stack(
                                                         children: [
-                                                          Image.file(_imageFiles[0], height: 300),
+                                                          Image.file(_mediaFiles[0], height: 300),
                                                           StatefulBuilder(
                                                             builder: (context, setState) {
                                                               return Positioned.fill(
@@ -2715,8 +2767,8 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                                                         }
                                                                       },
                                                                       onTap: () {
-                                                                        _imageFiles.clear();
-                                                                        _imagePaths.clear();
+                                                                        _mediaFiles.clear();
+                                                                        _mediaPaths.clear();
                                                                         super.setState(() {});
                                                                       },
                                                                       child: hoverOnImageRemove ? const Icon(Icons.clear, size:40, color: Color(0xFFC9C9CC)) : const SizedBox()
@@ -2759,7 +2811,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                                                     List<String> paths = [];
 
                                                                     for (var path in result.paths) {
-                                                                      if (_imagePaths.contains(path)) {
+                                                                      if (_mediaPaths.contains(path)) {
                                                                         Log.logger.t("Image already assigned to item.");
                                                                         continue;
                                                                       }
@@ -2778,10 +2830,10 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                                                     }
 
                                                                     setState(() {
-                                                                      _imagePaths = [];
-                                                                      _imageFiles = [];
-                                                                      _imagePaths.add(paths[0]);
-                                                                      _imageFiles.add(File(paths[0]));
+                                                                      _mediaPaths = [];
+                                                                      _mediaFiles = [];
+                                                                      _mediaPaths.add(paths[0]);
+                                                                      _mediaFiles.add(File(paths[0]));
                                                                     });
                                                                   }
                                                                   else {
@@ -2821,7 +2873,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                         name: _nameController.text,
                         parentId: _selectedCategory.id,
                       );
-                      ECategory newECategory = ECategory(category: newCategory, rank: _selectedCategory.rank+1, editorItems: [], imagePath: _imagePaths.isNotEmpty ? _imagePaths[0] : null);
+                      ECategory newECategory = ECategory(category: newCategory, rank: _selectedCategory.rank+1, editorItems: [], imagePath: _mediaPaths.isNotEmpty ? _mediaPaths[0] : null);
                       _selectedCategory.addItem(newECategory);
                     }
                     else if (category != null) {
@@ -2829,8 +2881,8 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                         category.reassignParent(newParent: _selectedCategory);
                       }
                       category.category.name = _nameController.text;
-                      category.imagePath = _imagePaths.isNotEmpty ? _imagePaths[0] : null;
-                      category.imageFile = _imageFiles.isNotEmpty ? _imageFiles[0] : null;
+                      category.imagePath = _mediaPaths.isNotEmpty ? _mediaPaths[0] : null;
+                      category.imageFile = _mediaFiles.isNotEmpty ? _mediaFiles[0] : null;
                       category.rank = _selectedCategory.rank+1;
                     }
                     setState(() {
@@ -2847,27 +2899,59 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
   }
 
 
-  Future<void> _previewImage(BuildContext context, File imageFile) async {
-    await showDialog<void>(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: Colors.white,
-          surfaceTintColor: Colors.transparent,
-          title: const Text(""),
-          content: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: Image.file(imageFile, width: 600),
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: const Text("Close"),
-              onPressed: () => Navigator.of(context).pop()
-            )
-          ]
-        );
-      }
-    );
+  Future<void> _previewMedia(BuildContext context, File mediaFile) async {
+    if (p.extension(mediaFile.path) == '.mp4') {
+      late final player = Player();
+      late final controller = VideoController(player);
+      player.open(Media(mediaFile.path));
+      await showDialog<void>(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            backgroundColor: Colors.white,
+            surfaceTintColor: Colors.transparent,
+            title: const Text(""),
+            content: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: Video(
+                controller: controller,
+              ),
+            ),
+            actions: <Widget>[
+              TextButton(
+                child: const Text("Close"),
+                onPressed: () {
+                  player.dispose();
+                  Navigator.of(context).pop();
+                }
+              )
+            ]
+          );
+        }
+      );
+    }
+    else {
+      await showDialog<void>(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            backgroundColor: Colors.white,
+            surfaceTintColor: Colors.transparent,
+            title: const Text(""),
+            content: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: Image.file(mediaFile, width: 600),
+            ),
+            actions: <Widget>[
+              TextButton(
+                child: const Text("Close"),
+                onPressed: () => Navigator.of(context).pop()
+              )
+            ]
+          );
+        }
+      );
+    }
   }
 
   Future<void> _showSaveLoading(BuildContext context) async {
@@ -2951,7 +3035,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                           children: [
                                             CarouselSlider.builder(
                                               options: CarouselOptions(
-                                                enableInfiniteScroll: _imageFiles.length > 1 ? true : false, 
+                                                enableInfiniteScroll: _mediaFiles.length > 1 ? true : false, 
                                                 enlargeCenterPage: true,
                                                 enlargeFactor: 1,
                                                 onPageChanged: (index, reason) {
@@ -2960,19 +3044,19 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                                   });
                                                 },
                                               ),
-                                              itemCount: _imageFiles.length,
+                                              itemCount: _mediaFiles.length,
                                               itemBuilder: (BuildContext context, int itemIndex, int pageViewIndex) {
                                                 return ClipRRect(
                                                   borderRadius: BorderRadius.circular(30.0),
-                                                  child: Image.file(_imageFiles[itemIndex])
+                                                  child: Image.file(_mediaFiles[itemIndex])
                                                 );
                                               }
                                             ),
                                             const SizedBox(height: 7),
-                                            if (_imageFiles.length > 1)
+                                            if (_mediaFiles.length > 1)
                                               Row(
                                                 mainAxisAlignment: MainAxisAlignment.center,
-                                                children: _imageFiles.asMap().entries.map((entry) {
+                                                children: _mediaFiles.asMap().entries.map((entry) {
                                                   return Container(
                                                     width: 7,
                                                     height: 7,
@@ -3244,12 +3328,12 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
         setState(() => _loadingSomething = true);
         await focusItem.setImagePaths();
         await focusItem.setImageFiles();
-        _imagePaths.clear();
-        _imageFiles.clear();
+        _mediaPaths.clear();
+        _mediaFiles.clear();
         setState(() {
           _focusItem = focusItem;
-          _imagePaths = List.from(focusItem.imagePaths!);
-          _imageFiles = List.from(focusItem.imageFiles!);
+          _mediaPaths = List.from(focusItem.mediaPaths!);
+          _mediaFiles = List.from(focusItem.mediaFiles!);
           _nameController.text = focusItem.product.name;
           _modelNumberController.text = focusItem.product.modelNumber ?? '';
           _brochure = focusItem.product.retrieveBrochureList();
@@ -3263,20 +3347,20 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
         setState(() => _loadingSomething = true);
         await focusItem.setImagePaths();
         await focusItem.setImageFiles();
-        _imagePaths.clear();
-        _imageFiles.clear();
+        _mediaPaths.clear();
+        _mediaFiles.clear();
         setState(() {
           _focusItem = focusItem;
-          if (focusItem.imagePath != null) _imagePaths.add(focusItem.imagePath!);
-          if (focusItem.imageFile != null) _imageFiles.add(focusItem.imageFile!);
+          if (focusItem.imagePath != null) _mediaPaths.add(focusItem.imagePath!);
+          if (focusItem.imageFile != null) _mediaFiles.add(focusItem.imageFile!);
           _nameController.text = focusItem.category.name;
           _selectedCategory = focusItem.getParent(root: _editorAll) ?? _editorAll;
         });
         setState(() => _loadingSomething = false);
       }
       case null : {
-        _imagePaths.clear();
-        _imageFiles.clear();
+        _mediaPaths.clear();
+        _mediaFiles.clear();
         _brochure = [BrochureHeader.basic(), BrochureSubheader.basic(), BrochureEntry.basic(), BrochureHeader.basic(), BrochureEntry.basic()];
         _nameController.text = '';
         _descriptionController.text = '';
