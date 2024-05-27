@@ -2,6 +2,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:logger/logger.dart';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'dart:core';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -123,16 +124,30 @@ class FirebaseUtils {
 
   static Future<void> postCatalogToFirestore(Map<String, dynamic> json) async {
     await retry(
-      () => database.collection("catalog").add(json).then((DocumentReference doc) => Log.logger.i('Firestore DocumentSnapshot added with ID: ${doc.id}')),
+      () => database.collection("catalog").add(json)
+        .timeout(const Duration(seconds: 5))
+        .then((DocumentReference doc) => Log.logger.i('Firestore DocumentSnapshot added with ID: ${doc.id}')),
+      onRetry: (Exception exception) {
+        Log.logger.w("Problem encountered when retrieving catalog. Trying again.", error: exception);
+      },
+      maxAttempts: 2,
     );
   }
 
   static Future<Map<String,dynamic>> getCatalogFromFirestore() async {
+
     return await retry(
-      () => database.collection("catalog").orderBy("timestamp", descending: true).limit(1).get().then((event) {
-        Log.logger.i('Firebase DocumentSnapshot retrieved with ID: ${event.docs[0].id}');
-        return event.docs[0].data();
-      }),
+      () => database.collection("catalog").orderBy("timestamp", descending: true).limit(1).get()
+        .timeout(const Duration(seconds: 5))
+        .then((event) {
+          Log.logger.i('Firebase DocumentSnapshot retrieved with ID: ${event.docs[0].id}');
+          return event.docs[0].data();
+        }),
+      onRetry: (Exception exception) {
+        debugPrint("Retrying.");
+        Log.logger.w("Encountered exception when retrieving catalog. Trying again.", error: exception);
+      },
+      maxAttempts: 2,
     );
   }
 

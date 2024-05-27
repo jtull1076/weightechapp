@@ -25,9 +25,13 @@ class ProductManager {
   ProductManager._();
 
   static Future<void> create() async {
-    Map<String, dynamic> catalogJson = await getCatalogFromFirestore();
-    all = ProductCategory.fromJson(catalogJson);
-    //timestamp = catalogJson["timestamp"];
+    try {
+      Map<String, dynamic> catalogJson = await getCatalogFromFirestore();
+      all = ProductCategory.fromJson(catalogJson);
+      //timestamp = catalogJson["timestamp"];
+    } catch (e) {
+      rethrow;
+    }
   }
 
   List<ProductCategory> getAllCategories(ProductCategory? category) {
