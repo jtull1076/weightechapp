@@ -2,6 +2,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:logger/logger.dart';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'dart:core';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -9,6 +10,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:weightechapp/firebase_options.dart';
 import 'package:shortid/shortid.dart';
+import 'package:retry/retry.dart';
 
 class AppInfo {
   static late PackageInfo packageInfo;
@@ -94,19 +96,8 @@ class FirebaseUtils {
   Future<void> init() async {
     firebaseApp = await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-    try {
-      userCredential =
-          await FirebaseAuth.instance.signInAnonymously();
-      Log.logger.t("-> Signed in with temporary account.");
-    } on FirebaseAuthException catch (error, stackTrace) {
-      switch (error.code) {
-        case "operation-not-allowed":
-          Log.logger.e("Anonymous auth hasn't been enabled for this project.");
-          break;
-        default:
-          Log.logger.e("Unknown error.", error: error, stackTrace: stackTrace);
-      }
-    }
+    userCredential = await FirebaseAuth.instance.signInAnonymously();
+    Log.logger.t("-> Signed in with temporary account.");
 
     Log.logger.t("-> Setting up Firestore Database...");
     database = FirebaseFirestore.instanceFor(app: firebaseApp);
@@ -121,14 +112,29 @@ class FirebaseUtils {
   }
 
   static Future<void> postCatalogToFirestore(Map<String, dynamic> json) async {
-    await database.collection("devCatalog").add(json).then((DocumentReference doc) => Log.logger.i('Firestore DocumentSnapshot added with ID: ${doc.id}'));
+    await database.collection("catalog").add(json)
+      .then((DocumentReference doc) {
+        Log.logger.i('Firestore DocumentSnapshot added with ID: ${doc.id}');
+      });
   }
 
   static Future<Map<String,dynamic>> getCatalogFromFirestore() async {
-    return await database.collection("devCatalog").orderBy("timestamp", descending: true).limit(1).get().then((event) {
-      Log.logger.i('Firebase DocumentSnapshot retrieved with ID: ${event.docs[0].id}');
-      return event.docs[0].data();
-    });
+    return await retry(
+      () => database.collection("catalog").orderBy("timestamp", descending: true).limit(1).get()
+        .timeout(const Duration(seconds: 5))
+        .then((event) {
+          if (event.docs.isEmpty) {
+            throw("Empty get data.");
+          }
+          Log.logger.i('Firebase DocumentSnapshot retrieved with ID: ${event.docs[0].id}');
+          return event.docs[0].data();
+        }),
+      onRetry: (Exception exception) {
+        debugPrint("Retrying.");
+        Log.logger.w("Encountered exception when retrieving catalog. Trying again.", error: exception);
+      },
+      maxAttempts: 2,
+    );
   }
 
   static Future<void> downloadFromFirebaseStorage({required String url}) async {

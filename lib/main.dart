@@ -31,6 +31,7 @@ import 'package:http/http.dart' as http;
 import 'package:file_saver/file_saver.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
+import 'package:internet_connection_checker_plus/internet_connection_checker_plus.dart';
 
 
 //MARK: MAIN
@@ -112,17 +113,31 @@ class _StartupPageState extends State<StartupPage> with TickerProviderStateMixin
 
   Future<void> _runStartupTasks() async { 
 
-    Log.logger.t('...Clearing existing cache');
-    _progressStreamController.add('...Clearing cache...');
-    await DefaultCacheManager().emptyCache();
+    if (!await InternetConnection().hasInternetAccess) {
+      if (mounted) {
+        Navigator.of(context).pushReplacement(PageRouteBuilder(pageBuilder: (BuildContext context, _, __) => const OfflinePage()));
+      }
+    }
 
-    Log.logger.t('...Initializing Firebase...');
-    _progressStreamController.add('...Initializing Firebase...');
-    await FirebaseUtils().init();
+    try {
+      Log.logger.t('...Clearing existing cache');
+      _progressStreamController.add('...Clearing cache...');
+      await DefaultCacheManager().emptyCache();
 
-    Log.logger.t('...Initializing Product Manager...');
-    _progressStreamController.add('...Initializing Product Manager...');
-    await ProductManager.create();
+      Log.logger.t('...Initializing Firebase...');
+      _progressStreamController.add('...Initializing Firebase...');
+      await FirebaseUtils().init();
+
+      Log.logger.t('...Initializing Product Manager...');
+      _progressStreamController.add('...Initializing Product Manager...');
+
+      await ProductManager.create();
+    } catch (e) {
+      Log.logger.e("Error encountered retrieving catalog.", error: e);
+      if (mounted) {
+        Navigator.of(context).pushReplacement(PageRouteBuilder(pageBuilder: (BuildContext context, _, __) => ErrorPage(message: e)));
+      }
+    }
 
     Log.logger.t('...App Startup...');
     _progressStreamController.add('...App Startup...');
@@ -132,6 +147,7 @@ class _StartupPageState extends State<StartupPage> with TickerProviderStateMixin
 
   @override
   void dispose() {
+    _progressStreamController.close();
     super.dispose();
   }
 
@@ -169,18 +185,22 @@ class _StartupPageState extends State<StartupPage> with TickerProviderStateMixin
                           currentVersion: AppInfo.packageInfo.version,
                           getLatestVersion: () async {
                             // Use Github latest endpoint
-                            final data = await http.get(
-                              Uri.parse(
-                              "https://api.github.com/repos/jtull1076/weightechapp/releases/latest"
-                              ),
-                              headers: {
-                                'Authorization': 'Bearer ${FirebaseUtils.githubToken}'
-                              }
-                            );
-                            final latestVersion = jsonDecode(data.body)["tag_name"];
-                            final verCompare = AppInfo.versionCompare(latestVersion, AppInfo.packageInfo.version);
-                            Log.logger.i('Latest version: $latestVersion : This app version is ${(verCompare == 0) ? "up-to-date." : (verCompare == 1) ? "deprecated." : "in development."}');
-                            return latestVersion;
+                            try {
+                              final data = await http.get(
+                                Uri.parse(
+                                "https://api.github.com/repos/jtull1076/weightechapp/releases/latest"
+                                ),
+                                headers: {
+                                  'Authorization': 'Bearer ${FirebaseUtils.githubToken}'
+                                }
+                              );
+                              final latestVersion = jsonDecode(data.body)["tag_name"];
+                              final verCompare = AppInfo.versionCompare(latestVersion, AppInfo.packageInfo.version);
+                              Log.logger.i('Latest version: $latestVersion : This app version is ${(verCompare == 0) ? "up-to-date." : (verCompare == 1) ? "deprecated." : "in development."}');
+                              return latestVersion;
+                            } catch (e) {
+                              Log.logger.e("Error encounted retrieving latest version.", error: e);
+                            }
                           },
                           getBinaryUrl: (version) async {
                             return "https://github.com/jtull1076/weightechapp/releases/download/$version/weightechsales-windows-$version.exe";
@@ -199,15 +219,7 @@ class _StartupPageState extends State<StartupPage> with TickerProviderStateMixin
                             return jsonDecode(data.body)["body"];
                           },
                           callback: (status) {
-                            if (status == UpdatStatus.checking) {
-                              WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-                                setState(() => _checkingForUpdate = true);
-                              });
-                            }
-                            if (status == UpdatStatus.available || status == UpdatStatus.availableWithChangelog) {
-                              setState(() => _checkingForUpdate = false);
-                            }
-                            if (status == UpdatStatus.upToDate) {
+                            if (status == UpdatStatus.upToDate || status == UpdatStatus.error) {
                               WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
                                 Navigator.of(context).pushReplacement(PageRouteBuilder(pageBuilder: (BuildContext context, _, __) => const IdlePage()));
                               });
@@ -232,6 +244,84 @@ class _StartupPageState extends State<StartupPage> with TickerProviderStateMixin
     );
   }
 }
+
+//MARK: OFFLINE PAGE
+
+/// A class defining the stateful HomePage, i.e. the 'All' category listing page. 
+/// 
+/// Defined separately as stateful to handle all animations from [IdlePage]. 
+/// 
+/// See also: [_OfflinePageState]
+class OfflinePage extends StatefulWidget {
+  const OfflinePage({super.key});
+
+  @override
+  State<OfflinePage> createState() => _OfflinePageState();
+}
+
+class _OfflinePageState extends State<OfflinePage> with TickerProviderStateMixin {
+  late StreamSubscription listener;
+  
+  @override
+  void initState() {
+    super.initState();
+    listener = InternetConnection().onStatusChange
+      .listen((InternetStatus status) {
+        switch (status) {
+          case InternetStatus.connected:
+            // The internet is now connectioni
+            Navigator.of(context).pushReplacement(PageRouteBuilder(pageBuilder: (BuildContext context, _, __) => const IdlePage()));
+            break;
+          case InternetStatus.disconnected:
+            // The internet is now disconnected
+            break;
+        }
+      });
+  }
+
+  @override
+  void dispose() {
+    listener.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Stack(
+          children: [
+            Container(
+              constraints: const BoxConstraints(maxHeight: 100),
+              alignment: Alignment.topCenter,
+              child: Hero(tag: 'main-logo', child: Image.asset('assets/weightech_logo_beta.png', fit: BoxFit.scaleDown))
+            ),
+            Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text("You're offline", style: TextStyle(fontSize: 25)),
+                  Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      const Icon(Icons.signal_wifi_bad, size: 50,),
+                      Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: LoadingAnimationWidget.twoRotatingArc(color: const Color(0xFF224190), size: 100)
+                      )
+                    ]
+                  ),
+                  const Text("Waiting for Internet connection"),
+                ]
+              )
+            )
+          ]
+        )
+      )
+    );
+  }
+}
+
 
 //MARK: IDLE PAGE
 /// A class defining the stateless [IdlePage]. Used as the landing page (though not called "LandingPage" because "IdlePage" seemed more apt). 
@@ -308,6 +398,47 @@ class IdlePage extends StatelessWidget {
   }
 }
 
+
+
+//MARK: ERROR PAGE
+/// A class defining the stateless [ErrorPage]. Used as the landing page (though not called "LandingPage" because "IdlePage" seemed more apt). 
+class ErrorPage extends StatelessWidget {
+  final Object? message;
+  const ErrorPage({this.message, super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Stack(
+          children: [
+            Container(
+              constraints: const BoxConstraints(maxHeight: 100),
+              alignment: Alignment.topCenter,
+              child: Hero(tag: 'main-logo', child: Image.asset('assets/weightech_logo_beta.png', fit: BoxFit.scaleDown))
+            ),
+            Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text("Error Occurred", style: TextStyle(fontSize: 25)),
+                  const Icon(Icons.error_outline, size: 160),
+                  (message != null)
+                  ? Text("$message")
+                  : const Text("Unknown error."),
+                  const Text("Restart the app to try again."),
+                ]
+              )
+            )
+          ]
+        )
+      )
+    );
+  }
+}
+
+
+
 //MARK: HOME PAGE
 
 /// A class defining the stateful HomePage, i.e. the 'All' category listing page. 
@@ -345,7 +476,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
     _timer = Timer(const Duration(minutes: 10), () {
       if (mounted){
-        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => IdlePage()));
+        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => const IdlePage()));
         Log.logger.t("--Idle Timeout--");
       }
     });
@@ -1380,15 +1511,19 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
           }
           catch (error, stackTrace) {
             Log.logger.e("Error encountered while updating product catalog: ", error: error, stackTrace: stackTrace);
+            setState(() {
+              _ignoringPointer = false;
+            });
+            return;
           }
           await ProductManager.create();
+          setState(() {
+            _ignoringPointer = false;
+          });
           if (context.mounted) {
             Navigator.of(context).pop();
             Navigator.of(context).pop();
           }
-          setState(() {
-            _ignoringPointer = false;
-          });
         }
       ),
       body: IgnorePointer(

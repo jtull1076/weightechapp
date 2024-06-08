@@ -25,9 +25,13 @@ class ProductManager {
   ProductManager._();
 
   static Future<void> create() async {
-    Map<String, dynamic> catalogJson = await getCatalogFromFirestore();
-    all = ProductCategory.fromJson(catalogJson);
-    //timestamp = catalogJson["timestamp"];
+    try {
+      Map<String, dynamic> catalogJson = await getCatalogFromFirestore();
+      all = ProductCategory.fromJson(catalogJson);
+      //timestamp = catalogJson["timestamp"];
+    } catch (e) {
+      rethrow;
+    }
   }
 
   List<ProductCategory> getAllCategories(ProductCategory? category) {
@@ -84,12 +88,19 @@ class ProductManager {
   }
 
   static Future<void> postCatalogToFirestore() async {
+    Log.logger.t("Posting catalog to Firestore");
     Map<String,dynamic> catalogJson = all!.toJson();
     catalogJson['timestamp'] = DateTime.now();
-    await FirebaseUtils.postCatalogToFirestore(catalogJson);
+    try {
+      await FirebaseUtils.postCatalogToFirestore(catalogJson);
+    } catch (e) {
+      rethrow;
+    }
+    Log.logger.t(" -> done.");
   }
 
   static Future<Map<String,dynamic>> getCatalogFromFirestore() async {
+    Log.logger.t("Retrieving catalog from Firestore");
     return await FirebaseUtils.getCatalogFromFirestore();
   }
 }
@@ -345,7 +356,7 @@ class Product extends CatalogItem {
   // Maps the list of brochure items to the brochure json structure. 
   //
   static List<Map<String, dynamic>> mapListToBrochure(List<BrochureItem> brochure) {
-
+    Log.logger.t("Mapping BrochureItem list...");
     List<String> entries = [];
     List<dynamic> subheaders = [];
     final List<Map<String, dynamic>> brochureMap = [];
@@ -356,13 +367,12 @@ class Product extends CatalogItem {
           entries.insert(0, item.entry);
         }
         case BrochureSubheader _: {
-          subheaders.insert(0, {item.subheader : List<String>.from(entries)}
-          );
+          subheaders.insert(0, {item.subheader : List.from(entries)});
           entries.clear();
         }
         case BrochureHeader _: {
           if (entries.isNotEmpty && subheaders.isNotEmpty){
-            brochureMap.insert(0, {item.header : [{"Entries" : List.from(entries)}, List.from(subheaders)]});
+            brochureMap.insert(0, {item.header : [{"Entries" : List.from(entries)}, ...List.from(subheaders)]});
           }
           else if (entries.isNotEmpty) {
             brochureMap.insert(0, {item.header : [{"Entries" : List.from(entries)}]});
@@ -378,11 +388,14 @@ class Product extends CatalogItem {
         }
       }
     }
+    Log.logger.t("-> done.");
 
     return brochureMap;
   }
 
   List<BrochureItem> retrieveBrochureList() {
+    Log.logger.t("Retrieving brochure list...");
+
     List<BrochureItem> brochureList = [];
 
     if (brochure == null) {
@@ -429,6 +442,7 @@ class Product extends CatalogItem {
       }
     }
 
+    Log.logger.t(" -> done.");
     return brochureList;
   }
 
@@ -504,11 +518,15 @@ sealed class EItem {
   }
 
   static Future<void> updateProductCatalog(ECategory editorCatalog) async {
-    await updateImages(editorCatalog);
-    Log.logger.t("Product images updated.");
-    ProductManager.all = editorCatalog.category;
-    await ProductManager.postCatalogToFirestore();
-    Log.logger.t("Catalog update completed.");
+    try {
+      await updateImages(editorCatalog);
+      Log.logger.t("Product images updated.");
+      ProductManager.all = editorCatalog.category;
+      await ProductManager.postCatalogToFirestore();
+      Log.logger.t("Catalog update completed.");
+    } catch (e) {
+      rethrow;
+    }
   }
 
   static Future<void> updateImages(ECategory editorCatalog) async {
