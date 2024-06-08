@@ -96,19 +96,8 @@ class FirebaseUtils {
   Future<void> init() async {
     firebaseApp = await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-    try {
-      userCredential =
-          await FirebaseAuth.instance.signInAnonymously();
-      Log.logger.t("-> Signed in with temporary account.");
-    } on FirebaseAuthException catch (error, stackTrace) {
-      switch (error.code) {
-        case "operation-not-allowed":
-          Log.logger.e("Anonymous auth hasn't been enabled for this project.");
-          break;
-        default:
-          Log.logger.e("Unknown error.", error: error, stackTrace: stackTrace);
-      }
-    }
+    userCredential = await FirebaseAuth.instance.signInAnonymously();
+    Log.logger.t("-> Signed in with temporary account.");
 
     Log.logger.t("-> Setting up Firestore Database...");
     database = FirebaseFirestore.instanceFor(app: firebaseApp);
@@ -123,23 +112,20 @@ class FirebaseUtils {
   }
 
   static Future<void> postCatalogToFirestore(Map<String, dynamic> json) async {
-    await retry(
-      () => database.collection("catalog").add(json)
-        .timeout(const Duration(seconds: 5))
-        .then((DocumentReference doc) => Log.logger.i('Firestore DocumentSnapshot added with ID: ${doc.id}')),
-      onRetry: (Exception exception) {
-        Log.logger.w("Problem encountered when retrieving catalog. Trying again.", error: exception);
-      },
-      maxAttempts: 2,
-    );
+    await database.collection("catalog").add(json)
+      .then((DocumentReference doc) {
+        Log.logger.i('Firestore DocumentSnapshot added with ID: ${doc.id}');
+      });
   }
 
   static Future<Map<String,dynamic>> getCatalogFromFirestore() async {
-
     return await retry(
       () => database.collection("catalog").orderBy("timestamp", descending: true).limit(1).get()
         .timeout(const Duration(seconds: 5))
         .then((event) {
+          if (event.docs.isEmpty) {
+            throw("Empty get data.");
+          }
           Log.logger.i('Firebase DocumentSnapshot retrieved with ID: ${event.docs[0].id}');
           return event.docs[0].data();
         }),

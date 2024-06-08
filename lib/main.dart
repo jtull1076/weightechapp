@@ -130,6 +130,9 @@ class _StartupPageState extends State<StartupPage> with TickerProviderStateMixin
       await ProductManager.create();
     } catch (e) {
       Log.logger.e("Error encountered retrieving catalog.", error: e);
+      if (mounted) {
+        Navigator.of(context).pushReplacement(PageRouteBuilder(pageBuilder: (BuildContext context, _, __) => ErrorPage(message: e)));
+      }
     }
 
     Log.logger.t('...App Startup...');
@@ -140,6 +143,7 @@ class _StartupPageState extends State<StartupPage> with TickerProviderStateMixin
 
   @override
   void dispose() {
+    _progressStreamController.close();
     super.dispose();
   }
 
@@ -191,7 +195,7 @@ class _StartupPageState extends State<StartupPage> with TickerProviderStateMixin
                               Log.logger.i('Latest version: $latestVersion : This app version is ${(verCompare == 0) ? "up-to-date." : (verCompare == 1) ? "deprecated." : "in development."}');
                               return latestVersion;
                             } catch (e) {
-                              Log.logger.e("Error encountered retrieving catalog.", error: e);
+                              Log.logger.e("Error encounted retrieving latest version.", error: e);
                             }
                           },
                           getBinaryUrl: (version) async {
@@ -1473,15 +1477,19 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
           }
           catch (error, stackTrace) {
             Log.logger.e("Error encountered while updating product catalog: ", error: error, stackTrace: stackTrace);
+            setState(() {
+              _ignoringPointer = false;
+            });
+            return;
           }
           await ProductManager.create();
+          setState(() {
+            _ignoringPointer = false;
+          });
           if (context.mounted) {
             Navigator.of(context).pop();
             Navigator.of(context).pop();
           }
-          setState(() {
-            _ignoringPointer = false;
-          });
         }
       ),
       body: IgnorePointer(
