@@ -2,19 +2,24 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:logger/logger.dart';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'dart:core';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:weightechapp/firebase_options.dart';
+import 'package:shortid/shortid.dart';
+import 'package:retry/retry.dart';
 
 class AppInfo {
   static late PackageInfo packageInfo;
+  static late String sessionId;
   AppInfo();
   
   Future<void> init() async {
     packageInfo = await PackageInfo.fromPlatform();
+    sessionId = shortid.generate();
   }
 
   static int versionCompare(String newVersion, String currentVersion){
@@ -49,9 +54,10 @@ class Log {
       filter: AppLogFilter(),
       printer: AppLogPrinter(),
       output: FileOutput(
-        file: File("${appDocsDir.path}/app-${DateTime.now().toIso8601String().replaceAll(":", "-")}.log"),
-      )
+        file: await File("${appDocsDir.path}/logs/app-${AppInfo.sessionId}.log").create(recursive: true))
     );
+    Log.logger.t("...Logger initialized...");
+    Log.logger.t(DateTime.now().toString());
   }
 }
 
@@ -70,9 +76,9 @@ class AppLogFilter extends LogFilter {
 class AppLogPrinter extends PrettyPrinter {
   AppLogPrinter() 
   : super(
-    excludeBox: {Level.info : true},
+    excludeBox: {Level.info : true, Level.trace: true},
     methodCount: 0,
-    errorMethodCount: 5,
+    errorMethodCount: 10,
     lineLength: 120,
     colors: true, 
     printEmojis: true
@@ -92,19 +98,8 @@ class FirebaseUtils {
   Future<void> init() async {
     firebaseApp = await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-    try {
-      userCredential =
-          await FirebaseAuth.instance.signInAnonymously();
-      Log.logger.t("-> Signed in with temporary account.");
-    } on FirebaseAuthException catch (error, stackTrace) {
-      switch (error.code) {
-        case "operation-not-allowed":
-          Log.logger.e("Anonymous auth hasn't been enabled for this project.");
-          break;
-        default:
-          Log.logger.e("Unknown error.", error: error, stackTrace: stackTrace);
-      }
-    }
+    userCredential = await FirebaseAuth.instance.signInAnonymously();
+    Log.logger.t("-> Signed in with temporary account.");
 
     Log.logger.t("-> Setting up Firestore Database...");
     database = FirebaseFirestore.instanceFor(app: firebaseApp);
@@ -119,27 +114,29 @@ class FirebaseUtils {
   }
 
   static Future<void> postCatalogToFirestore(Map<String, dynamic> json) async {
-    await database.collection("catalog").add(json).then((DocumentReference doc) => Log.logger.i('Firestore DocumentSnapshot added with ID: ${doc.id}'));
+    await database.collection("devCatalog").add(json)
+      .then((DocumentReference doc) {
+        Log.logger.i('Firestore DocumentSnapshot added with ID: ${doc.id}');
+      });
   }
 
   static Future<Map<String,dynamic>> getCatalogFromFirestore() async {
-    try {
-      return await database.collection("catalog").orderBy("timestamp", descending: true).limit(1).get().then((event) {
-        if (event.metadata.isFromCache == true) {
-          throw();
-        }
-        
-        var catalogReference = event.docs[0];
-        catalogReferenceId = catalogReference.id;
-        connectionMade = true;
-        Log.logger.i('Firebase DocumentSnapshot retrieved with ID: $catalogReferenceId');
-
-        return catalogReference.data();
-      });
-    } catch (e, stackTrace) { 
-      Log.logger.e("Error: could not retrieve database. Trying backup...", error: e, stackTrace: stackTrace);
-      rethrow; 
-    }
+    return await retry(
+      () => database.collection("devCatalog").orderBy("timestamp", descending: true).limit(1).get()
+        .timeout(const Duration(seconds: 5))
+        .then((event) {
+          if (event.docs.isEmpty) {
+            throw("Empty get data.");
+          }
+          Log.logger.i('Firebase DocumentSnapshot retrieved with ID: ${event.docs[0].id}');
+          return event.docs[0].data();
+        }),
+      onRetry: (Exception exception) {
+        debugPrint("Retrying.");
+        Log.logger.w("Encountered exception when retrieving catalog. Trying again.", error: exception);
+      },
+      maxAttempts: 2,
+    );
   }
 
   static Future<String?> downloadFromFirebaseStorage({required String url, Directory? directory}) async {

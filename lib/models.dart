@@ -111,12 +111,19 @@ class ProductManager {
   }
 
   static Future<void> postCatalogToFirestore() async {
+    Log.logger.t("Posting catalog to Firestore");
     Map<String,dynamic> catalogJson = all!.toJson();
     catalogJson['timestamp'] = DateTime.now();
-    await FirebaseUtils.postCatalogToFirestore(catalogJson);
+    try {
+      await FirebaseUtils.postCatalogToFirestore(catalogJson);
+    } catch (e) {
+      rethrow;
+    }
+    Log.logger.t(" -> done.");
   }
 
   static Future<Map<String,dynamic>> getCatalogFromFirestore() async {
+    Log.logger.t("Retrieving catalog from Firestore");
     return await FirebaseUtils.getCatalogFromFirestore();
   }
 
@@ -185,10 +192,10 @@ class ProductManager {
           }
         }
         case Product _ : {
-          if (item.productImageUrls?.isNotEmpty ?? false) {
-            for (int i = 0; i < item.productImageUrls!.length; i++) {
-              FirebaseUtils.downloadFromFirebaseStorage(url: item.productImageUrls![i], directory: imageDirectory).then((value) {
-                item.productImageUrls![i] = value!;
+          if (item.productMediaUrls?.isNotEmpty ?? false) {
+            for (int i = 0; i < item.productMediaUrls!.length; i++) {
+              FirebaseUtils.downloadFromFirebaseStorage(url: item.productMediaUrls![i], directory: imageDirectory).then((value) {
+                item.productMediaUrls![i] = value!;
                 if (i==0) {
                   item.imageUrl = value;
                 }
@@ -325,7 +332,7 @@ sealed class CatalogItem {
   }
 
   void storeImage(File imageFile) {
-    final storageRef = FirebaseUtils.storage.ref("images");
+    final storageRef = FirebaseUtils.storage.ref("devImages");
     final categoryImageRef = storageRef.child("${id}_0");
     try {
       categoryImageRef.putFile(imageFile);
@@ -449,8 +456,7 @@ class ProductCategory extends CatalogItem {
 
 class Product extends CatalogItem {
   String? modelNumber;
-  List<String>? productImageUrls;
-  List<ImageProvider> productImageProviders;
+  List<String>? productMediaUrls;
   String? description;
   List<Map<String, dynamic>>? brochure;
   static const String buttonRoute = '/product';
@@ -460,51 +466,32 @@ class Product extends CatalogItem {
     super.parentId,
     super.id,
     super.imageUrl,
-    this.productImageUrls,
+    this.productMediaUrls,
     this.modelNumber,
     this.description,
     this.brochure,
-  }) 
-  : productImageProviders = []
+    BuildContext? context,
+  })
   {
-    if (super.imageUrl == null && (productImageUrls?.isNotEmpty ?? false)) {
-      super.imageUrl = productImageUrls![0];
-      if (imageUrl != null) {
-        try {
-          if (isURL(imageUrl)) {
-            super.imageProvider = CachedNetworkImageProvider(super.imageUrl!);
-          }
-          else {
-            super.imageProvider = FileImage(File(super.imageUrl!));
-          }
-        } catch (e) {
-          Log.logger.t("Failed to retrieve image at $imageUrl. Error: $e");
-          super.imageUrl = null;
-          super.imageProvider = Image.asset('assets/weightech_logo.png').image;
-        }
-      }
-      for (String url in productImageUrls!) {
-        try {
-          if (isURL(url)) {
-            CachedNetworkImageProvider newImageProvider = CachedNetworkImageProvider(url);
-            productImageProviders.add(newImageProvider);
-          }
-          else {
-            productImageProviders.add(FileImage(File(url)));
-          }
-        } catch (e) {
-          Log.logger.t("Failed to retrieve image at $imageUrl. Error: $e");
-          productImageUrls!.remove(url);
-        }
-      }
+    productMediaUrls ??= [];
+    if (super.imageUrl == null && (productMediaUrls?.isNotEmpty ?? false)) {
+      super.imageUrl = productMediaUrls![0];
     }
+      for (String url in productMediaUrls!) {
+        try {
+          DefaultCacheManager().downloadFile(url);
+        } catch (e) {
+          Log.logger.t("Failed to retrieve image at $imageUrl. Error: $e");
+          productMediaUrls!.remove(url);
+        }
+      }
   }
 
   //
   // Maps the list of brochure items to the brochure json structure. 
   //
   static List<Map<String, dynamic>> mapListToBrochure(List<BrochureItem> brochure) {
-
+    Log.logger.t("Mapping BrochureItem list...");
     List<String> entries = [];
     List<dynamic> subheaders = [];
     final List<Map<String, dynamic>> brochureMap = [];
@@ -515,13 +502,12 @@ class Product extends CatalogItem {
           entries.insert(0, item.entry);
         }
         case BrochureSubheader _: {
-          subheaders.insert(0, {item.subheader : List<String>.from(entries)}
-          );
+          subheaders.insert(0, {item.subheader : List.from(entries)});
           entries.clear();
         }
         case BrochureHeader _: {
           if (entries.isNotEmpty && subheaders.isNotEmpty){
-            brochureMap.insert(0, {item.header : [{"Entries" : List.from(entries)}, List.from(subheaders)]});
+            brochureMap.insert(0, {item.header : [{"Entries" : List.from(entries)}, ...List.from(subheaders)]});
           }
           else if (entries.isNotEmpty) {
             brochureMap.insert(0, {item.header : [{"Entries" : List.from(entries)}]});
@@ -537,11 +523,14 @@ class Product extends CatalogItem {
         }
       }
     }
+    Log.logger.t("-> done.");
 
     return brochureMap;
   }
 
   List<BrochureItem> retrieveBrochureList() {
+    Log.logger.t("Retrieving brochure list...");
+
     List<BrochureItem> brochureList = [];
 
     if (brochure == null) {
@@ -588,6 +577,7 @@ class Product extends CatalogItem {
       }
     }
 
+    Log.logger.t(" -> done.");
     return brochureList;
   }
 
@@ -598,7 +588,7 @@ class Product extends CatalogItem {
     json['description'] = description;
     json['brochure'] = brochure;
     json['parentId'] = parentId;
-    json['imageUrls'] = productImageUrls;
+    json['imageUrls'] = productMediaUrls;
     return json;
   }
 
@@ -610,13 +600,13 @@ class Product extends CatalogItem {
       description: json['description'],
       brochure: List<Map<String,dynamic>>.from(json['brochure']),
       parentId: json['parentId'],
-      productImageUrls: List<String>.from(json['imageUrls'] ?? []),
+      productMediaUrls: List<String>.from(json['imageUrls'] ?? [])
     );
   }
 
 
   void storeListOfImages(List<File> imageFiles){
-    final storageRef = FirebaseUtils.storage.ref("images");
+    final storageRef = FirebaseUtils.storage.ref("devImages");
     for ( int i=0 ; i < imageFiles.length ; i++ ) {
       final imageRef = storageRef.child("${id}_$i");
       try {
@@ -627,17 +617,17 @@ class Product extends CatalogItem {
     }
   }
 
-  @override
-  void precacheImages(BuildContext context) async {
-    if (imageProvider != null) {
-      await precacheImage(imageProvider!, context);
-    }
-    if (productImageProviders.isNotEmpty) {
-      for (var provider in productImageProviders) {
-        if (context.mounted) await precacheImage(provider, context);
-      }
-    }
-  }
+  // @override
+  // void precacheImages(BuildContext context) async {
+  //   if (imageProvider != null) {
+  //     await precacheImage(imageProvider!, context);
+  //   }
+  //   if (productMedia.isNotEmpty) {
+  //     for (var provider in productImageProviders) {
+  //       if (context.mounted) await precacheImage(provider, context);
+  //     }
+  //   }
+  // }
 }
 
 sealed class BrochureItem {

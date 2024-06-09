@@ -11,18 +11,24 @@ import 'dart:ui';
 import 'package:simple_rich_text/simple_rich_text.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:http/http.dart' as http;
+import 'package:path/path.dart' as p;
+import 'package:file_saver/file_saver.dart';
+import 'package:media_kit/media_kit.dart';
+import 'package:media_kit_video/media_kit_video.dart';
+import 'package:internet_connection_checker_plus/internet_connection_checker_plus.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 
 
 //MARK: MAIN
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized(); // Initialize Flutter Bindings
 
-  await Log().init();
-  Log.logger.t("...Logger initialized...");
+  MediaKit.ensureInitialized();
 
-  Log.logger.t("...Getting app info...");
+
   await AppInfo().init();
-  Log.logger.i('Version: ${AppInfo.packageInfo.version}, Build: ${AppInfo.packageInfo.buildNumber}');
+  await Log().init();
+  Log.logger.i('Version: ${AppInfo.packageInfo.version}, Build: ${AppInfo.packageInfo.buildNumber}, SessionId: ${AppInfo.sessionId}');
 
   runApp(
     WeightechApp()
@@ -55,6 +61,7 @@ class _StartupPageState extends State<StartupPage> with TickerProviderStateMixin
   late String _startupTaskMessage;
   late StreamController<String> _progressStreamController;
   late bool _updateReady;
+  late bool _checkingForUpdate;
 
   @override
   void initState() {
@@ -62,32 +69,47 @@ class _StartupPageState extends State<StartupPage> with TickerProviderStateMixin
     _startupTaskMessage = '';
     _progressStreamController = StreamController<String>();
     _updateReady = false;
+    _checkingForUpdate = false;
     _runStartupTasks();
   }
 
   Future<void> _runStartupTasks() async { 
 
-    Log.logger.t('...Clearing existing cache');
-    _progressStreamController.add('...Clearing cache...');
-    await DefaultCacheManager().emptyCache();
+    if (!await InternetConnection().hasInternetAccess) {
+      if (mounted) {
+        Navigator.of(context).pushReplacement(PageRouteBuilder(pageBuilder: (BuildContext context, _, __) => const OfflinePage()));
+      }
+    }
 
-    Log.logger.t('...Initializing Firebase...');
-    _progressStreamController.add('...Initializing Firebase...');
-    await FirebaseUtils().init();
-
-    Log.logger.t('...Initializing Product Manager...');
-    _progressStreamController.add('...Initializing Product Manager...');
     try {
+      Log.logger.t('...Clearing existing cache');
+      _progressStreamController.add('...Clearing cache...');
+      await DefaultCacheManager().emptyCache();
+
+      Log.logger.t('...Initializing Firebase...');
+      _progressStreamController.add('...Initializing Firebase...');
+      await FirebaseUtils().init();
+
+      Log.logger.t('...Initializing Product Manager...');
+      _progressStreamController.add('...Initializing Product Manager...');
+    try {
+  
       await ProductManager.create();
     } catch (e, stackTrace) {
       WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-        Navigator.of(context).pushReplacement(PageRouteBuilder(pageBuilder: (BuildContext context, _, __) => ErrorPage(errorMessage: e.toString())));
+        Navigator.of(context).pushReplacement(PageRouteBuilder(pageBuilder: (BuildContext context, _, __) => ErrorPage(message: e.toString())));
       });
     }
 
     Log.logger.t('...Precaching images...');
     _progressStreamController.add('...Caching images...');
     if (mounted) await ProductManager.precacheImages(context);
+    } catch (e) {
+      Log.logger.e("Error encountered retrieving catalog.", error: e);
+      if (mounted) {
+        Navigator.of(context).pushReplacement(PageRouteBuilder(pageBuilder: (BuildContext context, _, __) => ErrorPage(message: e.toString())));
+      }
+    }
 
     Log.logger.t('...App Startup...');
     _progressStreamController.add('...App Startup...');
@@ -100,6 +122,7 @@ class _StartupPageState extends State<StartupPage> with TickerProviderStateMixin
 
   @override
   void dispose() {
+    _progressStreamController.close();
     super.dispose();
   }
 
@@ -205,6 +228,84 @@ class _StartupPageState extends State<StartupPage> with TickerProviderStateMixin
   }
 }
 
+//MARK: OFFLINE PAGE
+
+/// A class defining the stateful HomePage, i.e. the 'All' category listing page. 
+/// 
+/// Defined separately as stateful to handle all animations from [IdlePage]. 
+/// 
+/// See also: [_OfflinePageState]
+class OfflinePage extends StatefulWidget {
+  const OfflinePage({super.key});
+
+  @override
+  State<OfflinePage> createState() => _OfflinePageState();
+}
+
+class _OfflinePageState extends State<OfflinePage> with TickerProviderStateMixin {
+  late StreamSubscription listener;
+  
+  @override
+  void initState() {
+    super.initState();
+    listener = InternetConnection().onStatusChange
+      .listen((InternetStatus status) {
+        switch (status) {
+          case InternetStatus.connected:
+            // The internet is now connectioni
+            Navigator.of(context).pushReplacement(PageRouteBuilder(pageBuilder: (BuildContext context, _, __) => const IdlePage()));
+            break;
+          case InternetStatus.disconnected:
+            // The internet is now disconnected
+            break;
+        }
+      });
+  }
+
+  @override
+  void dispose() {
+    listener.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Stack(
+          children: [
+            Container(
+              constraints: const BoxConstraints(maxHeight: 100),
+              alignment: Alignment.topCenter,
+              child: Hero(tag: 'main-logo', child: Image.asset('assets/weightech_logo_beta.png', fit: BoxFit.scaleDown))
+            ),
+            Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text("You're offline", style: TextStyle(fontSize: 25)),
+                  Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      const Icon(Icons.signal_wifi_bad, size: 50,),
+                      Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: LoadingAnimationWidget.twoRotatingArc(color: const Color(0xFF224190), size: 100)
+                      )
+                    ]
+                  ),
+                  const Text("Waiting for Internet connection"),
+                ]
+              )
+            )
+          ]
+        )
+      )
+    );
+  }
+}
+
+
 //MARK: IDLE PAGE
 /// A class defining the stateless [IdlePage]. Used as the landing page (though not called "LandingPage" because "IdlePage" seemed more apt). 
 class IdlePage extends StatelessWidget {
@@ -235,7 +336,7 @@ class IdlePage extends StatelessWidget {
               ),
               Align(
                 alignment: Alignment.bottomRight,
-                child: Text('${AppInfo.packageInfo.version.toString()} ')
+                child: Text('${AppInfo.packageInfo.version} ${AppInfo.sessionId}')
               )
             ]
           )
@@ -262,26 +363,43 @@ class IdlePage extends StatelessWidget {
 }
 
 //MARK: ERROR PAGE
+/// A class defining the stateless [ErrorPage]. Used as the landing page (though not called "LandingPage" because "IdlePage" seemed more apt). 
 class ErrorPage extends StatelessWidget {
-  String? errorMessage;
-  ErrorPage({String? errorMessage, super.key});
+  final Object? message;
+  const ErrorPage({this.message, super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Center(
-        child: Column(
+        child: Stack(
           children: [
-            const Icon(Icons.error, size: 100),
-            (errorMessage != null) 
-            ? Text(errorMessage!)
-            : const Text("Unknown error occurred. Try restarting your app."),
+            Container(
+              constraints: const BoxConstraints(maxHeight: 100),
+              alignment: Alignment.topCenter,
+              child: Hero(tag: 'main-logo', child: Image.asset('assets/weightech_logo_beta.png', fit: BoxFit.scaleDown))
+            ),
+            Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text("Error Occurred", style: TextStyle(fontSize: 25)),
+                  const Icon(Icons.error_outline, size: 160),
+                  (message != null)
+                  ? Text("$message")
+                  : const Text("Unknown error."),
+                  const Text("Restart the app to try again."),
+                ]
+              )
+            )
           ]
         )
       )
     );
   }
 }
+
+
 
 //MARK: HOME PAGE
 
@@ -644,7 +762,7 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                   children: [
                     CarouselSlider.builder(
                       options: CarouselOptions(
-                        enableInfiniteScroll: widget.product.productImageProviders.length > 1 ? true : false, 
+                        enableInfiniteScroll: widget.product.productMediaUrls!.length > 1 ? true : false, 
                         enlargeCenterPage: true,
                         enlargeFactor: 1,
                         onPageChanged: (index, reason) {
@@ -653,19 +771,41 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                           });
                         },
                       ),
-                      itemCount: widget.product.productImageProviders.length,
+                      itemCount: widget.product.productMediaUrls!.length,
                       itemBuilder: (BuildContext context, int itemIndex, int pageViewIndex) {
                         return ClipRRect(
                           borderRadius: BorderRadius.circular(30.0),
-                          child: Image(image: widget.product.productImageProviders[itemIndex], fit: BoxFit.fitWidth, width: double.infinity)
+                          child: FutureBuilder(
+                            future: DefaultCacheManager().getSingleFile(widget.product.productMediaUrls![itemIndex]),
+                            builder: ((context, snapshot) {
+                              if (snapshot.hasData) {
+                                if (p.extension(snapshot.data!.path) == '.mp4') {
+                                  late final player = Player();
+                                  late final controller = VideoController(player);
+                                  player.open(Media(snapshot.data!.path));
+                                  return Video(
+                                    controller: controller, 
+                                    fit: BoxFit.fitWidth, 
+                                    width: double.infinity
+                                  );
+                                }
+                                else {
+                                  return Image.file(snapshot.data!, fit: BoxFit.fitWidth, width: double.infinity);
+                                }
+                              }
+                              else {
+                                return LoadingAnimationWidget.newtonCradle(color: const Color(0xFF224190), size: 50);
+                              }
+                            })
+                          )
                         );
                       }
                     ),
                     const SizedBox(height: 10),
-                    if (widget.product.productImageProviders.length > 1)
+                    if (widget.product.productMediaUrls!.length > 1)
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
-                        children: widget.product.productImageProviders.asMap().entries.map((entry) {
+                        children: widget.product.productMediaUrls!.asMap().entries.map((entry) {
                           return Container(
                               width: 10.0,
                               height: 10.0,
@@ -791,13 +931,14 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                   FadeTransition(
                     opacity: _fadeAnimation,
                     child:
-                      Align(
+                      Container(
                         alignment: Alignment.center,
+                        padding: const EdgeInsets.only(bottom: 20),
                         child: SimpleRichText(widget.product.description!, textAlign: TextAlign.justify, style: GoogleFonts.openSans(color: Colors.black, fontSize: 18.0)) 
                       )
                   )
-                : const SizedBox(height: 50),
-                const SizedBox(height: 30),
+                : const SizedBox(height: 0),
+                const SizedBox(height: 10),
                 FadeTransition(
                   opacity: _fadeAnimation,
                   child:
@@ -805,7 +946,7 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                       children: [
                         CarouselSlider.builder(
                           options: CarouselOptions(
-                            enableInfiniteScroll: widget.product.productImageProviders.length > 1 ? true : false, 
+                            enableInfiniteScroll: widget.product.productMediaUrls!.length > 1 ? true : false, 
                             enlargeCenterPage: true,
                             enlargeFactor: 1,
                             onPageChanged: (index, reason) {
@@ -814,19 +955,42 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                               });
                             },
                           ),
-                          itemCount: widget.product.productImageProviders.length,
+                          itemCount: widget.product.productMediaUrls!.length,
                           itemBuilder: (BuildContext context, int itemIndex, int pageViewIndex) {
                             return ClipRRect(
                               borderRadius: BorderRadius.circular(30.0),
-                              child: Image(image: widget.product.productImageProviders[itemIndex],),
+                              child: FutureBuilder(
+                                future: DefaultCacheManager().getSingleFile(widget.product.productMediaUrls![itemIndex]),
+                                builder: ((context, snapshot) {
+                                  if (snapshot.hasData) {
+                                    if (p.extension(snapshot.data!.path) == '.mp4') {
+                                      late final player = Player();
+                                      late final controller = VideoController(player);
+                                      player.open(Media(snapshot.data!.path));
+                                      return Video(
+                                        controller: controller, 
+                                        // controls: (VideoState state) => MaterialVideoControls(state), // Uncomment for app usage
+                                        fit: BoxFit.fitWidth, 
+                                        width: double.infinity
+                                      );
+                                    }
+                                    else {
+                                      return Image.file(snapshot.data!, fit: BoxFit.fitWidth, width: double.infinity);
+                                    }
+                                  }
+                                  else {
+                                    return LoadingAnimationWidget.newtonCradle(color: const Color(0xFF224190), size: 50);
+                                  }
+                                })
+                              )
                             );
                           }
                         ),
                         const SizedBox(height: 10),
-                        if (widget.product.productImageProviders.length > 1)
+                        if (widget.product.productMediaUrls!.length > 1)
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
-                            children: widget.product.productImageProviders.asMap().entries.map((entry) {
+                            children: widget.product.productMediaUrls!.asMap().entries.map((entry) {
                               return Container(
                                   width: 10.0,
                                   height: 10.0,
@@ -1141,10 +1305,29 @@ class _ListingPageState extends State<ListingPage> with TickerProviderStateMixin
                         Padding(
                           padding: const EdgeInsets.only(left: 25.0, right: 25.0),
                           child: 
-                            SizeTransition(
-                              sizeFactor: _dividerHeightAnimation, 
-                              axis: Axis.vertical, 
-                              child: Container(
+                            widget.animateDivider ?
+                              SizeTransition(
+                                sizeFactor: _dividerHeightAnimation, 
+                                axis: Axis.vertical, 
+                                child: Container(
+                                  alignment: Alignment.topCenter,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF224190),
+                                    border: Border.all(color: const Color(0xFF224190))
+                                  ),
+                                  width: double.infinity,
+                                  child: 
+                                    Padding(
+                                      padding: const EdgeInsets.all(2.0),
+                                      child:
+                                        Text(widget.category.name, 
+                                          textAlign: TextAlign.center, 
+                                          style: const TextStyle(fontSize: 32.0, fontWeight: FontWeight.bold, color: Colors.white),
+                                        )
+                                    )
+                                )
+                              )
+                            : Container(
                                 alignment: Alignment.topCenter,
                                 decoration: BoxDecoration(
                                   color: const Color(0xFF224190),
@@ -1155,13 +1338,16 @@ class _ListingPageState extends State<ListingPage> with TickerProviderStateMixin
                                   Padding(
                                     padding: const EdgeInsets.all(2.0),
                                     child:
-                                      Text(widget.category.name, 
-                                        textAlign: TextAlign.center, 
-                                        style: const TextStyle(fontSize: 32.0, fontWeight: FontWeight.bold, color: Colors.white),
+                                      FadeTransition(
+                                        opacity: _fadeAnimation,
+                                        child: 
+                                          Text(widget.category.name, 
+                                            textAlign: TextAlign.center, 
+                                            style: const TextStyle(fontSize: 32.0, fontWeight: FontWeight.bold, color: Colors.white),
+                                          )
                                       )
                                   )
-                              )
-                            ),
+                                )
                         ),
                       ]
                     ),                      
