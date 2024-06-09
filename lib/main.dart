@@ -811,24 +811,31 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                       ),
                       itemCount: widget.product.productMediaUrls!.length,
                       itemBuilder: (BuildContext context, int itemIndex, int pageViewIndex) {
-                        return FutureBuilder(
-                          future: DefaultCacheManager().getSingleFile(widget.product.productMediaUrls![itemIndex]),
-                          builder: ((context, snapshot) {
-                            if (snapshot.hasData) {
-                              if (p.extension(snapshot.data!.path) == '.mp4') {
-                                late final player = Player();
-                                late final controller = VideoController(player);
-                                player.open(Media(snapshot.data!.path));
-                                return Video(controller: controller, fit: BoxFit.fitWidth, width: double.infinity);
+                        return ClipRRect(
+                          borderRadius: BorderRadius.circular(30.0),
+                          child: FutureBuilder(
+                            future: DefaultCacheManager().getSingleFile(widget.product.productMediaUrls![itemIndex]),
+                            builder: ((context, snapshot) {
+                              if (snapshot.hasData) {
+                                if (p.extension(snapshot.data!.path) == '.mp4') {
+                                  late final player = Player();
+                                  late final controller = VideoController(player);
+                                  player.open(Media(snapshot.data!.path));
+                                  return Video(
+                                    controller: controller, 
+                                    fit: BoxFit.fitWidth, 
+                                    width: double.infinity
+                                  );
+                                }
+                                else {
+                                  return Image.file(snapshot.data!, fit: BoxFit.fitWidth, width: double.infinity);
+                                }
                               }
                               else {
-                                return Image.file(snapshot.data!, fit: BoxFit.fitWidth, width: double.infinity);
+                                return LoadingAnimationWidget.newtonCradle(color: const Color(0xFF224190), size: 50);
                               }
-                            }
-                            else {
-                              return LoadingAnimationWidget.bouncingBall(color: const Color(0xFF224190), size: 50);
-                            }
-                          })
+                            })
+                          )
                         );
                       }
                     ),
@@ -962,13 +969,14 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                   FadeTransition(
                     opacity: _fadeAnimation,
                     child:
-                      Align(
+                      Container(
                         alignment: Alignment.center,
+                        padding: const EdgeInsets.only(bottom: 20),
                         child: SimpleRichText(widget.product.description!, textAlign: TextAlign.justify, style: GoogleFonts.openSans(color: Colors.black, fontSize: 18.0)) 
                       )
                   )
-                : const SizedBox(height: 50),
-                const SizedBox(height: 30),
+                : const SizedBox(height: 0),
+                const SizedBox(height: 10),
                 FadeTransition(
                   opacity: _fadeAnimation,
                   child:
@@ -987,24 +995,32 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                           ),
                           itemCount: widget.product.productMediaUrls!.length,
                           itemBuilder: (BuildContext context, int itemIndex, int pageViewIndex) {
-                            return FutureBuilder(
-                              future: DefaultCacheManager().getSingleFile(widget.product.productMediaUrls![itemIndex]),
-                              builder: ((context, snapshot) {
-                                if (snapshot.hasData) {
-                                  if (p.extension(snapshot.data!.path) == '.mp4') {
-                                    late final player = Player();
-                                    late final controller = VideoController(player);
-                                    player.open(Media(snapshot.data!.path));
-                                    return Video(controller: controller, fit: BoxFit.fitWidth, width: double.infinity);
+                            return ClipRRect(
+                              borderRadius: BorderRadius.circular(30.0),
+                              child: FutureBuilder(
+                                future: DefaultCacheManager().getSingleFile(widget.product.productMediaUrls![itemIndex]),
+                                builder: ((context, snapshot) {
+                                  if (snapshot.hasData) {
+                                    if (p.extension(snapshot.data!.path) == '.mp4') {
+                                      late final player = Player();
+                                      late final controller = VideoController(player);
+                                      player.open(Media(snapshot.data!.path));
+                                      return Video(
+                                        controller: controller, 
+                                        // controls: (VideoState state) => MaterialVideoControls(state), // Uncomment for app usage
+                                        fit: BoxFit.fitWidth, 
+                                        width: double.infinity
+                                      );
+                                    }
+                                    else {
+                                      return Image.file(snapshot.data!, fit: BoxFit.fitWidth, width: double.infinity);
+                                    }
                                   }
                                   else {
-                                    return Image.file(snapshot.data!, fit: BoxFit.fitWidth, width: double.infinity);
+                                    return LoadingAnimationWidget.newtonCradle(color: const Color(0xFF224190), size: 50);
                                   }
-                                }
-                                else {
-                                  return LoadingAnimationWidget.bouncingBall(color: const Color(0xFF224190), size: 50);
-                                }
-                              })
+                                })
+                              )
                             );
                           }
                         ),
@@ -2404,7 +2420,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                                               }
                                                             ),
                                                           const SizedBox(width: 10),
-                                                          if (p.extension(_mediaPaths[index]) != '.mp4')
+                                                          if (!imageText.endsWith('.mp4'))
                                                             Row(
                                                               children: [
                                                                 IconButton(
@@ -2469,10 +2485,15 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                           if (newIndex > _mediaPaths.length) newIndex = _mediaPaths.length;
                                           if (oldIndex < newIndex) newIndex--;
 
+                                          String primaryImage = _mediaPaths[_primaryImageIndex];
+
                                           String pathToMove = _mediaPaths.removeAt(oldIndex);
                                           File fileToMove = _mediaFiles.removeAt(oldIndex);
                                           _mediaPaths.insert(newIndex, pathToMove);
                                           _mediaFiles.insert(newIndex, fileToMove);
+                                          
+                                          _primaryImageIndex = _mediaPaths.indexOf(primaryImage);
+
                                           setState(() {});
                                         }
                                       )
@@ -2654,6 +2675,12 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                           description: _descriptionController.text,
                           brochure: Product.mapListToBrochure(_brochure)
                         );
+                        if (_mediaFiles[_primaryImageIndex].path.endsWith('.mp4')) {
+                          final newPrimaryIndex = (_mediaFiles.map((x) => x.path).toList()).indexWhere((y) => !y.endsWith('.mp4'));
+                          if (newPrimaryIndex != -1) {
+                            _primaryImageIndex = newPrimaryIndex;
+                          }
+                        }
                         EProduct newEProduct = EProduct(product: newProduct, rank: _selectedCategory.rank+1, mediaPaths: List.from(_mediaPaths), primaryImageIndex: _primaryImageIndex);
                         _selectedCategory.addItem(newEProduct);
                       }
@@ -2667,6 +2694,12 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                         product.product.brochure = Product.mapListToBrochure(_brochure);
                         product.mediaPaths = List.from(_mediaPaths);
                         product.mediaFiles = List.from(_mediaFiles);
+                        if (_mediaFiles[_primaryImageIndex].path.endsWith('.mp4')) {
+                          final newPrimaryIndex = (_mediaFiles.map((x) => x.path).toList()).indexWhere((y) => !y.endsWith('.mp4'));
+                          if (newPrimaryIndex != -1) {
+                            _primaryImageIndex = newPrimaryIndex;
+                          }
+                        }
                         product.primaryImageIndex = _primaryImageIndex;
                       }
                       setState(() {
