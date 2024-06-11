@@ -209,20 +209,21 @@ class ProductManager {
     await traverseCatalog(catalog);
   }
 
-  static Future<void> precacheImages(BuildContext context) async {
+  static Future<void> precacheImages() async {
 
     Future<void> traverseCatalog(CatalogItem item) async {
-      switch (item) {
-        case ProductCategory _ : {
-          item.precacheImages(context);
-          for (var subItem in item.catalogItems) {
-            traverseCatalog(subItem);
-          }
-        }
-        case Product _ : {
-          item.precacheImages(context);
-        }
-      }
+      item.precachePrimaryImage();
+      // switch (item) {
+      //   case ProductCategory _ : {
+      //     item.precacheImages(context);
+      //     for (var subItem in item.catalogItems) {
+      //       traverseCatalog(subItem);
+      //     }
+      //   }
+      //   case Product _ : {
+      //     item.precacheImages(context);
+      //   }
+      // }
     }
 
     await traverseCatalog(all!);
@@ -256,6 +257,10 @@ sealed class CatalogItem {
     else {
       imageProvider = Image.asset('assets/weightech_logo.png').image;
     }
+  }
+
+  Future<void> precachePrimaryImage() async {
+    if (imageUrl != null) await DefaultCacheManager().downloadFile(imageUrl!);
   }
 
   Widget buildCard(VoidCallback onTapCallback) {
@@ -465,26 +470,15 @@ class Product extends CatalogItem {
     required super.name,
     super.parentId,
     super.id,
-    super.imageUrl,
+    String? imageUrl,
     this.productMediaUrls,
     this.modelNumber,
     this.description,
     this.brochure,
     BuildContext? context,
-  })
+  }) : super(imageUrl: imageUrl ?? productMediaUrls?[0])
   {
     productMediaUrls ??= [];
-    if (super.imageUrl == null && (productMediaUrls?.isNotEmpty ?? false)) {
-      super.imageUrl = productMediaUrls![0];
-    }
-      for (String url in productMediaUrls!) {
-        try {
-          DefaultCacheManager().downloadFile(url);
-        } catch (e) {
-          Log.logger.t("Failed to retrieve image at $imageUrl. Error: $e");
-          productMediaUrls!.remove(url);
-        }
-      }
   }
 
   //

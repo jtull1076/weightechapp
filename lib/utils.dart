@@ -49,12 +49,12 @@ class Log {
   Log();
 
   Future<void> init() async {
-    Directory appDocsDir = await getApplicationSupportDirectory();
+    Directory appDocsDir = await getExternalStorageDirectory() ?? await getApplicationSupportDirectory();
     logger = Logger(
       filter: AppLogFilter(),
       printer: AppLogPrinter(),
       output: FileOutput(
-        file: await File("${appDocsDir.path}/logs/app-${AppInfo.sessionId}.log").create(recursive: true))
+        file: await File("${appDocsDir.path}/logs/app-${AppInfo.sessionId}.txt").create(recursive: true))
     );
     Log.logger.t("...Logger initialized...");
     Log.logger.t(DateTime.now().toString());
@@ -129,6 +129,8 @@ class FirebaseUtils {
             throw("Empty get data.");
           }
           Log.logger.i('Firebase DocumentSnapshot retrieved with ID: ${event.docs[0].id}');
+          connectionMade = true;
+          catalogReferenceId = event.docs[0].id;
           return event.docs[0].data();
         }),
       onRetry: (Exception exception) {

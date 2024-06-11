@@ -17,14 +17,16 @@ import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:internet_connection_checker_plus/internet_connection_checker_plus.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
-
+import 'package:wakelock_plus/wakelock_plus.dart';
+import 'package:flutter/services.dart';
 
 //MARK: MAIN
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized(); // Initialize Flutter Bindings
 
-  MediaKit.ensureInitialized();
-
+  MediaKit.ensureInitialized(); // for video
+  WakelockPlus.enable(); // disable screen lock
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive); // set fullscreen
 
   await AppInfo().init();
   await Log().init();
@@ -75,12 +77,6 @@ class _StartupPageState extends State<StartupPage> with TickerProviderStateMixin
 
   Future<void> _runStartupTasks() async { 
 
-    if (!await InternetConnection().hasInternetAccess) {
-      if (mounted) {
-        Navigator.of(context).pushReplacement(PageRouteBuilder(pageBuilder: (BuildContext context, _, __) => const OfflinePage()));
-      }
-    }
-
     try {
       Log.logger.t('...Clearing existing cache');
       _progressStreamController.add('...Clearing cache...');
@@ -92,8 +88,7 @@ class _StartupPageState extends State<StartupPage> with TickerProviderStateMixin
 
       Log.logger.t('...Initializing Product Manager...');
       _progressStreamController.add('...Initializing Product Manager...');
-    try {
-  
+
       await ProductManager.create();
     } catch (e, stackTrace) {
       WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
@@ -103,13 +98,7 @@ class _StartupPageState extends State<StartupPage> with TickerProviderStateMixin
 
     Log.logger.t('...Precaching images...');
     _progressStreamController.add('...Caching images...');
-    if (mounted) await ProductManager.precacheImages(context);
-    } catch (e) {
-      Log.logger.e("Error encountered retrieving catalog.", error: e);
-      if (mounted) {
-        Navigator.of(context).pushReplacement(PageRouteBuilder(pageBuilder: (BuildContext context, _, __) => ErrorPage(message: e.toString())));
-      }
-    }
+    await ProductManager.precacheImages();
 
     Log.logger.t('...App Startup...');
     _progressStreamController.add('...App Startup...');
@@ -466,7 +455,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
             return FadeTransition(opacity: animation.drive(tween),child: child);
           },
-          transitionDuration: const Duration(seconds: 2)
+          transitionDuration: const Duration(seconds: 2),
         )
       );
     }
@@ -484,7 +473,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
             return FadeTransition(opacity: animation.drive(tween), child: child);
           },
-          transitionDuration: const Duration(seconds: 2)
+          transitionDuration: const Duration(seconds: 2),
         )
       );
     }
@@ -642,7 +631,7 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                           _timer.cancel();
                           Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const IdlePage()));
                         },
-                        child: Padding(padding: const EdgeInsets.only(top: 10.0), child: Image.asset('assets/weightech_logo_beta.png', height: 100, cacheHeight: 150, cacheWidth: 394, alignment: Alignment.center,)),
+                        child: Padding(padding: const EdgeInsets.only(top: 10.0), child: Image.asset('assets/weightech_logo_beta.png', height: 100, alignment: Alignment.center,)),
                       ),
                   ),
                   Align(
@@ -1270,7 +1259,7 @@ class _ListingPageState extends State<ListingPage> with TickerProviderStateMixin
                                   },
                                   child: Padding(
                                     padding: const EdgeInsets.only(top: 10.0), 
-                                    child: Image.asset('assets/weightech_logo_beta.png', height: 100, cacheHeight: 150, cacheWidth: 394, alignment: Alignment.center,)
+                                    child: Image.asset('assets/weightech_logo_beta.png', height: 100, alignment: Alignment.center,)
                                   )
                                 ),
                             ),

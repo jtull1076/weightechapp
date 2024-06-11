@@ -36,11 +36,13 @@ dependencies:
   firebase_auth: ^4.20.0
   retry: ^3.1.2
   loading_animation_widget: ^1.2.1
+  wakelock_plus: ^1.2.5
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
+  flutter_launcher_icons: ^0.13.1
 
 flutter:
   uses-material-design: true
@@ -55,7 +57,7 @@ flutter:
 
 flutter_launcher_icons:
   android: "launcher_icon"
-  image_path: "assets/icon/wt_icon.ico"
+  image_path: "assets/icon/android_icon-02.png"
   windows:
     generate: true
     image_path: "assets/icon/wt_icon.ico"
