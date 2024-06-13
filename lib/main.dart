@@ -26,7 +26,7 @@ Future<void> main() async {
 
   MediaKit.ensureInitialized(); // for video
   WakelockPlus.enable(); // disable screen lock
-  SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive); // set fullscreen
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: [SystemUiOverlay.top]); // set fullscreen
 
   await AppInfo().init();
   await Log().init();
@@ -140,71 +140,71 @@ class _StartupPageState extends State<StartupPage> with TickerProviderStateMixin
                     return const CircularProgressIndicator(); // Or any loading indicator
                   }
                 }
-                // else if (snapshot.connectionState == ConnectionState.done) {
-                //   return Stack(
-                //     children: [
-                //       const Center(child: Text("...Checking for updates...")),
-                //       Center(
-                //         child: UpdatWidget(
-                //           currentVersion: AppInfo.packageInfo.version,
-                //           getLatestVersion: () async {
-                //             // Use Github latest endpoint
-                //             try {
-                //               final data = await http.get(
-                //                 Uri.parse(
-                //                 "https://api.github.com/repos/jtull1076/weightechapp/releases/latest"
-                //                 ),
-                //                 headers: {
-                //                   'Authorization': 'Bearer ${FirebaseUtils.githubToken}'
-                //                 }
-                //               );
-                //               final latestVersion = jsonDecode(data.body)["tag_name"];
-                //               final verCompare = AppInfo.versionCompare(latestVersion, AppInfo.packageInfo.version);
-                //               Log.logger.i('Latest version: $latestVersion : This app version is ${(verCompare == 0) ? "up-to-date." : (verCompare == 1) ? "deprecated." : "in development."}');
-                //               return latestVersion;
-                //             }
-                //             catch (e, stackTrace) {
-                //               Log.logger.w("Could not retrieve latest app version.", error: e, stackTrace: stackTrace);
-                //               return null;
-                //             }
-                //           },
-                //           getBinaryUrl: (version) async {
-                //             return "https://github.com/jtull1076/weightechapp/releases/download/$version/weightechsales-android-$version.apk";
-                //           },
-                //           appName: "WeighTech Inc. Sales",
-                //           getChangelog: (_, __) async {
-                //             final data = await http.get(
-                //               Uri.parse(
-                //               "https://api.github.com/repos/jtull1076/weightechapp/releases/latest"
-                //               ),
-                //               headers: {
-                //                 'Authorization': 'Bearer ${FirebaseUtils.githubToken}'
-                //               }
-                //             );
-                //             Log.logger.t('Changelog: ${jsonDecode(data.body)["body"]}');
-                //             return jsonDecode(data.body)["body"];
-                //           },
-                //           callback: (status) {
-                //             if (status == UpdatStatus.upToDate) {
-                //               WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-                //                 Navigator.of(context).pushReplacement(PageRouteBuilder(pageBuilder: (BuildContext context, _, __) => const IdlePage()));
-                //               });
-                //             }
-                //             if (status == UpdatStatus.error) {
-                //               Log.logger.w("Error encountered retrieving update.");
-                //               WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-                //                 Navigator.of(context).pushReplacement(PageRouteBuilder(pageBuilder: (BuildContext context, _, __) => const IdlePage()));
-                //               });
-                //             }
-                //             // else if (status == UpdatStatus.readyToInstall) {
-                //             //   setState(() => _updateReady = true);
-                //             // }
-                //           }
-                //         )
-                //       ),
-                //     ]
-                //   );
-                // }
+                else if (snapshot.connectionState == ConnectionState.done) {
+                  return Stack(
+                    children: [
+                      const Center(child: Text("...Checking for updates...")),
+                      Center(
+                        child: UpdatWidget(
+                          currentVersion: AppInfo.packageInfo.version,
+                          getLatestVersion: () async {
+                            // Use Github latest endpoint
+                            try {
+                              final data = await http.get(
+                                Uri.parse(
+                                "https://api.github.com/repos/jtull1076/weightechapp/releases/latest"
+                                ),
+                                headers: {
+                                  'Authorization': 'Bearer ${FirebaseUtils.githubToken}'
+                                }
+                              );
+                              final latestVersion = jsonDecode(data.body)["tag_name"];
+                              final verCompare = AppInfo.versionCompare(latestVersion, AppInfo.packageInfo.version);
+                              Log.logger.i('Latest version: $latestVersion : This app version is ${(verCompare == 0) ? "up-to-date." : (verCompare == 1) ? "deprecated." : "in development."}');
+                              return latestVersion;
+                            }
+                            catch (e, stackTrace) {
+                              Log.logger.w("Could not retrieve latest app version.", error: e, stackTrace: stackTrace);
+                              return null;
+                            }
+                          },
+                          getBinaryUrl: (version) async {
+                            return "https://github.com/jtull1076/weightechapp/releases/download/$version/weightechsales-android-$version.apk";
+                          },
+                          appName: "WeighTech Inc. Sales",
+                          getChangelog: (_, __) async {
+                            final data = await http.get(
+                              Uri.parse(
+                              "https://api.github.com/repos/jtull1076/weightechapp/releases/latest"
+                              ),
+                              headers: {
+                                'Authorization': 'Bearer ${FirebaseUtils.githubToken}'
+                              }
+                            );
+                            Log.logger.t('Changelog: ${jsonDecode(data.body)["body"]}');
+                            return jsonDecode(data.body)["body"];
+                          },
+                          callback: (status) {
+                            if (status == UpdatStatus.upToDate) {
+                              WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+                                Navigator.of(context).pushReplacement(PageRouteBuilder(pageBuilder: (BuildContext context, _, __) => const IdlePage()));
+                              });
+                            }
+                            if (status == UpdatStatus.error) {
+                              Log.logger.w("Error encountered retrieving update.");
+                              WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+                                Navigator.of(context).pushReplacement(PageRouteBuilder(pageBuilder: (BuildContext context, _, __) => const IdlePage()));
+                              });
+                            }
+                            // else if (status == UpdatStatus.readyToInstall) {
+                            //   setState(() => _updateReady = true);
+                            // }
+                          }
+                        )
+                      ),
+                    ]
+                  );
+                }
                 else {
                   return const Text("Other");
                 }
