@@ -1,4 +1,4 @@
-package com.example.weightechapp
+package com.jtull.weightechapp
 
 import io.flutter.embedding.android.FlutterActivity
 

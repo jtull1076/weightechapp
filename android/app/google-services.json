@@ -10,7 +10,26 @@
       "client_info": {
         "mobilesdk_app_id": "1:863473899531:android:40014b0fa1b5c2e2c30f0e",
         "android_client_info": {
-          "package_name": "com.example.weightechapp"
+          "package_name": "com.jtull.weightechapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCd91NmsCYUNm3TyGIF7PojhsEkGB6SQGc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:863473899531:android:619f57ac91bfcf7ac30f0e",
+        "android_client_info": {
+          "package_name": "com.jtull.weightechapp"
         }
       },
       "oauth_client": [],

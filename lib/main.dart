@@ -1,10 +1,10 @@
 import 'dart:convert';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:updat/updat.dart';
 import 'package:weightechapp/models.dart';
 import 'package:weightechapp/themes.dart';
 import 'package:weightechapp/utils.dart';
+import 'package:weightechapp/extra_widgets.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:ui';
@@ -19,6 +19,7 @@ import 'package:internet_connection_checker_plus/internet_connection_checker_plu
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:flutter/services.dart';
+import 'package:upgrader/upgrader.dart';
 
 //MARK: MAIN
 Future<void> main() async {
@@ -90,18 +91,18 @@ class _StartupPageState extends State<StartupPage> with TickerProviderStateMixin
       _progressStreamController.add('...Initializing Product Manager...');
 
       await ProductManager.create();
+
+      Log.logger.t('...Precaching images...');
+      _progressStreamController.add('...Caching images...');
+      await ProductManager.precacheImages();
+
+      Log.logger.t('...App Startup...');
+      _progressStreamController.add('...App Startup...');
     } catch (e, stackTrace) {
       WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
         Navigator.of(context).pushReplacement(PageRouteBuilder(pageBuilder: (BuildContext context, _, __) => ErrorPage(message: e.toString())));
       });
     }
-
-    Log.logger.t('...Precaching images...');
-    _progressStreamController.add('...Caching images...');
-    await ProductManager.precacheImages();
-
-    Log.logger.t('...App Startup...');
-    _progressStreamController.add('...App Startup...');
 
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
       _progressStreamController.close();
@@ -141,68 +142,8 @@ class _StartupPageState extends State<StartupPage> with TickerProviderStateMixin
                   }
                 }
                 else if (snapshot.connectionState == ConnectionState.done) {
-                  return Stack(
-                    children: [
-                      const Center(child: Text("...Checking for updates...")),
-                      Center(
-                        child: UpdatWidget(
-                          currentVersion: AppInfo.packageInfo.version,
-                          getLatestVersion: () async {
-                            // Use Github latest endpoint
-                            try {
-                              final data = await http.get(
-                                Uri.parse(
-                                "https://api.github.com/repos/jtull1076/weightechapp/releases/latest"
-                                ),
-                                headers: {
-                                  'Authorization': 'Bearer ${FirebaseUtils.githubToken}'
-                                }
-                              );
-                              final latestVersion = jsonDecode(data.body)["tag_name"];
-                              final verCompare = AppInfo.versionCompare(latestVersion, AppInfo.packageInfo.version);
-                              Log.logger.i('Latest version: $latestVersion : This app version is ${(verCompare == 0) ? "up-to-date." : (verCompare == 1) ? "deprecated." : "in development."}');
-                              return latestVersion;
-                            }
-                            catch (e, stackTrace) {
-                              Log.logger.w("Could not retrieve latest app version.", error: e, stackTrace: stackTrace);
-                              return null;
-                            }
-                          },
-                          getBinaryUrl: (version) async {
-                            return "https://github.com/jtull1076/weightechapp/releases/download/$version/weightechsales-android-$version.apk";
-                          },
-                          appName: "WeighTech Inc. Sales",
-                          getChangelog: (_, __) async {
-                            final data = await http.get(
-                              Uri.parse(
-                              "https://api.github.com/repos/jtull1076/weightechapp/releases/latest"
-                              ),
-                              headers: {
-                                'Authorization': 'Bearer ${FirebaseUtils.githubToken}'
-                              }
-                            );
-                            Log.logger.t('Changelog: ${jsonDecode(data.body)["body"]}');
-                            return jsonDecode(data.body)["body"];
-                          },
-                          callback: (status) {
-                            if (status == UpdatStatus.upToDate) {
-                              WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-                                Navigator.of(context).pushReplacement(PageRouteBuilder(pageBuilder: (BuildContext context, _, __) => const IdlePage()));
-                              });
-                            }
-                            if (status == UpdatStatus.error) {
-                              Log.logger.w("Error encountered retrieving update.");
-                              WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-                                Navigator.of(context).pushReplacement(PageRouteBuilder(pageBuilder: (BuildContext context, _, __) => const IdlePage()));
-                              });
-                            }
-                            // else if (status == UpdatStatus.readyToInstall) {
-                            //   setState(() => _updateReady = true);
-                            // }
-                          }
-                        )
-                      ),
-                    ]
+                  return UpgradeAlert(
+                    child: const Center(child: Text("...Checking for updates...")),
                   );
                 }
                 else {
@@ -946,31 +887,43 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                           ),
                           itemCount: widget.product.productMediaUrls!.length,
                           itemBuilder: (BuildContext context, int itemIndex, int pageViewIndex) {
-                            return ClipRRect(
-                              borderRadius: BorderRadius.circular(30.0),
-                              child: FutureBuilder(
-                                future: DefaultCacheManager().getSingleFile(widget.product.productMediaUrls![itemIndex]),
-                                builder: ((context, snapshot) {
-                                  if (snapshot.hasData) {
-                                    if (p.extension(snapshot.data!.path) == '.mp4') {
-                                      late final player = Player();
-                                      late final controller = VideoController(player);
-                                      player.open(Media(snapshot.data!.path));
-                                      return Video(
-                                        controller: controller, 
-                                        // controls: (VideoState state) => MaterialVideoControls(state), // Uncomment for app usage
-                                        fit: BoxFit.fitWidth, 
-                                        width: double.infinity
-                                      );
-                                    }
-                                    else {
-                                      return Image.file(snapshot.data!, fit: BoxFit.fitWidth, width: double.infinity);
-                                    }
-                                  }
-                                  else {
-                                    return LoadingAnimationWidget.newtonCradle(color: const Color(0xFF224190), size: 50);
-                                  }
-                                })
+                            return FullScreenWidget(
+                              disposeLevel: DisposeLevel.Low,
+                              child: Hero(
+                                tag: "$itemIndex-hero",
+                                child: Stack(
+                                  children: [
+                                    Center(
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(30.0),
+                                        child: FutureBuilder(
+                                          future: DefaultCacheManager().getSingleFile(widget.product.productMediaUrls![itemIndex]),
+                                          builder: ((context, snapshot) {
+                                            if (snapshot.hasData) {
+                                              if (p.extension(snapshot.data!.path) == '.mp4') {
+                                                late final player = Player();
+                                                late final controller = VideoController(player);
+                                                player.open(Media(snapshot.data!.path));
+                                                return Video(
+                                                  controller: controller, 
+                                                  // controls: (VideoState state) => MaterialVideoControls(state), // Uncomment for app usage
+                                                  fit: BoxFit.fitWidth, 
+                                                  width: double.infinity
+                                                );
+                                              }
+                                              else {
+                                                return Image.file(snapshot.data!, fit: BoxFit.fitWidth, width: double.infinity);
+                                              }
+                                            }
+                                            else {
+                                              return LoadingAnimationWidget.newtonCradle(color: const Color(0xFF224190), size: 50);
+                                            }
+                                          })
+                                        )
+                                      )
+                                    ),
+                                  ]
+                                )
                               )
                             );
                           }

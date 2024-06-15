@@ -11,6 +11,7 @@ import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:weightechapp/utils.dart';
 import 'package:string_validator/string_validator.dart' show isURL;
+import 'package:flutter_archive/flutter_archive.dart';
 
 
 
@@ -194,12 +195,14 @@ class ProductManager {
         case Product _ : {
           if (item.productMediaUrls?.isNotEmpty ?? false) {
             for (int i = 0; i < item.productMediaUrls!.length; i++) {
-              FirebaseUtils.downloadFromFirebaseStorage(url: item.productMediaUrls![i], directory: imageDirectory).then((value) {
-                item.productMediaUrls![i] = value!;
-                if (i==0) {
-                  item.imageUrl = value;
-                }
-              });
+              if (!item.productMediaUrls!.contains('${item.id}_$i.mp4')) {
+                FirebaseUtils.downloadFromFirebaseStorage(url: item.productMediaUrls![i], directory: imageDirectory).then((value) {
+                  item.productMediaUrls![i] = value!;
+                  if (i==0) {
+                    item.imageUrl = value;
+                  }
+                });
+              }
             }
           }
         }
@@ -476,7 +479,7 @@ class Product extends CatalogItem {
     this.description,
     this.brochure,
     BuildContext? context,
-  }) : super(imageUrl: imageUrl ?? productMediaUrls?[0])
+  }) : super(imageUrl: imageUrl ?? ((productMediaUrls?.isNotEmpty ?? false) ? productMediaUrls![0] : null))
   {
     productMediaUrls ??= [];
   }

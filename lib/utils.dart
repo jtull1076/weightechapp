@@ -49,7 +49,7 @@ class Log {
   Log();
 
   Future<void> init() async {
-    Directory appDocsDir = await getExternalStorageDirectory() ?? await getApplicationSupportDirectory();
+    Directory appDocsDir = await getExternalStorageDirectory() ?? await getApplicationDocumentsDirectory();
     logger = Logger(
       filter: AppLogFilter(),
       printer: AppLogPrinter(),
@@ -109,7 +109,7 @@ class FirebaseUtils {
     
     Log.logger.t("-> Getting access tokens...");
     await database.collection("tokens").doc("github").get().then((DocumentSnapshot doc) {
-      githubToken = (doc.data() as Map<String, dynamic>)['access_token']!;
+      githubToken = (doc.data() as Map<String, dynamic>)['android_token']!;
     });
   }
 
@@ -128,10 +128,15 @@ class FirebaseUtils {
           if (event.docs.isEmpty) {
             throw("Empty get data.");
           }
-          Log.logger.i('Firebase DocumentSnapshot retrieved with ID: ${event.docs[0].id}');
-          connectionMade = true;
-          catalogReferenceId = event.docs[0].id;
-          return event.docs[0].data();
+          else if (event.metadata.isFromCache) {
+            throw("Retrieved cached database version");
+          }
+          else {
+            Log.logger.i('Firebase DocumentSnapshot retrieved with ID: ${event.docs[0].id}');
+            connectionMade = true;
+            catalogReferenceId = event.docs[0].id;
+            return event.docs[0].data();
+          }
         }),
       onRetry: (Exception exception) {
         debugPrint("Retrying.");

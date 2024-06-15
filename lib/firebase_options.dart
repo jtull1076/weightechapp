@@ -52,7 +52,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyCd91NmsCYUNm3TyGIF7PojhsEkGB6SQGc',
-    appId: '1:863473899531:android:40014b0fa1b5c2e2c30f0e',
+    appId: '1:863473899531:android:619f57ac91bfcf7ac30f0e',
     messagingSenderId: '863473899531',
     projectId: 'weightechapp',
     databaseURL: 'https://weightechapp-default-rtdb.firebaseio.com',
@@ -66,7 +66,7 @@ class DefaultFirebaseOptions {
     projectId: 'weightechapp',
     databaseURL: 'https://weightechapp-default-rtdb.firebaseio.com',
     storageBucket: 'weightechapp.appspot.com',
-    iosBundleId: 'com.example.weightechapp',
+    iosBundleId: 'com.jtull.weightechapp',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
@@ -76,7 +76,7 @@ class DefaultFirebaseOptions {
     projectId: 'weightechapp',
     databaseURL: 'https://weightechapp-default-rtdb.firebaseio.com',
     storageBucket: 'weightechapp.appspot.com',
-    iosBundleId: 'com.example.weightechapp',
+    iosBundleId: 'com.jtull.weightechapp',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
