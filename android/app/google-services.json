@@ -10,7 +10,7 @@
       "client_info": {
         "mobilesdk_app_id": "1:863473899531:android:40014b0fa1b5c2e2c30f0e",
         "android_client_info": {
-          "package_name": "com.jtull.weightechapp"
+          "package_name": "com.example.weightechapp"
         }
       },
       "oauth_client": [],

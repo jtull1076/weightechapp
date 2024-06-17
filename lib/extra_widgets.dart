@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 class FullScreenWidget extends StatelessWidget {
   const FullScreenWidget(
       {required this.child,
+      super.key,
       this.backgroundColor = Colors.black,
       this.backgroundIsTransparent = true,
       required this.disposeLevel});
@@ -37,14 +38,15 @@ class FullScreenWidget extends StatelessWidget {
   }
 }
 
-enum DisposeLevel { High, Medium, Low }
+enum DisposeLevel { high, medium, low }
 
 class FullScreenPage extends StatefulWidget {
   const FullScreenPage(
       {required this.child,
+      super.key,
       this.backgroundColor = Colors.black,
       this.backgroundIsTransparent = true,
-      this.disposeLevel = DisposeLevel.Medium});
+      this.disposeLevel = DisposeLevel.medium});
 
   final Widget child;
   final Color backgroundColor;
@@ -77,10 +79,10 @@ class _FullScreenPageState extends State<FullScreenPage> {
 
   setDisposeLevel() {
     setState(() {
-      if (widget.disposeLevel == DisposeLevel.High) {
+      if (widget.disposeLevel == DisposeLevel.high) {
         disposeLimit = 300;
       }
-      else if (widget.disposeLevel == DisposeLevel.Medium) {
+      else if (widget.disposeLevel == DisposeLevel.medium) {
         disposeLimit = 200;
       }
       else {
@@ -167,19 +169,23 @@ class _FullScreenPageState extends State<FullScreenPage> {
                 right: 0,
                 child: widget.child,
               ),
-              IconButton(
+              Align(
                 alignment: Alignment.topLeft,
-                padding: const EdgeInsets.all(30),
-                icon: const Icon(Icons.arrow_back),
-                color: const Color(0xFF224190),
-                iconSize: 30,
-                onPressed: () {
-                  setState(() {
-                    animationDuration = const Duration(milliseconds: 300);
-                    opacity = 0.5;
-                  });
-                  Navigator.of(context).pop();
-                },
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 30, top: 30),
+                  child: IconButton(
+                    icon: const Icon(Icons.arrow_back),
+                    color: const Color(0xFF224190),
+                    iconSize: 30,
+                    onPressed: () {
+                      setState(() {
+                        animationDuration = const Duration(milliseconds: 300);
+                        opacity = 0.5;
+                      });
+                      Navigator.of(context).pop();
+                    },
+                  )
+                )
               )
             ],
           ),

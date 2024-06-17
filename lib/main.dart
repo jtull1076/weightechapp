@@ -27,7 +27,8 @@ Future<void> main() async {
 
   MediaKit.ensureInitialized(); // for video
   WakelockPlus.enable(); // disable screen lock
-  SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: [SystemUiOverlay.top]); // set fullscreen
+  //SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: [SystemUiOverlay.top]); // set fullscreen
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
 
   await AppInfo().init();
   await Log().init();
@@ -200,35 +201,37 @@ class _OfflinePageState extends State<OfflinePage> with TickerProviderStateMixin
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: Stack(
-          children: [
-            Container(
-              constraints: const BoxConstraints(maxHeight: 100),
-              alignment: Alignment.topCenter,
-              child: Hero(tag: 'main-logo', child: Image.asset('assets/weightech_logo_beta.png', fit: BoxFit.scaleDown))
-            ),
-            Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text("You're offline", style: TextStyle(fontSize: 25)),
-                  Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      const Icon(Icons.signal_wifi_bad, size: 50,),
-                      Padding(
-                        padding: const EdgeInsets.all(20),
-                        child: LoadingAnimationWidget.twoRotatingArc(color: const Color(0xFF224190), size: 100)
-                      )
-                    ]
-                  ),
-                  const Text("Waiting for Internet connection"),
-                ]
+    return SafeArea(
+      child: Scaffold(
+        body: Center(
+          child: Stack(
+            children: [
+              Container(
+                constraints: const BoxConstraints(maxHeight: 100),
+                alignment: Alignment.topCenter,
+                child: Hero(tag: 'main-logo', child: Image.asset('assets/weightech_logo_beta.png', fit: BoxFit.scaleDown))
+              ),
+              Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text("You're offline", style: TextStyle(fontSize: 25)),
+                    Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        const Icon(Icons.signal_wifi_bad, size: 50,),
+                        Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: LoadingAnimationWidget.twoRotatingArc(color: const Color(0xFF224190), size: 100)
+                        )
+                      ]
+                    ),
+                    const Text("Waiting for Internet connection"),
+                  ]
+                )
               )
-            )
-          ]
+            ]
+          )
         )
       )
     );
@@ -422,77 +425,79 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        padding: const EdgeInsets.only(top: 0, bottom: 0),
-        child: Stack(
-          children: <Widget>[
-            Flex(
-              direction: Axis.vertical,
-              children: <Widget>[
-                Flexible(
-                  child: 
-                    FadeTransition(
-                      opacity: _fadeAnimation,
-                      child: 
-                        GridView.builder(
-                          padding: const EdgeInsets.only(top: 110, bottom: 20, left: 20, right: 20),
-                          itemCount: ProductManager.all!.catalogItems.length,
-                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: MediaQuery.of(context).size.width > 1000 ? 4 : MediaQuery.of(context).size.width > 800 ? 3 : MediaQuery.of(context).size.width > 500 ? 2 : 1,
-                            childAspectRatio: 0.9,
-                            crossAxisSpacing: 1,
-                            mainAxisSpacing: 0.7,
-                          ),
-                          itemBuilder: (context, index) => ProductManager.all!.catalogItems[index].buildCard(() => catalogNavigation(context, ProductManager.all!.getAllCatalogItems()[index])),
-                        )
-                    ),
-                )],//)
-            ),
-            Stack(
-              alignment: Alignment.topCenter,
-              children: [
-                SizedBox(
-                  height: 110,
-                  width: double.infinity,
-                  child: 
-                    ClipRect(
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12), 
+    return SafeArea(
+      child: Scaffold(
+        body: Container(
+          padding: const EdgeInsets.only(top: 0, bottom: 0),
+          child: Stack(
+            children: <Widget>[
+              Flex(
+                direction: Axis.vertical,
+                children: <Widget>[
+                  Flexible(
+                    child: 
+                      FadeTransition(
+                        opacity: _fadeAnimation,
                         child: 
-                              ShaderMask(
-                                shaderCallback: (Rect rect) {
-                                  return const LinearGradient(
-                                    begin: Alignment.centerLeft,
-                                    end: Alignment.centerRight,
-                                    colors: [Colors.white, Colors.transparent, Colors.transparent, Colors.white],
-                                    stops: [0.0, 0.38, 0.62, 1.0],
-                                  ).createShader(rect);
-                                },
-                                blendMode: BlendMode.dstOut,
-                                child:
-                                  Container(color: Colors.white.withOpacity(1.0))
-                              )
+                          GridView.builder(
+                            padding: const EdgeInsets.only(top: 110, bottom: 20, left: 20, right: 20),
+                            itemCount: ProductManager.all!.catalogItems.length,
+                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: MediaQuery.of(context).size.width > 1000 ? 4 : MediaQuery.of(context).size.width > 800 ? 3 : MediaQuery.of(context).size.width > 500 ? 2 : 1,
+                              childAspectRatio: 0.9,
+                              crossAxisSpacing: 1,
+                              mainAxisSpacing: 0.7,
+                            ),
+                            itemBuilder: (context, index) => ProductManager.all!.catalogItems[index].buildCard(() => catalogNavigation(context, ProductManager.all!.getAllCatalogItems()[index])),
+                          )
+                      ),
+                  )],//)
+              ),
+              Stack(
+                alignment: Alignment.topCenter,
+                children: [
+                  SizedBox(
+                    height: 110,
+                    width: double.infinity,
+                    child: 
+                      ClipRect(
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12), 
+                          child: 
+                                ShaderMask(
+                                  shaderCallback: (Rect rect) {
+                                    return const LinearGradient(
+                                      begin: Alignment.centerLeft,
+                                      end: Alignment.centerRight,
+                                      colors: [Colors.white, Colors.transparent, Colors.transparent, Colors.white],
+                                      stops: [0.0, 0.38, 0.62, 1.0],
+                                    ).createShader(rect);
+                                  },
+                                  blendMode: BlendMode.dstOut,
+                                  child:
+                                    Container(color: Colors.white.withOpacity(1.0))
+                                )
+                        )
                       )
-                    )
-                ),
-                Column(
-                  children: [
-                    GestureDetector(
-                      onDoubleTap: (){
-                        Log.logger.t('---Return to Idle Interaction---');
-                        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const IdlePage()));
-                      },
-                      child: Padding(padding: const EdgeInsets.only(top: 10.0), child: Hero(tag: 'main-logo', child: Image.asset('assets/weightech_logo_beta.png', height: 100, alignment: Alignment.center,))),
-                    ),
-                    SizeTransition(sizeFactor: _dividerWidthAnimation, axis: Axis.horizontal, child: FadeTransition(opacity: _fadeAnimation, child: const Hero(tag: 'divider', child: Divider(color: Color(0xFF224190), height: 2, thickness: 2, indent: 25.0, endIndent: 25.0,)))),
-                    const SizedBox(height: 10),
-                  ]
-                )
-              ]
-            ),
-            
-          ]
+                  ),
+                  Column(
+                    children: [
+                      GestureDetector(
+                        onDoubleTap: (){
+                          Log.logger.t('---Return to Idle Interaction---');
+                          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const IdlePage()));
+                        },
+                        child: Padding(padding: const EdgeInsets.only(top: 10.0), child: Hero(tag: 'main-logo', child: Image.asset('assets/weightech_logo_beta.png', height: 100, alignment: Alignment.center,))),
+                      ),
+                      SizeTransition(sizeFactor: _dividerWidthAnimation, axis: Axis.horizontal, child: FadeTransition(opacity: _fadeAnimation, child: const Hero(tag: 'divider', child: Divider(color: Color(0xFF224190), height: 2, thickness: 2, indent: 25.0, endIndent: 25.0,)))),
+                      const SizedBox(height: 10),
+                    ]
+                  )
+                ]
+              ),
+              
+            ]
+          )
         )
       )
     );
@@ -555,60 +560,79 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Column(
-        children: [
-          SizedBox(
-            width: double.infinity,
-            height: 110,
-            child: 
-              Stack(
-                children: [
-                  Center(
-                    child: 
-                      GestureDetector(
-                        onDoubleTap: (){
-                          Log.logger.t('---Return to Idle Interaction---');
-                          _timer.cancel();
-                          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const IdlePage()));
-                        },
-                        child: Padding(padding: const EdgeInsets.only(top: 10.0), child: Image.asset('assets/weightech_logo_beta.png', height: 100, alignment: Alignment.center,)),
-                      ),
-                  ),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: 
-                      Padding(
-                        padding: const EdgeInsets.only(left: 30),
-                        child: 
-                          IconButton(
-                            icon: const Icon(Icons.arrow_back),
-                            iconSize: 30,
+    return SafeArea(
+      child: Scaffold(
+        body: Column(
+          children: [
+            SizedBox(
+              width: double.infinity,
+              height: 110,
+              child: 
+                Stack(
+                  children: [
+                    Center(
+                      child: 
+                        GestureDetector(
+                          onDoubleTap: (){
+                            Log.logger.t('---Return to Idle Interaction---');
+                            _timer.cancel();
+                            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const IdlePage()));
+                          },
+                          child: Padding(padding: const EdgeInsets.only(top: 10.0), child: Image.asset('assets/weightech_logo_beta.png', height: 100, alignment: Alignment.center,)),
+                        ),
+                    ),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: 
+                        Padding(
+                          padding: const EdgeInsets.only(left: 30),
+                          child: 
+                            IconButton(
+                              icon: const Icon(Icons.arrow_back),
+                              iconSize: 30,
+                              color: const Color(0xFF224190),
+                              onPressed: () => Navigator.pop(context),
+                            )
+                        )
+                    ),
+                  ]
+                ),
+            ),
+            Stack(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(left: 25.0, right: 25.0),
+                  child: Container(
+                    color: const Color(0xFF224190),
+                    height: 2.0
+                  )
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(left: 25.0, right: 25.0),
+                  child: 
+                    widget.animateDivider ?
+                      SizeTransition(
+                        sizeFactor: _dividerHeightAnimation, 
+                        axis: Axis.vertical, 
+                        child: Container(
+                          alignment: Alignment.topCenter,
+                          decoration: BoxDecoration(
                             color: const Color(0xFF224190),
-                            onPressed: () => Navigator.pop(context),
-                          )
+                            border: Border.all(color: const Color(0xFF224190))
+                          ),
+                          width: double.infinity,
+                          child: 
+                            Padding(
+                              padding: const EdgeInsets.all(2.0),
+                              child:
+                                Text(widget.product.name, 
+                                  textAlign: TextAlign.center, 
+                                  style: const TextStyle(fontSize: 32.0, fontWeight: FontWeight.bold, color: Colors.white),
+                                )
+                            )
+                        )
                       )
-                  ),
-                ]
-              ),
-          ),
-          Stack(
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(left: 25.0, right: 25.0),
-                child: Container(
-                  color: const Color(0xFF224190),
-                  height: 2.0
-                )
-              ),
-              Padding(
-                padding: const EdgeInsets.only(left: 25.0, right: 25.0),
-                child: 
-                  widget.animateDivider ?
-                    SizeTransition(
-                      sizeFactor: _dividerHeightAnimation, 
-                      axis: Axis.vertical, 
-                      child: Container(
+                    : Container(
                         alignment: Alignment.topCenter,
                         decoration: BoxDecoration(
                           color: const Color(0xFF224190),
@@ -619,48 +643,31 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                           Padding(
                             padding: const EdgeInsets.all(2.0),
                             child:
-                              Text(widget.product.name, 
-                                textAlign: TextAlign.center, 
-                                style: const TextStyle(fontSize: 32.0, fontWeight: FontWeight.bold, color: Colors.white),
+                              FadeTransition(
+                                opacity: _fadeAnimation,
+                                child: 
+                                  Text(widget.product.name, 
+                                    textAlign: TextAlign.center, 
+                                    style: const TextStyle(fontSize: 32.0, fontWeight: FontWeight.bold, color: Colors.white),
+                                  )
                               )
                           )
-                      )
-                    )
-                  : Container(
-                      alignment: Alignment.topCenter,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF224190),
-                        border: Border.all(color: const Color(0xFF224190))
-                      ),
-                      width: double.infinity,
-                      child: 
-                        Padding(
-                          padding: const EdgeInsets.all(2.0),
-                          child:
-                            FadeTransition(
-                              opacity: _fadeAnimation,
-                              child: 
-                                Text(widget.product.name, 
-                                  textAlign: TextAlign.center, 
-                                  style: const TextStyle(fontSize: 32.0, fontWeight: FontWeight.bold, color: Colors.white),
-                                )
-                            )
                         )
-                      )
-              ),
-            ]
-          ),
-          Expanded(
-            child:
-              SingleChildScrollView(
-                padding: const EdgeInsets.only(bottom: 30),
-                scrollDirection: Axis.vertical,
-                child: MediaQuery.of(context).size.width > 600 ? 
-                  pageForLandscape()
-                  : pageForPortrait()
-              ),
-          ),
-        ]
+                ),
+              ]
+            ),
+            Expanded(
+              child:
+                SingleChildScrollView(
+                  padding: const EdgeInsets.only(bottom: 30),
+                  scrollDirection: Axis.vertical,
+                  child: MediaQuery.of(context).size.width > 600 ? 
+                    pageForLandscape()
+                    : pageForPortrait()
+                ),
+            ),
+          ]
+        )
       )
     );
   }
@@ -695,6 +702,7 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                         enableInfiniteScroll: widget.product.productMediaUrls!.length > 1 ? true : false, 
                         enlargeCenterPage: true,
                         enlargeFactor: 1,
+                        viewportFraction: 1,
                         onPageChanged: (index, reason) {
                           setState(() {
                             _current = index;
@@ -703,31 +711,49 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                       ),
                       itemCount: widget.product.productMediaUrls!.length,
                       itemBuilder: (BuildContext context, int itemIndex, int pageViewIndex) {
-                        return ClipRRect(
-                          borderRadius: BorderRadius.circular(30.0),
-                          child: FutureBuilder(
-                            future: DefaultCacheManager().getSingleFile(widget.product.productMediaUrls![itemIndex]),
-                            builder: ((context, snapshot) {
-                              if (snapshot.hasData) {
-                                if (p.extension(snapshot.data!.path) == '.mp4') {
-                                  late final player = Player();
-                                  late final controller = VideoController(player);
-                                  player.open(Media(snapshot.data!.path));
-                                  return Video(
-                                    controller: controller, 
-                                    fit: BoxFit.fitWidth, 
-                                    width: double.infinity
-                                  );
-                                }
-                                else {
-                                  return Image.file(snapshot.data!, fit: BoxFit.fitWidth, width: double.infinity);
-                                }
+                        return FutureBuilder(
+                          future: DefaultCacheManager().getSingleFile(widget.product.productMediaUrls![itemIndex]),
+                          builder: ((context, snapshot) {
+                            if (snapshot.hasData) {
+                              if (p.extension(snapshot.data!.path) == '.mp4') {
+                                late final player = Player();
+                                late final controller = VideoController(player);
+                                player.open(Media(snapshot.data!.path));
+                                return ClipRRect(
+                                  borderRadius: BorderRadius.circular(30),
+                                  child: FullScreenWidget(
+                                    disposeLevel: DisposeLevel.low,
+                                    child: Hero(
+                                      tag: "$itemIndex-hero",
+                                      child: Video(
+                                        controller: controller, 
+                                        // controls: (VideoState state) => MaterialVideoControls(state), // Uncomment for app usage
+                                        fit: BoxFit.fitWidth, 
+                                        width: double.infinity
+                                      )
+                                    )
+                                  )
+                                );
                               }
                               else {
-                                return LoadingAnimationWidget.newtonCradle(color: const Color(0xFF224190), size: 50);
+                                return ClipRRect(
+                                  borderRadius: BorderRadius.circular(30),
+                                  child: FullScreenWidget(
+                                    disposeLevel: DisposeLevel.low,
+                                    child: Hero(
+                                      tag: "$itemIndex-hero",
+                                      child: Center(
+                                        child: Image.file(snapshot.data!, fit: BoxFit.fitWidth, width: double.infinity)
+                                      )
+                                    )
+                                  )
+                                );
                               }
-                            })
-                          )
+                            }
+                            else {
+                              return LoadingAnimationWidget.newtonCradle(color: const Color(0xFF224190), size: 50);
+                            }
+                          })
                         );
                       }
                     ),
@@ -879,6 +905,7 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                             enableInfiniteScroll: widget.product.productMediaUrls!.length > 1 ? true : false, 
                             enlargeCenterPage: true,
                             enlargeFactor: 1,
+                            viewportFraction: 1,
                             onPageChanged: (index, reason) {
                               setState(() {
                                 _current = index;
@@ -887,44 +914,54 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                           ),
                           itemCount: widget.product.productMediaUrls!.length,
                           itemBuilder: (BuildContext context, int itemIndex, int pageViewIndex) {
-                            return FullScreenWidget(
-                              disposeLevel: DisposeLevel.Low,
-                              child: Hero(
-                                tag: "$itemIndex-hero",
-                                child: Stack(
-                                  children: [
-                                    Center(
-                                      child: ClipRRect(
-                                        borderRadius: BorderRadius.circular(30.0),
-                                        child: FutureBuilder(
-                                          future: DefaultCacheManager().getSingleFile(widget.product.productMediaUrls![itemIndex]),
-                                          builder: ((context, snapshot) {
-                                            if (snapshot.hasData) {
-                                              if (p.extension(snapshot.data!.path) == '.mp4') {
-                                                late final player = Player();
-                                                late final controller = VideoController(player);
-                                                player.open(Media(snapshot.data!.path));
-                                                return Video(
-                                                  controller: controller, 
-                                                  // controls: (VideoState state) => MaterialVideoControls(state), // Uncomment for app usage
-                                                  fit: BoxFit.fitWidth, 
-                                                  width: double.infinity
-                                                );
-                                              }
-                                              else {
-                                                return Image.file(snapshot.data!, fit: BoxFit.fitWidth, width: double.infinity);
-                                              }
-                                            }
-                                            else {
-                                              return LoadingAnimationWidget.newtonCradle(color: const Color(0xFF224190), size: 50);
-                                            }
-                                          })
+                            return FutureBuilder(
+                              future: DefaultCacheManager().getSingleFile(widget.product.productMediaUrls![itemIndex]),
+                              builder: ((context, snapshot) {
+                                if (snapshot.hasData) {
+                                  if (p.extension(snapshot.data!.path) == '.mp4') {
+                                    late final player = Player();
+                                    late final controller = VideoController(player);
+                                    player.open(Media(snapshot.data!.path));
+                                    return ClipRRect(
+                                      borderRadius: BorderRadius.circular(30),
+                                      child: FullScreenWidget(
+                                        disposeLevel: DisposeLevel.low,
+                                        child: Hero(
+                                          tag: "$itemIndex-hero",
+                                          child: Video(
+                                            controller: controller, 
+                                            // controls: (VideoState state) => MaterialVideoControls(state), // Uncomment for app usage
+                                            fit: BoxFit.fitWidth, 
+                                            width: double.infinity
+                                          )
                                         )
                                       )
-                                    ),
-                                  ]
-                                )
-                              )
+                                    );
+                                  }
+                                  else {
+                                    return ClipRRect(
+                                      clipBehavior: Clip.hardEdge,
+                                      borderRadius: BorderRadius.circular(30),
+                                      child: FullScreenWidget(
+                                        disposeLevel: DisposeLevel.low,
+                                        child: Hero(
+                                          tag: "$itemIndex-hero",
+                                          child: Center(
+                                            child: Image.file(
+                                              snapshot.data!, 
+                                              fit: BoxFit.fitWidth,
+                                              width: double.infinity
+                                            )
+                                          )
+                                        )
+                                      )
+                                    );
+                                  }
+                                }
+                                else {
+                                  return LoadingAnimationWidget.newtonCradle(color: const Color(0xFF224190), size: 80);
+                                }
+                              })
                             );
                           }
                         ),
@@ -1141,117 +1178,136 @@ class _ListingPageState extends State<ListingPage> with TickerProviderStateMixin
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        padding: const EdgeInsets.only(top: 0, bottom: 0),
-        child: Stack(
-          children: <Widget>[
-            Flex(
-              direction: Axis.vertical,
-              children: <Widget>[
-                Flexible(
-                  child: 
-                    FadeTransition(
-                      opacity: _fadeAnimation,
-                      child: 
-                        GridView.builder(
-                          padding: const EdgeInsets.only(top: 165, bottom: 20, left: 20, right: 20),
-                          itemCount: widget.catalogItems.length,
-                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: MediaQuery.of(context).size.width<600 ? 1 : 4,
-                            childAspectRatio: 0.9,
-                            crossAxisSpacing: 1,
-                            mainAxisSpacing: 1,
-                          ),
-                          itemBuilder: (context, index) => widget.catalogItems[index].buildCard(() => catalogNavigation(context, widget.catalogItems[index])),)
-                    )
-                )
-              ],
-            ),
-            Stack(
-              alignment: Alignment.topCenter,
-              children: [
-                SizedBox(
-                  height: 110,
-                  width: double.infinity,
-                  child: 
-                    ClipRect(
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12), 
+    return SafeArea(
+      child: Scaffold(
+        body: Container(
+          padding: const EdgeInsets.only(top: 0, bottom: 0),
+          child: Stack(
+            children: <Widget>[
+              Flex(
+                direction: Axis.vertical,
+                children: <Widget>[
+                  Flexible(
+                    child: 
+                      FadeTransition(
+                        opacity: _fadeAnimation,
                         child: 
-                              ShaderMask(
-                                shaderCallback: (Rect rect) {
-                                  return const LinearGradient(
-                                    begin: Alignment.centerLeft,
-                                    end: Alignment.centerRight,
-                                    colors: [Colors.white, Colors.transparent, Colors.transparent, Colors.white],
-                                    stops: [0.0, 0.38, 0.62, 1.0],
-                                  ).createShader(rect);
-                                },
-                                blendMode: BlendMode.dstOut,
-                                child:
-                                  Container(color: Colors.white.withOpacity(1.0))
-                              )
+                          GridView.builder(
+                            padding: const EdgeInsets.only(top: 165, bottom: 20, left: 20, right: 20),
+                            itemCount: widget.catalogItems.length,
+                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: MediaQuery.of(context).size.width<600 ? 1 : 4,
+                              childAspectRatio: 0.9,
+                              crossAxisSpacing: 1,
+                              mainAxisSpacing: 1,
+                            ),
+                            itemBuilder: (context, index) => widget.catalogItems[index].buildCard(() => catalogNavigation(context, widget.catalogItems[index])),)
                       )
-                    )
-                ),
-                Column(
-                  children: [
-                    SizedBox(
-                      width: double.infinity,
-                      height: 110,
-                      child: 
-                        Stack(
-                          children: [
-                            Center(
-                              child: 
-                                GestureDetector(
-                                  onDoubleTap: (){
-                                    Log.logger.t('---Return to Idle Interaction---');
-                                    Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const IdlePage()));
-                                  },
-                                  child: Padding(
-                                    padding: const EdgeInsets.only(top: 10.0), 
-                                    child: Image.asset('assets/weightech_logo_beta.png', height: 100, alignment: Alignment.center,)
-                                  )
-                                ),
-                            ),
-                            Align(
-                              alignment: Alignment.centerLeft,
-                              child: 
-                                Padding(
-                                  padding: const EdgeInsets.only(left: 30),
-                                  child: 
-                                    IconButton(
-                                      icon: const Icon(Icons.arrow_back),
-                                      iconSize: 30,
-                                      color: const Color(0xFF224190),
-                                      onPressed: () {
-                                        Navigator.of(context).pop();
-                                      }
-                                    )
-                                )
-                            ),
-                          ]
-                        ),
-                    ),
-                    Stack(
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.only(left: 25.0, right: 25.0),
-                          child: Container(
-                            color: const Color(0xFF224190),
-                            height: 2.0
-                          )
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.only(left: 25.0, right: 25.0),
+                  )
+                ],
+              ),
+              Stack(
+                alignment: Alignment.topCenter,
+                children: [
+                  SizedBox(
+                    height: 110,
+                    width: double.infinity,
+                    child: 
+                      ClipRect(
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12), 
                           child: 
-                            widget.animateDivider ?
-                              SizeTransition(
-                                sizeFactor: _dividerHeightAnimation, 
-                                axis: Axis.vertical, 
-                                child: Container(
+                                ShaderMask(
+                                  shaderCallback: (Rect rect) {
+                                    return const LinearGradient(
+                                      begin: Alignment.centerLeft,
+                                      end: Alignment.centerRight,
+                                      colors: [Colors.white, Colors.transparent, Colors.transparent, Colors.white],
+                                      stops: [0.0, 0.38, 0.62, 1.0],
+                                    ).createShader(rect);
+                                  },
+                                  blendMode: BlendMode.dstOut,
+                                  child:
+                                    Container(color: Colors.white.withOpacity(1.0))
+                                )
+                        )
+                      )
+                  ),
+                  Column(
+                    children: [
+                      SizedBox(
+                        width: double.infinity,
+                        height: 110,
+                        child: 
+                          Stack(
+                            children: [
+                              Center(
+                                child: 
+                                  GestureDetector(
+                                    onDoubleTap: (){
+                                      Log.logger.t('---Return to Idle Interaction---');
+                                      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const IdlePage()));
+                                    },
+                                    child: Padding(
+                                      padding: const EdgeInsets.only(top: 10.0), 
+                                      child: Image.asset('assets/weightech_logo_beta.png', height: 100, alignment: Alignment.center,)
+                                    )
+                                  ),
+                              ),
+                              Align(
+                                alignment: Alignment.centerLeft,
+                                child: 
+                                  Padding(
+                                    padding: const EdgeInsets.only(left: 30),
+                                    child: 
+                                      IconButton(
+                                        icon: const Icon(Icons.arrow_back),
+                                        iconSize: 30,
+                                        color: const Color(0xFF224190),
+                                        onPressed: () {
+                                          Navigator.of(context).pop();
+                                        }
+                                      )
+                                  )
+                              ),
+                            ]
+                          ),
+                      ),
+                      Stack(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.only(left: 25.0, right: 25.0),
+                            child: Container(
+                              color: const Color(0xFF224190),
+                              height: 2.0
+                            )
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.only(left: 25.0, right: 25.0),
+                            child: 
+                              widget.animateDivider ?
+                                SizeTransition(
+                                  sizeFactor: _dividerHeightAnimation, 
+                                  axis: Axis.vertical, 
+                                  child: Container(
+                                    alignment: Alignment.topCenter,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF224190),
+                                      border: Border.all(color: const Color(0xFF224190))
+                                    ),
+                                    width: double.infinity,
+                                    child: 
+                                      Padding(
+                                        padding: const EdgeInsets.all(2.0),
+                                        child:
+                                          Text(widget.category.name, 
+                                            textAlign: TextAlign.center, 
+                                            style: const TextStyle(fontSize: 32.0, fontWeight: FontWeight.bold, color: Colors.white),
+                                          )
+                                      )
+                                  )
+                                )
+                              : Container(
                                   alignment: Alignment.topCenter,
                                   decoration: BoxDecoration(
                                     color: const Color(0xFF224190),
@@ -1262,43 +1318,26 @@ class _ListingPageState extends State<ListingPage> with TickerProviderStateMixin
                                     Padding(
                                       padding: const EdgeInsets.all(2.0),
                                       child:
-                                        Text(widget.category.name, 
-                                          textAlign: TextAlign.center, 
-                                          style: const TextStyle(fontSize: 32.0, fontWeight: FontWeight.bold, color: Colors.white),
+                                        FadeTransition(
+                                          opacity: _fadeAnimation,
+                                          child: 
+                                            Text(widget.category.name, 
+                                              textAlign: TextAlign.center, 
+                                              style: const TextStyle(fontSize: 32.0, fontWeight: FontWeight.bold, color: Colors.white),
+                                            )
                                         )
                                     )
-                                )
-                              )
-                            : Container(
-                                alignment: Alignment.topCenter,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF224190),
-                                  border: Border.all(color: const Color(0xFF224190))
-                                ),
-                                width: double.infinity,
-                                child: 
-                                  Padding(
-                                    padding: const EdgeInsets.all(2.0),
-                                    child:
-                                      FadeTransition(
-                                        opacity: _fadeAnimation,
-                                        child: 
-                                          Text(widget.category.name, 
-                                            textAlign: TextAlign.center, 
-                                            style: const TextStyle(fontSize: 32.0, fontWeight: FontWeight.bold, color: Colors.white),
-                                          )
-                                      )
                                   )
-                                )
-                        ),
-                      ]
-                    ),                      
-                  ]
-                )
-              ]
-            ),
-            
-          ]
+                          ),
+                        ]
+                      ),                      
+                    ]
+                  )
+                ]
+              ),
+              
+            ]
+          )
         )
       )
     );

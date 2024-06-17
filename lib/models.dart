@@ -270,25 +270,57 @@ sealed class CatalogItem {
     return Card(
       surfaceTintColor: Colors.white,
       shadowColor: const Color(0xAA000000),
-      margin: const EdgeInsets.only(left: 10.0, right: 10.0, bottom: 30.0, top: 30.0),
+      margin: const EdgeInsets.only(left: 10.0, right: 10.0, bottom: 10.0, top: 10.0),
       child: Stack( 
         children: [
           Column(
             mainAxisAlignment: MainAxisAlignment.start,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              // Expanded(
+              //   child: 
+              //     Container (
+              //       alignment: Alignment.center,
+              //       padding: const EdgeInsets.only(left: 14.0, right: 14.0, top: 30, bottom: 14),
+              //       child: ClipRRect(
+              //           borderRadius: BorderRadius.circular(10),
+              //           child: Image(image: ResizeImage(imageProvider!, policy: ResizeImagePolicy.fit, height: 400, width: 400), fit: BoxFit.fitWidth,),
+              //       ),
+              //     )
+              // ),
               Expanded(
-                child: 
-                  Container (
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(10,15,10,15),
+                  child: Container (
+                    padding: const EdgeInsets.only(left: 20.0, right: 20.0, top: 20, bottom: 20),
                     alignment: Alignment.center,
-                    padding: const EdgeInsets.only(left: 14.0, right: 14.0, top: 30, bottom: 14),
-                    child: ClipRRect(
-                        borderRadius: BorderRadius.circular(10),
-                        child: Image(image: ResizeImage(imageProvider!, policy: ResizeImagePolicy.fit, height: 400, width: 400), fit: BoxFit.fitWidth,),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      image: DecorationImage(
+                        fit: BoxFit.cover,
+                        image: ResizeImage(
+                          imageProvider!,
+                          policy: ResizeImagePolicy.fit,
+                          height: 400,
+                        )
+                      )
                     ),
                   )
+                )
               ),
-              Text(name, textAlign: TextAlign.center, style: const TextStyle(fontSize: 16.0, color: Colors.black)), // Handle if name is null
+              Container(
+                height: 25,
+                alignment: Alignment.center,
+                padding: const EdgeInsets.symmetric(horizontal: 15),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    name, 
+                    textAlign: TextAlign.center, 
+                    style: const TextStyle(fontSize: 16.0, color: Colors.black)
+                  ),
+                ),
+              ),
               const SizedBox(height: 10),
             ],
           ),
