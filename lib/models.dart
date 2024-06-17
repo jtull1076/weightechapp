@@ -14,10 +14,6 @@ import 'dart:math' as math;
 import 'package:string_validator/string_validator.dart';
 import 'package:weightechapp/utils.dart';
 
-
-
-
-
 class ProductManager {
   static ProductCategory? all;
   static DateTime? timestamp;
@@ -140,18 +136,50 @@ sealed class CatalogItem {
             mainAxisAlignment: MainAxisAlignment.start,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+                            // Expanded(
+              //   child: 
+              //     Container (
+              //       alignment: Alignment.center,
+              //       padding: const EdgeInsets.only(left: 14.0, right: 14.0, top: 30, bottom: 14),
+              //       child: ClipRRect(
+              //           borderRadius: BorderRadius.circular(10),
+              //           child: Image(image: ResizeImage(imageProvider!, policy: ResizeImagePolicy.fit, height: 400, width: 400), fit: BoxFit.fitWidth,),
+              //       ),
+              //     )
+              // ),
               Expanded(
-                child: 
-                  Container (
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(10,15,10,15),
+                  child: Container (
+                    padding: const EdgeInsets.only(left: 20.0, right: 20.0, top: 20, bottom: 20),
                     alignment: Alignment.center,
-                    padding: const EdgeInsets.only(left: 14.0, right: 14.0, top: 30, bottom: 30),
-                    child: ClipRRect(
-                        borderRadius: BorderRadius.circular(10),
-                        child: Image(image: imageProvider!, fit: BoxFit.fitWidth), // consider using ResizeImage, with policy fit.
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      image: DecorationImage(
+                        fit: BoxFit.cover,
+                        image: ResizeImage(
+                          imageProvider!,
+                          policy: ResizeImagePolicy.fit,
+                          height: 400,
+                        )
+                      )
                     ),
                   )
+                )
               ),
-              Text(name, textAlign: TextAlign.center, style: const TextStyle(fontSize: 16.0, color: Colors.black)), // Handle if name is null
+              Container(
+                height: 25,
+                alignment: Alignment.center,
+                padding: const EdgeInsets.symmetric(horizontal: 15),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    name, 
+                    textAlign: TextAlign.center, 
+                    style: const TextStyle(fontSize: 16.0, color: Colors.black)
+                  ),
+                ),
+              ),
               const SizedBox(height: 10),
             ],
           ),
