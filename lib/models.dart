@@ -358,26 +358,15 @@ class Product extends CatalogItem {
     required super.name,
     super.parentId,
     super.id,
-    super.imageUrl,
+    String? imageUrl,
     this.productMediaUrls,
     this.modelNumber,
     this.description,
     this.brochure,
     BuildContext? context,
-  })
+  }) : super(imageUrl: imageUrl ?? ((productMediaUrls?.isNotEmpty ?? false) ? productMediaUrls![0] : null))
   {
     productMediaUrls ??= [];
-    if (super.imageUrl == null && (productMediaUrls?.isNotEmpty ?? false)) {
-      super.imageUrl = productMediaUrls![0];
-    }
-      for (String url in productMediaUrls!) {
-        try {
-          DefaultCacheManager().downloadFile(url);
-        } catch (e) {
-          Log.logger.t("Failed to retrieve image at $imageUrl. Error: $e");
-          productMediaUrls!.remove(url);
-        }
-      }
   }
 
   //
