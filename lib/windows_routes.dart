@@ -23,6 +23,10 @@ import 'package:file_saver/file_saver.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:internet_connection_checker_plus/internet_connection_checker_plus.dart';
+import 'package:updat/updat.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
 
 //MARK: OFFLINE PAGE
@@ -140,6 +144,165 @@ class ErrorPage extends StatelessWidget {
     );
   }
 }
+
+
+class StartupPage extends StatefulWidget {
+  const StartupPage({super.key});
+
+  @override
+  State<StartupPage> createState() => _StartupPageState();
+}
+
+class _StartupPageState extends State<StartupPage> with TickerProviderStateMixin {
+  late String _startupTaskMessage;
+  late StreamController<String> _progressStreamController;
+  late bool _updateReady;
+  late bool _checkingForUpdate;
+
+  @override
+  void initState() {
+    super.initState();
+    _startupTaskMessage = '';
+    _progressStreamController = StreamController<String>();
+    _updateReady = false;
+    _checkingForUpdate = false;
+    _runStartupTasks();
+  }
+
+  Future<void> _runStartupTasks() async { 
+
+    if (!await InternetConnection().hasInternetAccess) {
+      if (mounted) {
+        Navigator.of(context).pushReplacement(PageRouteBuilder(pageBuilder: (BuildContext context, _, __) => const OfflinePage()));
+      }
+    }
+
+    try {
+      Log.logger.t('...Clearing existing cache');
+      _progressStreamController.add('...Clearing cache...');
+      await DefaultCacheManager().emptyCache();
+
+      Log.logger.t('...Initializing Firebase...');
+      _progressStreamController.add('...Initializing Firebase...');
+      await FirebaseUtils().init();
+
+      Log.logger.t('...Initializing Product Manager...');
+      _progressStreamController.add('...Initializing Product Manager...');
+
+      await ProductManager.create();
+    } catch (e) {
+      Log.logger.e("Error encountered retrieving catalog.", error: e);
+      if (mounted) {
+        Navigator.of(context).pushReplacement(PageRouteBuilder(pageBuilder: (BuildContext context, _, __) => ErrorPage(message: e)));
+      }
+    }
+
+    Log.logger.t('...App Startup...');
+    _progressStreamController.add('...App Startup...');
+
+    _progressStreamController.close();
+  }
+
+  @override
+  void dispose() {
+    _progressStreamController.close();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(right: 0),
+              child: Image.asset('assets/icon/wt_icon.ico', height: 200),
+            ),
+            const SizedBox(height: 10), 
+            Text("App Version: ${AppInfo.packageInfo.version}"),
+            Text(_startupTaskMessage),
+            StreamBuilder(
+              stream: _progressStreamController.stream,
+              initialData: '',
+              builder:(context, AsyncSnapshot<String> snapshot) {
+                if (snapshot.connectionState == ConnectionState.active) {
+                  if (snapshot.hasData) {
+                    return Text(snapshot.data!);
+                  } else {
+                    return const CircularProgressIndicator(); // Or any loading indicator
+                  }
+                }
+                else if (snapshot.connectionState == ConnectionState.done) {
+                  return Stack(
+                    children: [
+                      if (_checkingForUpdate) const Center(child: Text("...Checking for updates...")),
+                      Center(
+                        child: UpdatWidget(
+                          currentVersion: AppInfo.packageInfo.version,
+                          getLatestVersion: () async {
+                            // Use Github latest endpoint
+                            try {
+                              final data = await http.get(
+                                Uri.parse(
+                                "https://api.github.com/repos/jtull1076/weightechapp/releases/latest"
+                                ),
+                                headers: {
+                                  'Authorization': 'Bearer ${FirebaseUtils.githubToken}'
+                                }
+                              );
+                              final latestVersion = jsonDecode(data.body)["tag_name"];
+                              final verCompare = AppInfo.versionCompare(latestVersion, AppInfo.packageInfo.version);
+                              Log.logger.i('Latest version: $latestVersion : This app version is ${(verCompare == 0) ? "up-to-date." : (verCompare == 1) ? "deprecated." : "in development."}');
+                              return latestVersion;
+                            } catch (e) {
+                              Log.logger.e("Error encounted retrieving latest version.", error: e);
+                            }
+                          },
+                          getBinaryUrl: (version) async {
+                            return "https://github.com/jtull1076/weightechapp/releases/download/$version/weightechsales-windows-$version.exe";
+                          },
+                          appName: "WeighTech Inc. Sales",
+                          getChangelog: (_, __) async {
+                            final data = await http.get(
+                              Uri.parse(
+                              "https://api.github.com/repos/jtull1076/weightechapp/releases/latest"
+                              ),
+                              headers: {
+                                'Authorization': 'Bearer ${FirebaseUtils.githubToken}'
+                              }
+                            );
+                            Log.logger.t('Changelog: ${jsonDecode(data.body)["body"]}');
+                            return jsonDecode(data.body)["body"];
+                          },
+                          callback: (status) {
+                            if (status == UpdatStatus.upToDate || status == UpdatStatus.error) {
+                              WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+                                Navigator.of(context).pushReplacement(PageRouteBuilder(pageBuilder: (BuildContext context, _, __) => const IdlePage()));
+                              });
+                            }
+                            // else if (status == UpdatStatus.readyToInstall) {
+                            //   setState(() => _updateReady = true);
+                            // }
+                          }
+                        )
+                      ),
+                    ]
+                  );
+                }
+                else {
+                  return const Text("Other");
+                }
+              }
+            )
+          ]
+        )
+      )
+    );
+  }
+}
+
 
 
 //MARK: CONTROL PAGE
