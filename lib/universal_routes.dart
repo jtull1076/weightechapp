@@ -429,7 +429,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 /// 
 /// See also: [_ProductPageState]
 class ProductPage extends StatefulWidget {
-  ProductPage({super.key, required this.product, this.animateDivider = true});
+  ProductPage({super.key, required this.product, this.animateDivider = false});
 
   final Product product;
   final bool animateDivider;
@@ -476,60 +476,79 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Column(
-        children: [
-          SizedBox(
-            width: double.infinity,
-            height: 110,
-            child: 
-              Stack(
-                children: [
-                  Center(
-                    child: 
-                      GestureDetector(
-                        onDoubleTap: (){
-                          Log.logger.t('---Return to Idle Interaction---');
-                          _timer.cancel();
-                          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const IdlePage()));
-                        },
-                        child: Padding(padding: const EdgeInsets.only(top: 10.0), child: Image.asset('assets/weightech_logo_beta.png', height: 100, cacheHeight: 150, cacheWidth: 394, alignment: Alignment.center,)),
-                      ),
-                  ),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: 
-                      Padding(
-                        padding: const EdgeInsets.only(left: 30),
-                        child: 
-                          IconButton(
-                            icon: const Icon(Icons.arrow_back),
-                            iconSize: 30,
+    return SafeArea(
+      child: Scaffold(
+        body: Column(
+          children: [
+            SizedBox(
+              width: double.infinity,
+              height: 110,
+              child: 
+                Stack(
+                  children: [
+                    Center(
+                      child: 
+                        GestureDetector(
+                          onDoubleTap: (){
+                            Log.logger.t('---Return to Idle Interaction---');
+                            _timer.cancel();
+                            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const IdlePage()));
+                          },
+                          child: Padding(padding: const EdgeInsets.only(top: 10.0), child: Image.asset('assets/weightech_logo_beta.png', height: 100, alignment: Alignment.center,)),
+                        ),
+                    ),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: 
+                        Padding(
+                          padding: const EdgeInsets.only(left: 30),
+                          child: 
+                            IconButton(
+                              icon: const Icon(Icons.arrow_back),
+                              iconSize: 30,
+                              color: const Color(0xFF224190),
+                              onPressed: () => Navigator.pop(context),
+                            )
+                        )
+                    ),
+                  ]
+                ),
+            ),
+            Stack(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(left: 25.0, right: 25.0),
+                  child: Container(
+                    color: const Color(0xFF224190),
+                    height: 2.0
+                  )
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(left: 25.0, right: 25.0),
+                  child: 
+                    widget.animateDivider ?
+                      SizeTransition(
+                        sizeFactor: _dividerHeightAnimation, 
+                        axis: Axis.vertical, 
+                        child: Container(
+                          alignment: Alignment.topCenter,
+                          decoration: BoxDecoration(
                             color: const Color(0xFF224190),
-                            onPressed: () => Navigator.pop(context),
-                          )
+                            border: Border.all(color: const Color(0xFF224190))
+                          ),
+                          width: double.infinity,
+                          child: 
+                            Padding(
+                              padding: const EdgeInsets.all(2.0),
+                              child:
+                                Text(widget.product.name, 
+                                  textAlign: TextAlign.center, 
+                                  style: const TextStyle(fontSize: 32.0, fontWeight: FontWeight.bold, color: Colors.white),
+                                )
+                            )
+                        )
                       )
-                  ),
-                ]
-              ),
-          ),
-          Stack(
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(left: 25.0, right: 25.0),
-                child: Container(
-                  color: const Color(0xFF224190),
-                  height: 2.0
-                )
-              ),
-              Padding(
-                padding: const EdgeInsets.only(left: 25.0, right: 25.0),
-                child: 
-                  widget.animateDivider ?
-                    SizeTransition(
-                      sizeFactor: _dividerHeightAnimation, 
-                      axis: Axis.vertical, 
-                      child: Container(
+                    : Container(
                         alignment: Alignment.topCenter,
                         decoration: BoxDecoration(
                           color: const Color(0xFF224190),
@@ -540,48 +559,31 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                           Padding(
                             padding: const EdgeInsets.all(2.0),
                             child:
-                              Text(widget.product.name, 
-                                textAlign: TextAlign.center, 
-                                style: const TextStyle(fontSize: 32.0, fontWeight: FontWeight.bold, color: Colors.white),
+                              FadeTransition(
+                                opacity: _fadeAnimation,
+                                child: 
+                                  Text(widget.product.name, 
+                                    textAlign: TextAlign.center, 
+                                    style: const TextStyle(fontSize: 32.0, fontWeight: FontWeight.bold, color: Colors.white),
+                                  )
                               )
                           )
-                      )
-                    )
-                  : Container(
-                      alignment: Alignment.topCenter,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF224190),
-                        border: Border.all(color: const Color(0xFF224190))
-                      ),
-                      width: double.infinity,
-                      child: 
-                        Padding(
-                          padding: const EdgeInsets.all(2.0),
-                          child:
-                            FadeTransition(
-                              opacity: _fadeAnimation,
-                              child: 
-                                Text(widget.product.name, 
-                                  textAlign: TextAlign.center, 
-                                  style: const TextStyle(fontSize: 32.0, fontWeight: FontWeight.bold, color: Colors.white),
-                                )
-                            )
                         )
-                      )
-              ),
-            ]
-          ),
-          Expanded(
-            child:
-              SingleChildScrollView(
-                padding: const EdgeInsets.only(bottom: 30),
-                scrollDirection: Axis.vertical,
-                child: MediaQuery.of(context).size.width > 600 ? 
-                  pageForLandscape()
-                  : pageForPortrait()
-              ),
-          ),
-        ]
+                ),
+              ]
+            ),
+            Expanded(
+              child:
+                SingleChildScrollView(
+                  padding: const EdgeInsets.only(bottom: 30),
+                  scrollDirection: Axis.vertical,
+                  child: MediaQuery.of(context).size.width > 600 ? 
+                    pageForLandscape()
+                    : pageForPortrait()
+                ),
+            ),
+          ]
+        )
       )
     );
   }
@@ -651,18 +653,13 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                               }
                               else {
                                 return ClipRRect(
-                                  clipBehavior: Clip.hardEdge,
                                   borderRadius: BorderRadius.circular(30),
                                   child: FullScreenWidget(
                                     disposeLevel: DisposeLevel.low,
                                     child: Hero(
                                       tag: "$itemIndex-hero",
                                       child: Center(
-                                        child: Image.file(
-                                          snapshot.data!, 
-                                          fit: BoxFit.fitWidth,
-                                          width: double.infinity
-                                        )
+                                        child: Image.file(snapshot.data!, fit: BoxFit.fitWidth, width: double.infinity)
                                       )
                                     )
                                   )
@@ -670,7 +667,7 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                               }
                             }
                             else {
-                              return LoadingAnimationWidget.newtonCradle(color: const Color(0xFF224190), size: 80);
+                              return LoadingAnimationWidget.newtonCradle(color: const Color(0xFF224190), size: 50);
                             }
                           })
                         );
@@ -750,7 +747,7 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                           itemCount: subheaders.length,
                           itemBuilder: (context, subIndex) {
                             final subheaderKey = subheaders[subIndex].keys.first;
-                            final subheaderValue = subheaders[subIndex][subheaderKey] as List<String>;
+                            final subheaderValue = subheaders[subIndex][subheaderKey] as List<dynamic>;
 
                             return Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
