@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 
 class FullScreenWidget extends StatelessWidget {
   const FullScreenWidget(
@@ -64,7 +65,7 @@ class _FullScreenPageState extends State<FullScreenPage> {
 
   double positionYDelta = 0;
 
-  double opacity = 1;
+  double opacity = 0;
 
   double disposeLimit = 150;
 
@@ -75,6 +76,9 @@ class _FullScreenPageState extends State<FullScreenPage> {
   void initState() {
     super.initState();
     setDisposeLevel();
+    Timer(const Duration(seconds: 0), () {
+      setState(() => opacity = 1);
+    });
   }
 
   setDisposeLevel() {
@@ -153,7 +157,8 @@ class _FullScreenPageState extends State<FullScreenPage> {
         onVerticalDragStart: (details) => _startVerticalDrag(details),
         onVerticalDragUpdate: (details) => _whileVerticalDrag(details),
         onVerticalDragEnd: (details) => _endVerticalDrag(details),
-        child: Container(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
           color: widget.backgroundColor.withOpacity(opacity),
           constraints: BoxConstraints.expand(
             height: MediaQuery.of(context).size.height,
@@ -180,7 +185,7 @@ class _FullScreenPageState extends State<FullScreenPage> {
                     onPressed: () {
                       setState(() {
                         animationDuration = const Duration(milliseconds: 300);
-                        opacity = 0.5;
+                        opacity = 0;
                       });
                       Navigator.of(context).pop();
                     },
