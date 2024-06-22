@@ -547,7 +547,7 @@ sealed class EItem {
   }
 
   static Future<void> updateImages(ECategory editorCatalog) async {
-    final storageRef = FirebaseUtils.storage.ref().child("devImages2");
+    final storageRef = FirebaseUtils.storage.ref().child("devImages");
 
     Future<void> traverseItems(ECategory category) async {
       if (category.imageFile != null) {
