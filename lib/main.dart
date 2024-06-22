@@ -1,5 +1,5 @@
 import 'package:weightechapp/themes.dart';
-import 'package:weightechapp/universal_routes.dart';
+import 'package:weightechapp/android_routes.dart';
 import 'package:weightechapp/utils.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
