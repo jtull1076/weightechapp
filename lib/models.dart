@@ -1,3 +1,4 @@
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shortid/shortid.dart';
@@ -5,44 +6,28 @@ import 'package:google_fonts/google_fonts.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:async';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_database/firebase_database.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
-import 'package:weightechapp/firebase_options.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:path/path.dart' as path_handler;
 import 'dart:math' as math;
 import 'package:string_validator/string_validator.dart';
+import 'package:weightechapp/utils.dart';
 
-
-
-class FirebaseInfo {
-  static late FirebaseApp firebaseApp; // Initialize Firebase
-  static late FirebaseFirestore database;
-  static late FirebaseStorage storage;
-  FirebaseInfo();
-
-  Future<void> init() async {
-    firebaseApp = await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-    database = FirebaseFirestore.instanceFor(app: firebaseApp);
-    storage = FirebaseStorage.instanceFor(app: firebaseApp, bucket: 'gs://weightechapp.appspot.com');
-  }
-}
-
-
-class ProductManager extends ChangeNotifier {
+class ProductManager {
   static ProductCategory? all;
   static DateTime? timestamp;
 
   ProductManager._();
 
-  static Future<ProductManager> create() async {
-    Map<String, dynamic> catalogJson = await getCatalogFromFirebase();
-    all = ProductCategory.fromJson(catalogJson);
-    //timestamp = catalogJson["timestamp"];
-    return ProductManager._();
+  static Future<void> create() async {
+    try {
+      Map<String, dynamic> catalogJson = await getCatalogFromFirestore();
+      all = ProductCategory.fromJson(catalogJson);
+      //timestamp = catalogJson["timestamp"];
+    } catch (e) {
+      rethrow;
+    }
   }
 
   List<ProductCategory> getAllCategories(ProductCategory? category) {
@@ -98,17 +83,21 @@ class ProductManager extends ChangeNotifier {
     return result;
   }
 
-  static Future<void> postCatalogToFirebase() async {
+  static Future<void> postCatalogToFirestore() async {
+    Log.logger.t("Posting catalog to Firestore");
     Map<String,dynamic> catalogJson = all!.toJson();
     catalogJson['timestamp'] = DateTime.now();
-    await FirebaseInfo.database.collection("catalog").add(catalogJson).then((DocumentReference doc) => debugPrint('DocumentSnapshot added with ID: ${doc.id}'));
+    try {
+      await FirebaseUtils.postCatalogToFirestore(catalogJson);
+    } catch (e) {
+      rethrow;
+    }
+    Log.logger.t(" -> done.");
   }
 
-  static Future<Map<String,dynamic>> getCatalogFromFirebase() async {
-    return await FirebaseInfo.database.collection("catalog").orderBy("timestamp", descending: true).limit(1).get().then((event) {
-      debugPrint('DocumentSnapshot retrieved with ID: ${event.docs[0].id}');
-      return event.docs[0].data();
-    });
+  static Future<Map<String,dynamic>> getCatalogFromFirestore() async {
+    Log.logger.t("Retrieving catalog from Firestore");
+    return await FirebaseUtils.getCatalogFromFirestore();
   }
 }
 
@@ -126,7 +115,7 @@ sealed class CatalogItem {
       try {
         imageProvider = CachedNetworkImageProvider(imageUrl!);
       } on HttpExceptionWithStatus catch (e) {
-        debugPrint("Failed to retrieve image at $imageUrl. Error: $e");
+        Log.logger.e("Failed to retrieve image at $imageUrl. Error: $e");
         imageUrl = null;
         imageProvider = Image.asset('assets/weightech_logo.png').image;
       }
@@ -147,21 +136,50 @@ sealed class CatalogItem {
             mainAxisAlignment: MainAxisAlignment.start,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+                            // Expanded(
+              //   child: 
+              //     Container (
+              //       alignment: Alignment.center,
+              //       padding: const EdgeInsets.only(left: 14.0, right: 14.0, top: 30, bottom: 14),
+              //       child: ClipRRect(
+              //           borderRadius: BorderRadius.circular(10),
+              //           child: Image(image: ResizeImage(imageProvider!, policy: ResizeImagePolicy.fit, height: 400, width: 400), fit: BoxFit.fitWidth,),
+              //       ),
+              //     )
+              // ),
               Expanded(
-                child: 
-                  Container (
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(10,15,10,15),
+                  child: Container (
+                    padding: const EdgeInsets.only(left: 20.0, right: 20.0, top: 20, bottom: 20),
                     alignment: Alignment.center,
-                    padding: const EdgeInsets.only(left: 14.0, right: 14.0, top: 30, bottom: 30),
-                    child: Hero(
-                      tag: '${name}_htag', 
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(10),
-                        child: Image(image: imageProvider!, fit: BoxFit.fitWidth),
-                      ),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      image: DecorationImage(
+                        fit: BoxFit.cover,
+                        image: ResizeImage(
+                          imageProvider!,
+                          policy: ResizeImagePolicy.fit,
+                          height: 400,
+                        )
+                      )
                     ),
                   )
+                )
               ),
-              Text(name, textAlign: TextAlign.center, style: const TextStyle(fontSize: 16.0, color: Colors.black)), // Handle if name is null
+              Container(
+                height: 25,
+                alignment: Alignment.center,
+                padding: const EdgeInsets.symmetric(horizontal: 15),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    name, 
+                    textAlign: TextAlign.center, 
+                    style: const TextStyle(fontSize: 16.0, color: Colors.black)
+                  ),
+                ),
+              ),
               const SizedBox(height: 10),
             ],
           ),
@@ -171,7 +189,7 @@ sealed class CatalogItem {
                 color: Colors.transparent,
                 child: InkWell(
                   onTap: () {
-                    debugPrint('Item tapped: $name');
+                    Log.logger.t('Item tapped: $name');
                     onTapCallback();
                   }
                 )
@@ -208,17 +226,17 @@ sealed class CatalogItem {
     if (parentId != null) {
       return ProductManager.getItemById(parentId!) as ProductCategory;
     }
-    debugPrint("Parent doesn't exist");
+    Log.logger.t("Parent doesn't exist");
     return null;
   }
 
   void storeImage(File imageFile) {
-    final storageRef = FirebaseInfo.storage.ref("images");
+    final storageRef = FirebaseUtils.storage.ref("devImages");
     final categoryImageRef = storageRef.child("${id}_0");
     try {
       categoryImageRef.putFile(imageFile);
     } on FirebaseException catch (e) {
-      debugPrint("Failed to add ${id}_0 to Firebase. Error code: ${e.code}");
+      Log.logger.t("Failed to add ${id}_0 to Firebase. Error code: ${e.code}");
     }
   }
 }
@@ -286,13 +304,13 @@ class ProductCategory extends CatalogItem {
   void addProductByParentId(Product newProduct) {
     if (id == newProduct.parentId) {
       addProduct(newProduct);
-      debugPrint('${newProduct.name} (id: ${newProduct.id}) added to $name (id: $id)');
+      Log.logger.t('${newProduct.name} (id: ${newProduct.id}) added to $name (id: $id)');
       return;
     }
     for (var item in catalogItems) {
       if (item is ProductCategory && item.id == newProduct.parentId) {
         item.addProduct(newProduct);
-        debugPrint('${newProduct.name} (id: ${newProduct.id}) added to ${item.name} (id: ${item.id})');
+        Log.logger.t('${newProduct.name} (id: ${newProduct.id}) added to ${item.name} (id: ${item.id})');
         return;
       }
     }
@@ -302,7 +320,7 @@ class ProductCategory extends CatalogItem {
         item.addProductByParentId(newProduct); // Recursively search in subcategories
       }
     }
-    debugPrint('Parent category with ID ${newProduct.parentId} not found in category $name (id: $id).');
+    Log.logger.t('Parent category with ID ${newProduct.parentId} not found in category $name (id: $id).');
   }
 
   
@@ -314,10 +332,10 @@ class ProductCategory extends CatalogItem {
   }
 
   factory ProductCategory.fromJson(Map<String, dynamic> json) {
-    // debugPrint("Converting the following JSON to a ProductCategory. Here's the JSON:");
-    // debugPrint("------");
-    // debugPrint((const JsonEncoder.withIndent('   ')).convert(json));
-    // debugPrint("------");
+    // Log.logger.t("Converting the following JSON to a ProductCategory. Here's the JSON:");
+    // Log.logger.t("------");
+    // Log.logger.t((const JsonEncoder.withIndent('   ')).convert(json));
+    // Log.logger.t("------");
     return ProductCategory(
       name: json['name'],
       id: json['id'],
@@ -331,8 +349,7 @@ class ProductCategory extends CatalogItem {
 
 class Product extends CatalogItem {
   String? modelNumber;
-  List<String>? productImageUrls;
-  List<CachedNetworkImageProvider> productImageProviders;
+  List<String>? productMediaUrls;
   String? description;
   List<Map<String, dynamic>>? brochure;
   static const String buttonRoute = '/product';
@@ -341,43 +358,22 @@ class Product extends CatalogItem {
     required super.name,
     super.parentId,
     super.id,
-    super.imageUrl,
-    this.productImageUrls,
+    String? imageUrl,
+    this.productMediaUrls,
     this.modelNumber,
     this.description,
     this.brochure,
     BuildContext? context,
-  }) 
-  : productImageProviders = []
+  }) : super(imageUrl: imageUrl ?? ((productMediaUrls?.isNotEmpty ?? false) ? productMediaUrls![0] : null))
   {
-    if (super.imageUrl == null && (productImageUrls?.isNotEmpty ?? false)) {
-      super.imageUrl = productImageUrls![0];
-      if (imageUrl != null) {
-        try {
-          super.imageProvider = CachedNetworkImageProvider(super.imageUrl!);
-        } on HttpExceptionWithStatus catch (e) {
-          debugPrint("Failed to retrieve image at $imageUrl. Error: $e");
-          super.imageUrl = null;
-          super.imageProvider = Image.asset('assets/weightech_logo.png').image;
-        }
-      }
-      for (String url in productImageUrls!) {
-        try {
-          CachedNetworkImageProvider newImageProvider = CachedNetworkImageProvider(url);
-          productImageProviders.add(newImageProvider);
-        } on HttpExceptionWithStatus catch (e) {
-          debugPrint("Failed to retrieve image at $imageUrl. Error: $e");
-          productImageUrls!.remove(url);
-        }
-      }
-    }
+    productMediaUrls ??= [];
   }
 
   //
   // Maps the list of brochure items to the brochure json structure. 
   //
   static List<Map<String, dynamic>> mapListToBrochure(List<BrochureItem> brochure) {
-
+    Log.logger.t("Mapping BrochureItem list...");
     List<String> entries = [];
     List<dynamic> subheaders = [];
     final List<Map<String, dynamic>> brochureMap = [];
@@ -388,13 +384,12 @@ class Product extends CatalogItem {
           entries.insert(0, item.entry);
         }
         case BrochureSubheader _: {
-          subheaders.insert(0, {item.subheader : List<String>.from(entries)}
-          );
+          subheaders.insert(0, {item.subheader : List.from(entries)});
           entries.clear();
         }
         case BrochureHeader _: {
           if (entries.isNotEmpty && subheaders.isNotEmpty){
-            brochureMap.insert(0, {item.header : [{"Entries" : List.from(entries)}, List.from(subheaders)]});
+            brochureMap.insert(0, {item.header : [{"Entries" : List.from(entries)}, ...List.from(subheaders)]});
           }
           else if (entries.isNotEmpty) {
             brochureMap.insert(0, {item.header : [{"Entries" : List.from(entries)}]});
@@ -410,11 +405,14 @@ class Product extends CatalogItem {
         }
       }
     }
+    Log.logger.t("-> done.");
 
     return brochureMap;
   }
 
   List<BrochureItem> retrieveBrochureList() {
+    Log.logger.t("Retrieving brochure list...");
+
     List<BrochureItem> brochureList = [];
 
     if (brochure == null) {
@@ -461,6 +459,7 @@ class Product extends CatalogItem {
       }
     }
 
+    Log.logger.t(" -> done.");
     return brochureList;
   }
 
@@ -471,7 +470,7 @@ class Product extends CatalogItem {
     json['description'] = description;
     json['brochure'] = brochure;
     json['parentId'] = parentId;
-    json['imageUrls'] = productImageUrls;
+    json['imageUrls'] = productMediaUrls;
     return json;
   }
 
@@ -483,19 +482,19 @@ class Product extends CatalogItem {
       description: json['description'],
       brochure: List<Map<String,dynamic>>.from(json['brochure']),
       parentId: json['parentId'],
-      productImageUrls: List<String>.from(json['imageUrls'] ?? [])
+      productMediaUrls: List<String>.from(json['imageUrls'] ?? [])
     );
   }
 
 
   void storeListOfImages(List<File> imageFiles){
-    final storageRef = FirebaseInfo.storage.ref("images");
+    final storageRef = FirebaseUtils.storage.ref("devImages");
     for ( int i=0 ; i < imageFiles.length ; i++ ) {
       final imageRef = storageRef.child("${id}_$i");
       try {
         imageRef.putFile(imageFiles[i]);
       } on FirebaseException catch (e) {
-        debugPrint("Failed to add ${id}_$i to Firebase. Error code: ${e.code}");
+        Log.logger.t("Failed to add ${id}_$i to Firebase. Error code: ${e.code}");
       }
     }
   }
@@ -536,24 +535,36 @@ sealed class EItem {
   }
 
   static Future<void> updateProductCatalog(ECategory editorCatalog) async {
-    await updateImages(editorCatalog);
-    ProductManager.all = editorCatalog.category;
-    await ProductManager.postCatalogToFirebase();
-    debugPrint("Catalog update completed.");
+    try {
+      await updateImages(editorCatalog);
+      Log.logger.t("Product images updated.");
+      ProductManager.all = editorCatalog.category;
+      await ProductManager.postCatalogToFirestore();
+      Log.logger.t("Catalog update completed.");
+    } catch (e) {
+      rethrow;
+    }
   }
 
   static Future<void> updateImages(ECategory editorCatalog) async {
-    final storageRef = FirebaseInfo.storage.ref().child("images");
+    final storageRef = FirebaseUtils.storage.ref().child("devImages");
 
     Future<void> traverseItems(ECategory category) async {
       if (category.imageFile != null) {
         final refName = "${category.id}_0${path_handler.extension(category.imageFile!.path)}";
-        await storageRef.child(refName).putFile(category.imageFile!).then((value) async {
-          await storageRef.child(refName).getDownloadURL().then((value) {
-            category.category.imageUrl = value;
-            debugPrint("Category image url updated.");
+
+        final SettableMetadata metadata = SettableMetadata(contentType: 'images/${path_handler.extension(category.imageFile!.path)}');
+
+        try {
+          await storageRef.child(refName).putFile(category.imageFile!, metadata).then((value) async {
+            await storageRef.child(refName).getDownloadURL().then((value) {
+              category.category.imageUrl = value;
+              Log.logger.t("Category image url updated.");
+            });
           });
-        });
+        } catch (e, stackTrace) {
+          Log.logger.e("Error encountered while updating category image", error: e, stackTrace: stackTrace);
+        }
       }
       for (var item in category.editorItems) {
         switch (item) {
@@ -561,37 +572,55 @@ sealed class EItem {
             await traverseItems(item);
           }
           case EProduct _: {
-            if (item.imagePaths != null) {
+            if (item.mediaPaths != null) {
 
-              await Future.wait([
-                for (var url in item.product.productImageUrls!)
-                  FirebaseInfo.storage.refFromURL(url).delete(),
-              ]);
+              // if (item.product.productImageUrls != null) {
+              //   await Future.wait([
+              //     for (var url in item.product.productImageUrls!)
+              //       FirebaseUtils.storage.refFromURL(url).delete(),
+              //   ]);
+              // }
 
-              item.product.productImageUrls = [];
+              item.product.productMediaUrls = [];
 
               int nonPrimaryCount = 0;
-              for (int i = 0; i < item.imageFiles!.length; i++) {
-                File imageFile = item.imageFiles![i];
+              for (int i = 0; i < item.mediaFiles!.length; i++) {
+                File imageFile = item.mediaFiles![i];
                 String baseRefName = '';
                 if (i == item.primaryImageIndex) {
                   baseRefName = "${item.id}_0";
-                  final extension = path_handler.extension(imageFile.path);
+                  String extension = path_handler.extension(imageFile.path).substring(1);
+
+                  if (extension == 'jpg') {
+                    extension = 'jpeg';
+                  }
                   
-                  await storageRef.child("$baseRefName$extension").putFile(imageFile).then((value) async {
-                    final imageUrl = await storageRef.child("$baseRefName$extension").getDownloadURL();
-                    item.product.productImageUrls!.insert(0, imageUrl);
-                  });
+                  try {
+                    await storageRef.child("$baseRefName.$extension").putFile(imageFile, SettableMetadata(contentType: 'images/$extension')).then((value) async {
+                      final imageUrl = await storageRef.child("$baseRefName.$extension").getDownloadURL();
+                      item.product.productMediaUrls!.insert(0, imageUrl);
+                    });
+                  } catch (e, stackTrace) {
+                    Log.logger.e("Error encountered while updating primary product image.", error: e, stackTrace: stackTrace);
+                  }
                 }
                 else {
                   baseRefName = "${item.id}_${nonPrimaryCount+1}";
-                  final extension = path_handler.extension(imageFile.path);
+                  String extension = path_handler.extension(imageFile.path).substring(1);
 
-                  await storageRef.child("$baseRefName$extension").putFile(imageFile).then((value) async {
-                    final imageUrl = await storageRef.child("$baseRefName$extension").getDownloadURL();
-                    item.product.productImageUrls!.add(imageUrl);
-                  });
-                  nonPrimaryCount++;
+                  if (extension == 'jpg') {
+                    extension = 'jpeg';
+                  }
+
+                  try {
+                    await storageRef.child("$baseRefName.$extension").putFile(imageFile, SettableMetadata(contentType: 'images/$extension')).then((value) async {
+                      final imageUrl = await storageRef.child("$baseRefName.$extension").getDownloadURL();
+                      item.product.productMediaUrls!.add(imageUrl);
+                    });
+                    nonPrimaryCount++;
+                  } catch (e, stackTrace) {
+                    Log.logger.e("Error encountered while updating non-primary product images.", error: e, stackTrace: stackTrace);
+                  }
                 }
                 
               }
@@ -602,7 +631,7 @@ sealed class EItem {
     }
 
     await traverseItems(editorCatalog);
-    debugPrint("Images updated.");
+    Log.logger.t("Images updated.");
   }
 
   static EItem? getItemById({required root, required id}) {
@@ -665,7 +694,32 @@ sealed class EItem {
     return result;
   }
 
-  ECategory? getParent({required root});
+  ECategory? getParent({required root}) {
+    return getItemById(root: root, id: parentId) as ECategory;
+  }
+
+  void removeFromParent() {
+    final ECategory parent = getItemById(root: all, id: parentId) as ECategory;
+
+    parent.editorItems.remove(this);
+    parentId = null;
+
+    switch (this) {
+      case ECategory _ : {
+        parent.category.catalogItems.remove((this as ECategory).category);
+        Log.logger.i("Removed ${(this as ECategory).category.name} from ${parent.category.name}");
+      }
+      case EProduct _ : {
+        parent.category.catalogItems.remove((this as EProduct).product);
+        Log.logger.i("Removed ${(this as EProduct).product.name} from ${parent.category.name}");
+      }
+    }
+  }
+
+  void reassignParent({required ECategory newParent}) {
+    removeFromParent();
+    newParent.addItem(this);
+  }
 }
 
 class ECategory extends EItem {
@@ -700,18 +754,23 @@ class ECategory extends EItem {
       onAcceptWithDetails: (details) {
         ECategory parent = details.data.getParent(root: EItem.all)!;
         parent.editorItems.remove(details.data);
-        switch (details.data) {
-          case ECategory _ : {
-            parent.category.catalogItems.remove((details.data as ECategory).category);
-          }
-          case EProduct _ : {
-            parent.category.catalogItems.remove((details.data as EProduct).product);
-          }
-        }
 
         details.data.rank = rank + 1;
         details.data.parentId = id;
         editorItems.add(details.data);
+
+        switch (details.data) {
+          case ECategory _ : {
+            parent.category.catalogItems.remove((details.data as ECategory).category);
+            category.catalogItems.add((details.data as ECategory).category);
+            (details.data as ECategory).category.parentId = id;
+          }
+          case EProduct _ : {
+            parent.category.catalogItems.remove((details.data as EProduct).product);
+            category.catalogItems.add((details.data as EProduct).product);
+            (details.data as EProduct).product.parentId = id;
+          }
+        }
       },
       builder: (context, accepted, rejected) {
         Widget widget = Draggable<EItem> (
@@ -790,10 +849,6 @@ class ECategory extends EItem {
     );
   }
 
-  @override
-  ECategory? getParent({required root}) {
-    return EItem.getItemById(root: root, id: parentId) as ECategory;
-  }
 
   List<ECategory> getSubCategories({List<ECategory>? categoriesToExclude}) {
     List<ECategory> subCategories = [];
@@ -824,12 +879,16 @@ class ECategory extends EItem {
     switch (item) {
       case ECategory _ :
         item.parentId = id;
+        item.rank = rank+1;
         editorItems.add(item);
         category.catalogItems.add(item.category);
+        Log.logger.i("Added ${item.category.name} to ${category.name}");
       case EProduct _ :
         item.parentId = id;
+        item.rank = rank+1;
         editorItems.add(item);
         category.catalogItems.add(item.product);
+        Log.logger.i("Added ${item.product.name} to ${category.name}");
     }
   }
 
@@ -857,7 +916,7 @@ class ECategory extends EItem {
         return;
       }
       else if (isURL(imagePath)) {
-        final imageRef = FirebaseInfo.storage.refFromURL(imagePath!);
+        final imageRef = FirebaseUtils.storage.refFromURL(imagePath!);
         final file = File('${basePath.path}/${imageRef.name}');
 
         await imageRef.writeToFile(file);
@@ -872,10 +931,22 @@ class ECategory extends EItem {
 
 class EProduct extends EItem {
   final Product product;
-  List<String>? imagePaths;
-  List<File>? imageFiles;
+  List<String>? mediaPaths;
+  List<File>? mediaFiles;
   int primaryImageIndex;
-  EProduct({required this.product, required super.rank, List<String>? imagePaths, primaryImageIndex}) : primaryImageIndex = primaryImageIndex ?? 0, super(id: product.id, parentId: product.parentId);
+  EProduct({required this.product, required super.rank, this.mediaPaths, primaryImageIndex}) : primaryImageIndex = primaryImageIndex ?? 0, super(id: product.id, parentId: product.parentId) {
+    if (mediaPaths != null) {
+      mediaFiles = [];
+      for (var path in mediaPaths!) {
+        try {
+          mediaFiles!.add(File(path));
+        }
+        catch (e, trace) {
+          Log.logger.w("Failed to add file at $path", error: e, stackTrace: trace);
+        }
+      }
+    }
+  }
 
   Widget buildListTile({int? index, VoidCallback? onEditCallback, VoidCallback? onDragCompleted, VoidCallback? onDragStarted, VoidCallback? onDragCanceled}) {
     return Draggable<EItem> (
@@ -917,8 +988,9 @@ class EProduct extends EItem {
             visualDensity: VisualDensity.compact,
             title: Row(
               children: [
+                const SizedBox(width: 24),
                 const Icon(Icons.conveyor_belt, size: 20,),
-                const SizedBox(width: 10),
+                const SizedBox(width: 5),
                 Expanded(child: Text(product.name, style: const TextStyle(color: Colors.black, fontSize: 14.0))), 
               ]  
             ),
@@ -932,44 +1004,37 @@ class EProduct extends EItem {
     );
   }
 
-  @override
-  ECategory? getParent({required root}) {
-    return EItem.getItemById(root: root, id: parentId) as ECategory;
-  }
-
   Future<void> setImagePaths() async {
-    if (imagePaths != null) {
+    if (mediaPaths != null) {
       return;
     }
     else {
-      imagePaths = [];
-      if (product.productImageProviders.isNotEmpty) {
-        if (product.productImageUrls != null) {
-          for (var url in product.productImageUrls!) {
-            imagePaths!.add(url);
-          }
+      mediaPaths = [];
+      if (product.productMediaUrls?.isNotEmpty ?? false) {
+        for (var url in product.productMediaUrls!) {
+          mediaPaths!.add(url);
         }
       }
     }
   }
 
   Future<void> setImageFiles() async {
-    if (imageFiles != null) {
+    if (mediaFiles != null) {
       return;
     }
     else {
       final basePath = await getTemporaryDirectory();
-      imageFiles = [];
-      for (var path in imagePaths!) {
+      mediaFiles = [];
+      for (var path in mediaPaths!) {
         if (isURL(path)) {
-          final imageRef = FirebaseInfo.storage.refFromURL(path);
+          final imageRef = FirebaseUtils.storage.refFromURL(path);
           final file = File('${basePath.path}/${imageRef.name}');
 
           await imageRef.writeToFile(file);
-          imageFiles!.add(file);
+          mediaFiles!.add(file);
         }
         else {
-          imageFiles!.add(File(path));
+          mediaFiles!.add(File(path));
         }
       }
     }
@@ -999,6 +1064,9 @@ class BrochureHeader implements BrochureItem {
       title: TextFormField(
         controller: controller, 
         maxLines: null,
+        onChanged: (value) {
+          header = value;
+        },
         decoration: 
           const InputDecoration(
             label: Text("Header")
@@ -1031,6 +1099,9 @@ class BrochureSubheader implements BrochureItem {
         title: TextFormField(
           controller: controller, 
           maxLines: null,
+          onChanged: (value) {
+            subheader = value;
+          },
           decoration: 
             const InputDecoration(
               label: Text("Subheader")
@@ -1065,6 +1136,9 @@ class BrochureEntry implements BrochureItem {
           title: TextFormField(
             controller: controller,
             maxLines: null,
+            onChanged: (value) {
+              entry = value;
+            },
             decoration: 
               const InputDecoration(
                 label: Text("Entry")
