@@ -547,7 +547,7 @@ sealed class EItem {
   }
 
   static Future<void> updateImages(ECategory editorCatalog) async {
-    final storageRef = FirebaseUtils.storage.ref().child("devImages");
+    final storageRef = FirebaseUtils.storage.ref().child("devImages2");
 
     Future<void> traverseItems(ECategory category) async {
       if (category.imageFile != null) {
@@ -611,15 +611,23 @@ sealed class EItem {
                   if (extension == 'jpg') {
                     extension = 'jpeg';
                   }
-
-                  try {
-                    await storageRef.child("$baseRefName.$extension").putFile(imageFile, SettableMetadata(contentType: 'images/$extension')).then((value) async {
-                      final imageUrl = await storageRef.child("$baseRefName.$extension").getDownloadURL();
-                      item.product.productMediaUrls!.add(imageUrl);
-                    });
+                  if (extension == 'jpeg' || extension == 'png') {
+                    try {
+                      await storageRef.child("$baseRefName.$extension").putFile(imageFile, SettableMetadata(contentType: 'images/$extension')).then((value) async {
+                        final imageUrl = await storageRef.child("$baseRefName.$extension").getDownloadURL();
+                        item.product.productMediaUrls!.add(imageUrl);
+                      });
+                      nonPrimaryCount++;
+                    } catch (e, stackTrace) {
+                      Log.logger.e("Error encountered while updating non-primary product images.", error: e, stackTrace: stackTrace);
+                    }
+                  }
+                  else if (extension == 'mp4') {
+                    final video = await ApiVideoService.createVideo('$baseRefName.$extension');
+                    final videoId = video['videoId'];
+                    final url = await ApiVideoService.uploadVideo(videoId, imageFile.path);
+                    item.product.productMediaUrls!.add(url);
                     nonPrimaryCount++;
-                  } catch (e, stackTrace) {
-                    Log.logger.e("Error encountered while updating non-primary product images.", error: e, stackTrace: stackTrace);
                   }
                 }
                 
@@ -1027,11 +1035,19 @@ class EProduct extends EItem {
       mediaFiles = [];
       for (var path in mediaPaths!) {
         if (isURL(path)) {
-          final imageRef = FirebaseUtils.storage.refFromURL(path);
-          final file = File('${basePath.path}/${imageRef.name}');
+          try {
+            final imageRef = FirebaseUtils.storage.refFromURL(path);
+            final file = File('${basePath.path}/${imageRef.name}');
 
-          await imageRef.writeToFile(file);
-          mediaFiles!.add(file);
+            await imageRef.writeToFile(file);
+            mediaFiles!.add(file);
+          } catch (e) {
+            try {
+              final file = await ApiVideoService.downloadVideo(path, '$path');
+            } catch (e) {
+              rethrow;
+            }
+          }
         }
         else {
           mediaFiles!.add(File(path));

@@ -2,6 +2,8 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:logger/logger.dart';
 import 'dart:io';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 import 'dart:core';
 import 'package:firebase_core/firebase_core.dart';
@@ -91,6 +93,7 @@ class FirebaseUtils {
   static late FirebaseStorage storage;
   static late UserCredential userCredential;
   static late String githubToken;
+  static late String apiVideoKey;
   FirebaseUtils();
 
   Future<void> init() async {
@@ -109,10 +112,13 @@ class FirebaseUtils {
     await database.collection("tokens").doc("github").get().then((DocumentSnapshot doc) {
       githubToken = (doc.data() as Map<String, dynamic>)['access_token']!;
     });
+    await database.collection("tokens").doc("api-video").get().then((DocumentSnapshot doc){
+      apiVideoKey = (doc.data() as Map<String, dynamic>)['api_key']!;
+    });
   }
 
   static Future<void> postCatalogToFirestore(Map<String, dynamic> json) async {
-    await database.collection("catalog").add(json)
+    await database.collection("devCatalog").add(json)
       .then((DocumentReference doc) {
         Log.logger.i('Firestore DocumentSnapshot added with ID: ${doc.id}');
       });
@@ -120,7 +126,7 @@ class FirebaseUtils {
 
   static Future<Map<String,dynamic>> getCatalogFromFirestore() async {
     return await retry(
-      () => database.collection("catalog").orderBy("timestamp", descending: true).limit(1).get()
+      () => database.collection("devCatalog").orderBy("timestamp", descending: true).limit(1).get()
         .timeout(const Duration(seconds: 5))
         .then((event) {
           if (event.docs.isEmpty) {
@@ -151,5 +157,80 @@ class FirebaseUtils {
     catch (e, stackTrace) {
       Log.logger.e("Failed to download file at $url.", error: e, stackTrace: stackTrace);
     }
+  }
+}
+
+
+class ApiVideoService {
+  static const String apiUrl = 'https://ws.api.video/videos';
+  static final String apiKey = FirebaseUtils.apiVideoKey;
+
+  static Future<Map<String, dynamic>> createVideo(String title) async {
+    final response = await http.post(
+      Uri.parse(apiUrl),
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $apiKey',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'public': true,
+        'panoramic': false,
+        'mp4Support': true,
+        'title': title,
+      }),
+    );
+
+    if (response.statusCode == 201) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to create video: ${response.body}');
+    }
+  }
+
+  static Future<String> uploadVideo(String videoId, String filePath) async {
+    final file = File(filePath);
+    final fileStream = file.openRead();
+    final length = await file.length();
+
+    final request = http.MultipartRequest(
+      'POST',
+      Uri.parse('$apiUrl/$videoId/source'),
+    )
+      ..headers['Accept'] = 'application/json'
+      ..headers['Authorization'] = 'Bearer $apiKey'
+      ..headers['Content-Range'] = 'bytes 0-${length - 1}/$length'
+      ..files.add(http.MultipartFile(
+        'file',
+        fileStream,
+        length,
+        filename: file.uri.pathSegments.last,
+      ));
+
+    final response = await request.send();
+
+    if (response.statusCode == 201) {
+      final responseBody = jsonDecode(await response.stream.bytesToString());
+      debugPrint('Video uploaded successfully');
+      return responseBody['assets']['mp4'];
+    } else {
+      debugPrint('Failed to upload video: ${response.reasonPhrase}');
+      debugPrint(await response.stream.bytesToString());
+      throw('Failed to upload video.');
+    }
+  }
+
+  static Future<File> downloadVideo(String url, String savePath) async {
+    // Send the HTTP GET request to download the file
+    final response = await http.get(Uri.parse(url));
+
+    if (response.statusCode == 200) {
+      // Write the file to the specified path
+      final file = File(savePath);
+      return file.writeAsBytes(response.bodyBytes);
+    } else {
+      throw Exception('Failed to download video: ${response.reasonPhrase}');
+    }
+  
   }
 }
