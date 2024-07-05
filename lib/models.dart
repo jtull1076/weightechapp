@@ -1,3 +1,4 @@
+import 'package:file_saver/file_saver.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
@@ -13,6 +14,8 @@ import 'package:path/path.dart' as path_handler;
 import 'dart:math' as math;
 import 'package:string_validator/string_validator.dart';
 import 'package:weightechapp/utils.dart';
+import 'package:mime/mime.dart';
+import 'package:http/http.dart' as http;
 
 class ProductManager {
   static ProductCategory? all;
@@ -24,10 +27,55 @@ class ProductManager {
     try {
       Map<String, dynamic> catalogJson = await getCatalogFromFirestore();
       all = ProductCategory.fromJson(catalogJson);
+      _restructureDatabase();
       //timestamp = catalogJson["timestamp"];
     } catch (e) {
       rethrow;
     }
+  }
+
+  static void _restructureDatabase() {
+    final ProductCategory root = all!;
+
+    void traverseCategories(ProductCategory category) {
+      // Traverse subcategories recursively
+      for (var item in category.catalogItems) {
+        if (item is Product) {
+          item.productMedia = [];
+          String baseRefName = item.id;
+          int i = 0;
+
+          for (var url in item.productMediaUrls ?? []) {
+            String name = '${baseRefName}_$i';
+            String extension = '';
+
+            if (url.contains('.mp4?')) {
+              extension = 'mp4';
+            }
+            else if (url.contains('.png?')){
+              extension = 'png';
+            }
+            else if (url.contains('.jpeg') || (url.contains('.jpg'))) {
+              extension = 'jpeg';
+            }
+
+            item.productMedia!.add({
+              'name': name,
+              'contentType': (extension == 'mp4' ? 'video' : 'image'),
+              'fileType': extension,
+              'downloadUrl': url,
+            });
+            i++;
+          }
+        }
+        else {
+          traverseCategories(item as ProductCategory);
+        }
+      }
+    }
+
+    traverseCategories(root);
+    postCatalogToFirestore();
   }
 
   List<ProductCategory> getAllCategories(ProductCategory? category) {
@@ -350,6 +398,7 @@ class ProductCategory extends CatalogItem {
 class Product extends CatalogItem {
   String? modelNumber;
   List<String>? productMediaUrls;
+  List<Map<String, dynamic>>? productMedia;
   String? description;
   List<Map<String, dynamic>>? brochure;
   static const String buttonRoute = '/product';
@@ -360,6 +409,7 @@ class Product extends CatalogItem {
     super.id,
     String? imageUrl,
     this.productMediaUrls,
+    this.productMedia,
     this.modelNumber,
     this.description,
     this.brochure,
@@ -471,7 +521,18 @@ class Product extends CatalogItem {
     json['brochure'] = brochure;
     json['parentId'] = parentId;
     json['imageUrls'] = productMediaUrls;
+    json['media'] = productMedia;
     return json;
+  }
+
+  Future<Map<String,dynamic>> _mapProductMedia() async {
+    Map<String, dynamic> result = {};
+
+    for (var media in productMedia ?? []) {
+
+    }
+
+    return result;
   }
 
   factory Product.fromJson(Map<String, dynamic> json) {
@@ -482,10 +543,10 @@ class Product extends CatalogItem {
       description: json['description'],
       brochure: List<Map<String,dynamic>>.from(json['brochure']),
       parentId: json['parentId'],
-      productMediaUrls: List<String>.from(json['imageUrls'] ?? [])
+      productMediaUrls: List<String>.from(json['imageUrls'] ?? []),
+      productMedia: List<Map<String, dynamic>>.from(json['media'] ?? []),
     );
   }
-
 
   void storeListOfImages(List<File> imageFiles){
     final storageRef = FirebaseUtils.storage.ref("devImages");
@@ -582,6 +643,7 @@ sealed class EItem {
               // }
 
               item.product.productMediaUrls = [];
+              item.product.productMedia = [];
 
               int nonPrimaryCount = 0;
               for (int i = 0; i < item.mediaFiles!.length; i++) {
@@ -599,28 +661,42 @@ sealed class EItem {
                     await storageRef.child("$baseRefName.$extension").putFile(imageFile, SettableMetadata(contentType: 'images/$extension')).then((value) async {
                       final imageUrl = await storageRef.child("$baseRefName.$extension").getDownloadURL();
                       item.product.productMediaUrls!.insert(0, imageUrl);
+                      item.product.productMedia!.insert(0, 
+                      {
+                        'name': baseRefName,
+                        'contentType': (extension == 'mp4' ? 'video' : 'image'),
+                        'fileType': extension,
+                        'downloadUrl': imageUrl
+                      });
                     });
                   } catch (e, stackTrace) {
                     Log.logger.e("Error encountered while updating primary product image.", error: e, stackTrace: stackTrace);
                   }
                 }
                 else {
-                  baseRefName = "${item.id}_${nonPrimaryCount+1}";
-                  String extension = path_handler.extension(imageFile.path).substring(1);
+                    baseRefName = "${item.id}_${nonPrimaryCount+1}";
+                    String extension = path_handler.extension(imageFile.path).substring(1);
 
-                  if (extension == 'jpg') {
-                    extension = 'jpeg';
-                  }
+                    if (extension == 'jpg') {
+                      extension = 'jpeg';
+                    }
 
-                  try {
-                    await storageRef.child("$baseRefName.$extension").putFile(imageFile, SettableMetadata(contentType: 'images/$extension')).then((value) async {
-                      final imageUrl = await storageRef.child("$baseRefName.$extension").getDownloadURL();
-                      item.product.productMediaUrls!.add(imageUrl);
-                    });
-                    nonPrimaryCount++;
-                  } catch (e, stackTrace) {
-                    Log.logger.e("Error encountered while updating non-primary product images.", error: e, stackTrace: stackTrace);
-                  }
+                    try {
+                      await storageRef.child("$baseRefName.$extension").putFile(imageFile, SettableMetadata(contentType: 'images/$extension')).then((value) async {
+                        final imageUrl = await storageRef.child("$baseRefName.$extension").getDownloadURL();
+                        item.product.productMediaUrls!.add(imageUrl);
+                        item.product.productMedia!.add( 
+                        {
+                          'name': baseRefName,
+                          'contentType': (extension == 'mp4' ? 'video' : 'image'),
+                          'fileType' : extension,
+                          'downloadUrl': imageUrl,
+                        });
+                      });
+                      nonPrimaryCount++;
+                    } catch (e, stackTrace) {
+                      Log.logger.e("Error encountered while updating non-primary product images.", error: e, stackTrace: stackTrace);
+                    }
                 }
                 
               }
