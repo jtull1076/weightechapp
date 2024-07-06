@@ -27,7 +27,7 @@ class ProductManager {
     try {
       Map<String, dynamic> catalogJson = await getCatalogFromFirestore();
       all = ProductCategory.fromJson(catalogJson);
-      _restructureDatabase();
+      // _restructureDatabase();
       //timestamp = catalogJson["timestamp"];
     } catch (e) {
       rethrow;
@@ -45,7 +45,7 @@ class ProductManager {
           String baseRefName = item.id;
           int i = 0;
 
-          for (var url in item.productMediaUrls ?? []) {
+          for (var url in item.productMedia?.map((x) => x['downloadUrl']).toList() ?? []) {
             String name = '${baseRefName}_$i';
             String extension = '';
 
@@ -397,7 +397,6 @@ class ProductCategory extends CatalogItem {
 
 class Product extends CatalogItem {
   String? modelNumber;
-  List<String>? productMediaUrls;
   List<Map<String, dynamic>>? productMedia;
   String? description;
   List<Map<String, dynamic>>? brochure;
@@ -408,15 +407,14 @@ class Product extends CatalogItem {
     super.parentId,
     super.id,
     String? imageUrl,
-    this.productMediaUrls,
     this.productMedia,
     this.modelNumber,
     this.description,
     this.brochure,
     BuildContext? context,
-  }) : super(imageUrl: imageUrl ?? ((productMediaUrls?.isNotEmpty ?? false) ? productMediaUrls![0] : null))
+  }) : super(imageUrl: imageUrl ?? ((productMedia?.isNotEmpty ?? false) ? productMedia![0]['downloadUrl'] : null))
   {
-    productMediaUrls ??= [];
+    productMedia ??= [];
   }
 
   //
@@ -520,7 +518,6 @@ class Product extends CatalogItem {
     json['description'] = description;
     json['brochure'] = brochure;
     json['parentId'] = parentId;
-    json['imageUrls'] = productMediaUrls;
     json['media'] = productMedia;
     return json;
   }
@@ -543,7 +540,6 @@ class Product extends CatalogItem {
       description: json['description'],
       brochure: List<Map<String,dynamic>>.from(json['brochure']),
       parentId: json['parentId'],
-      productMediaUrls: List<String>.from(json['imageUrls'] ?? []),
       productMedia: List<Map<String, dynamic>>.from(json['media'] ?? []),
     );
   }
@@ -642,7 +638,6 @@ sealed class EItem {
               //   ]);
               // }
 
-              item.product.productMediaUrls = [];
               item.product.productMedia = [];
 
               int nonPrimaryCount = 0;
@@ -660,7 +655,6 @@ sealed class EItem {
                   try {
                     await storageRef.child("$baseRefName.$extension").putFile(imageFile, SettableMetadata(contentType: 'images/$extension')).then((value) async {
                       final imageUrl = await storageRef.child("$baseRefName.$extension").getDownloadURL();
-                      item.product.productMediaUrls!.insert(0, imageUrl);
                       item.product.productMedia!.insert(0, 
                       {
                         'name': baseRefName,
@@ -684,7 +678,6 @@ sealed class EItem {
                     try {
                       await storageRef.child("$baseRefName.$extension").putFile(imageFile, SettableMetadata(contentType: 'images/$extension')).then((value) async {
                         final imageUrl = await storageRef.child("$baseRefName.$extension").getDownloadURL();
-                        item.product.productMediaUrls!.add(imageUrl);
                         item.product.productMedia!.add( 
                         {
                           'name': baseRefName,
@@ -1086,9 +1079,9 @@ class EProduct extends EItem {
     }
     else {
       mediaPaths = [];
-      if (product.productMediaUrls?.isNotEmpty ?? false) {
-        for (var url in product.productMediaUrls!) {
-          mediaPaths!.add(url);
+      if (product.productMedia?.isNotEmpty ?? false) {
+        for (var media in product.productMedia!) {
+          mediaPaths!.add(media['downloadUrl']);
         }
       }
     }

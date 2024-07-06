@@ -454,7 +454,7 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                   children: [
                     CarouselSlider.builder(
                       options: CarouselOptions(
-                        enableInfiniteScroll: widget.product.productMediaUrls!.length > 1 ? true : false, 
+                        enableInfiniteScroll: widget.product.productMedia!.length > 1 ? true : false, 
                         enlargeCenterPage: true,
                         enlargeFactor: 1,
                         viewportFraction: 1,
@@ -464,10 +464,10 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                           });
                         },
                       ),
-                      itemCount: widget.product.productMediaUrls!.length,
+                      itemCount: widget.product.productMedia!.length,
                       itemBuilder: (BuildContext context, int itemIndex, int pageViewIndex) {
                         return FutureBuilder(
-                          future: DefaultCacheManager().getSingleFile(widget.product.productMediaUrls![itemIndex]),
+                          future: DefaultCacheManager().getSingleFile(widget.product.productMedia![itemIndex]['downloadUrl']),
                           builder: ((context, snapshot) {
                             if (snapshot.hasData) {
                               if (p.extension(snapshot.data!.path) == '.mp4') {
@@ -513,10 +513,10 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                       }
                     ),
                     const SizedBox(height: 10),
-                    if (widget.product.productMediaUrls!.length > 1)
+                    if (widget.product.productMedia!.length > 1)
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
-                        children: widget.product.productMediaUrls!.asMap().entries.map((entry) {
+                        children: widget.product.productMedia!.asMap().entries.map((entry) {
                           return Container(
                               width: 10.0,
                               height: 10.0,
@@ -657,7 +657,7 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                       children: [
                         CarouselSlider.builder(
                           options: CarouselOptions(
-                            enableInfiniteScroll: widget.product.productMediaUrls!.length > 1 ? true : false, 
+                            enableInfiniteScroll: widget.product.productMedia!.length > 1 ? true : false, 
                             enlargeCenterPage: true,
                             enlargeFactor: 1,
                             viewportFraction: 1,
@@ -667,10 +667,10 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                               });
                             },
                           ),
-                          itemCount: widget.product.productMediaUrls!.length,
+                          itemCount: widget.product.productMedia!.length,
                           itemBuilder: (BuildContext context, int itemIndex, int pageViewIndex) {
                             return FutureBuilder(
-                              future: DefaultCacheManager().getSingleFile(widget.product.productMediaUrls![itemIndex]),
+                              future: DefaultCacheManager().getSingleFile(widget.product.productMedia![itemIndex]['downloadUrl']),
                               builder: ((context, snapshot) {
                                 if (snapshot.hasData) {
                                   if (p.extension(snapshot.data!.path) == '.mp4') {
@@ -721,10 +721,10 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                           }
                         ),
                         const SizedBox(height: 10),
-                        if (widget.product.productMediaUrls!.length > 1)
+                        if (widget.product.productMedia!.length > 1)
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
-                            children: widget.product.productMediaUrls!.asMap().entries.map((entry) {
+                            children: widget.product.productMedia!.asMap().entries.map((entry) {
                               return Container(
                                   width: 10.0,
                                   height: 10.0,
