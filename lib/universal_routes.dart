@@ -20,6 +20,7 @@ import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:flutter/services.dart';
 import 'package:upgrader/upgrader.dart';
+import 'package:apivideo_player/apivideo_player.dart';
 
 
 //MARK: OFFLINE PAGE
@@ -562,7 +563,7 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                   children: [
                     CarouselSlider.builder(
                       options: CarouselOptions(
-                        enableInfiniteScroll: widget.product.productMediaUrls!.length > 1 ? true : false, 
+                        enableInfiniteScroll: widget.product.productMedia!.length > 1 ? true : false, 
                         enlargeCenterPage: true,
                         enlargeFactor: 1,
                         viewportFraction: 1,
@@ -572,33 +573,13 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                           });
                         },
                       ),
-                      itemCount: widget.product.productMediaUrls!.length,
+                      itemCount: widget.product.productMedia!.length,
                       itemBuilder: (BuildContext context, int itemIndex, int pageViewIndex) {
-                        return FutureBuilder(
-                          future: DefaultCacheManager().getSingleFile(widget.product.productMediaUrls![itemIndex]),
-                          builder: ((context, snapshot) {
-                            if (snapshot.hasData) {
-                              if (p.extension(snapshot.data!.path) == '.mp4') {
-                                late final player = Player();
-                                late final controller = VideoController(player);
-                                player.open(Media(snapshot.data!.path));
-                                return ClipRRect(
-                                  borderRadius: BorderRadius.circular(30),
-                                  child: FullScreenWidget(
-                                    disposeLevel: DisposeLevel.low,
-                                    child: Hero(
-                                      tag: "$itemIndex-hero",
-                                      child: Video(
-                                        controller: controller, 
-                                        // controls: (VideoState state) => MaterialVideoControls(state), // Uncomment for app usage
-                                        fit: BoxFit.fitWidth, 
-                                        width: double.infinity
-                                      )
-                                    )
-                                  )
-                                );
-                              }
-                              else {
+                        if (widget.product.productMedia![itemIndex]['contentType'] == 'image') {
+                          return FutureBuilder(
+                            future: DefaultCacheManager().getSingleFile(widget.product.productMedia![itemIndex]['downloadUrl']),
+                            builder: ((context, snapshot) {
+                              if (snapshot.hasData) {
                                 return ClipRRect(
                                   borderRadius: BorderRadius.circular(30),
                                   child: FullScreenWidget(
@@ -612,19 +593,36 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                                   )
                                 );
                               }
-                            }
-                            else {
-                              return LoadingAnimationWidget.newtonCradle(color: const Color(0xFF224190), size: 50);
-                            }
-                          })
-                        );
+                              else {
+                                return LoadingAnimationWidget.newtonCradle(color: const Color(0xFF224190), size: 50);
+                              }
+                            })
+                          );
+                        }
+                        else if (widget.product.productMedia![itemIndex]['contentType'] == 'video') {
+                          final controller = ApiVideoPlayerController(
+                            videoOptions: VideoOptions(videoId: widget.product.productMedia![itemIndex]['videoId']),
+                            autoplay: true
+                          );
+                        
+                          return ClipRRect(
+                            borderRadius: BorderRadius.circular(30),
+                            child: ApiVideoPlayer(
+                            controller: controller, 
+                            controlsVisibilityDuration: const Duration(seconds: 0),
+                            )
+                          );
+                        }
+                        else {
+                          return LoadingAnimationWidget.newtonCradle(color: const Color(0xFF224190), size: 50);
+                        }
                       }
                     ),
                     const SizedBox(height: 10),
-                    if (widget.product.productMediaUrls!.length > 1)
+                    if (widget.product.productMedia!.length > 1)
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
-                        children: widget.product.productMediaUrls!.asMap().entries.map((entry) {
+                        children: widget.product.productMedia!.asMap().entries.map((entry) {
                           return Container(
                               width: 10.0,
                               height: 10.0,
@@ -765,7 +763,7 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                       children: [
                         CarouselSlider.builder(
                           options: CarouselOptions(
-                            enableInfiniteScroll: widget.product.productMediaUrls!.length > 1 ? true : false, 
+                            enableInfiniteScroll: widget.product.productMedia!.length > 1 ? true : false, 
                             enlargeCenterPage: true,
                             enlargeFactor: 1,
                             viewportFraction: 1,
@@ -775,64 +773,56 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                               });
                             },
                           ),
-                          itemCount: widget.product.productMediaUrls!.length,
+                          itemCount: widget.product.productMedia!.length,
                           itemBuilder: (BuildContext context, int itemIndex, int pageViewIndex) {
-                            return FutureBuilder(
-                              future: DefaultCacheManager().getSingleFile(widget.product.productMediaUrls![itemIndex]),
-                              builder: ((context, snapshot) {
-                                if (snapshot.hasData) {
-                                  if (p.extension(snapshot.data!.path) == '.mp4') {
-                                    late final player = Player();
-                                    late final controller = VideoController(player);
-                                    player.open(Media(snapshot.data!.path));
+                            if (widget.product.productMedia![itemIndex]['contentType'] == 'image') {
+                              return FutureBuilder(
+                                future: DefaultCacheManager().getSingleFile(widget.product.productMedia![itemIndex]['downloadUrl']),
+                                builder: ((context, snapshot) {
+                                  if (snapshot.hasData) {
                                     return ClipRRect(
-                                      borderRadius: BorderRadius.circular(30),
-                                      child: FullScreenWidget(
-                                        disposeLevel: DisposeLevel.low,
-                                        child: Hero(
-                                          tag: "$itemIndex-hero",
-                                          child: Video(
-                                            controller: controller, 
-                                            // controls: (VideoState state) => MaterialVideoControls(state), // Uncomment for app usage
-                                            fit: BoxFit.fitWidth, 
-                                            width: double.infinity
-                                          )
-                                        )
-                                      )
-                                    );
-                                  }
-                                  else {
-                                    return ClipRRect(
-                                      clipBehavior: Clip.hardEdge,
                                       borderRadius: BorderRadius.circular(30),
                                       child: FullScreenWidget(
                                         disposeLevel: DisposeLevel.low,
                                         child: Hero(
                                           tag: "$itemIndex-hero",
                                           child: Center(
-                                            child: Image.file(
-                                              snapshot.data!, 
-                                              fit: BoxFit.fitWidth,
-                                              width: double.infinity
-                                            )
+                                            child: Image.file(snapshot.data!, fit: BoxFit.fitWidth, width: double.infinity)
                                           )
                                         )
                                       )
                                     );
                                   }
-                                }
-                                else {
-                                  return LoadingAnimationWidget.newtonCradle(color: const Color(0xFF224190), size: 80);
-                                }
-                              })
-                            );
+                                  else {
+                                    return LoadingAnimationWidget.newtonCradle(color: const Color(0xFF224190), size: 50);
+                                  }
+                                })
+                              );
+                            }
+                            else if (widget.product.productMedia![itemIndex]['contentType'] == 'video') {
+                              final controller = ApiVideoPlayerController(
+                                videoOptions: VideoOptions(videoId: widget.product.productMedia![itemIndex]['videoId']),
+                                autoplay: true
+                              );
+                            
+                              return ClipRRect(
+                                borderRadius: BorderRadius.circular(30),
+                                child: ApiVideoPlayer(
+                                controller: controller, 
+                                controlsVisibilityDuration: const Duration(seconds: 0),
+                                )
+                              );
+                            }
+                            else {
+                              return LoadingAnimationWidget.newtonCradle(color: const Color(0xFF224190), size: 50);
+                            }
                           }
                         ),
                         const SizedBox(height: 10),
-                        if (widget.product.productMediaUrls!.length > 1)
+                        if (widget.product.productMedia!.length > 1)
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
-                            children: widget.product.productMediaUrls!.asMap().entries.map((entry) {
+                            children: widget.product.productMedia!.asMap().entries.map((entry) {
                               return Container(
                                   width: 10.0,
                                   height: 10.0,
