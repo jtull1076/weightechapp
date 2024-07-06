@@ -19,6 +19,7 @@ Future<void> main() async {
   await AppInfo().init();
   await Log().init();
   Log.logger.i('Version: ${AppInfo.packageInfo.version}, Build: ${AppInfo.packageInfo.buildNumber}, SessionId: ${AppInfo.sessionId}');
+  Log.logger.i('Version: ${AppInfo.packageInfo.version}, Build: ${AppInfo.packageInfo.buildNumber}, SessionId: ${AppInfo.sessionId}');
 
   runApp(
     WeightechApp()

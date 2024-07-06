@@ -1,3 +1,4 @@
+import 'package:file_saver/file_saver.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
@@ -12,9 +13,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:weightechapp/utils.dart';
 import 'package:string_validator/string_validator.dart' show isURL;
 import 'package:flutter_archive/flutter_archive.dart';
-
-
-
+import 'package:http/http.dart' as http;
 
 class ProductManager {
   static ProductCategory? all;
@@ -193,11 +192,11 @@ class ProductManager {
           }
         }
         case Product _ : {
-          if (item.productMediaUrls?.isNotEmpty ?? false) {
-            for (int i = 0; i < item.productMediaUrls!.length; i++) {
-              if (!item.productMediaUrls!.contains('${item.id}_$i.mp4')) {
-                FirebaseUtils.downloadFromFirebaseStorage(url: item.productMediaUrls![i], directory: imageDirectory).then((value) {
-                  item.productMediaUrls![i] = value!;
+          if (item.productMedia?.isNotEmpty ?? false) {
+            for (int i = 0; i < item.productMedia!.length; i++) {
+              if (item.productMedia![i]['contentType'] == 'image') {
+                FirebaseUtils.downloadFromFirebaseStorage(url: item.productMedia![i]['downloadUrl'], directory: imageDirectory).then((value) {
+                  item.productMedia![i]['downloadUrl'] = value!;
                   if (i==0) {
                     item.imageUrl = value;
                   }
@@ -307,6 +306,19 @@ sealed class CatalogItem {
                     ),
                   )
                 )
+              ),
+              Container(
+                height: 25,
+                alignment: Alignment.center,
+                padding: const EdgeInsets.symmetric(horizontal: 15),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    name, 
+                    textAlign: TextAlign.center, 
+                    style: const TextStyle(fontSize: 16.0, color: Colors.black)
+                  ),
+                ),
               ),
               Container(
                 height: 25,
@@ -496,7 +508,7 @@ class ProductCategory extends CatalogItem {
 
 class Product extends CatalogItem {
   String? modelNumber;
-  List<String>? productMediaUrls;
+  List<Map<String, dynamic>>? productMedia;
   String? description;
   List<Map<String, dynamic>>? brochure;
   static const String buttonRoute = '/product';
@@ -506,20 +518,21 @@ class Product extends CatalogItem {
     super.parentId,
     super.id,
     String? imageUrl,
-    this.productMediaUrls,
+    this.productMedia,
     this.modelNumber,
     this.description,
     this.brochure,
     BuildContext? context,
-  }) : super(imageUrl: imageUrl ?? ((productMediaUrls?.isNotEmpty ?? false) ? productMediaUrls![0] : null))
+  }) : super(imageUrl: imageUrl ?? ((productMedia?.isNotEmpty ?? false) ? productMedia![0]['downloadUrl'] : null))
   {
-    productMediaUrls ??= [];
+    productMedia ??= [];
   }
 
   //
   // Maps the list of brochure items to the brochure json structure. 
   //
   static List<Map<String, dynamic>> mapListToBrochure(List<BrochureItem> brochure) {
+    Log.logger.t("Mapping BrochureItem list...");
     Log.logger.t("Mapping BrochureItem list...");
     List<String> entries = [];
     List<dynamic> subheaders = [];
@@ -532,10 +545,12 @@ class Product extends CatalogItem {
         }
         case BrochureSubheader _: {
           subheaders.insert(0, {item.subheader : List.from(entries)});
+          subheaders.insert(0, {item.subheader : List.from(entries)});
           entries.clear();
         }
         case BrochureHeader _: {
           if (entries.isNotEmpty && subheaders.isNotEmpty){
+            brochureMap.insert(0, {item.header : [{"Entries" : List.from(entries)}, ...List.from(subheaders)]});
             brochureMap.insert(0, {item.header : [{"Entries" : List.from(entries)}, ...List.from(subheaders)]});
           }
           else if (entries.isNotEmpty) {
@@ -553,11 +568,14 @@ class Product extends CatalogItem {
       }
     }
     Log.logger.t("-> done.");
+    Log.logger.t("-> done.");
 
     return brochureMap;
   }
 
   List<BrochureItem> retrieveBrochureList() {
+    Log.logger.t("Retrieving brochure list...");
+
     Log.logger.t("Retrieving brochure list...");
 
     List<BrochureItem> brochureList = [];
@@ -617,8 +635,18 @@ class Product extends CatalogItem {
     json['description'] = description;
     json['brochure'] = brochure;
     json['parentId'] = parentId;
-    json['imageUrls'] = productMediaUrls;
+    json['media'] = productMedia;
     return json;
+  }
+
+  Future<Map<String,dynamic>> _mapProductMedia() async {
+    Map<String, dynamic> result = {};
+
+    for (var media in productMedia ?? []) {
+
+    }
+
+    return result;
   }
 
   factory Product.fromJson(Map<String, dynamic> json) {
@@ -629,10 +657,9 @@ class Product extends CatalogItem {
       description: json['description'],
       brochure: List<Map<String,dynamic>>.from(json['brochure']),
       parentId: json['parentId'],
-      productMediaUrls: List<String>.from(json['imageUrls'] ?? [])
+      productMedia: List<Map<String, dynamic>>.from(json['media'] ?? []),
     );
   }
-
 
   void storeListOfImages(List<File> imageFiles){
     final storageRef = FirebaseUtils.storage.ref("devImages");
