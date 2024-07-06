@@ -638,6 +638,8 @@ sealed class EItem {
               //   ]);
               // }
 
+              
+              ApiVideoService.deleteExistingForId(item.id);
               item.product.productMedia = [];
 
               int nonPrimaryCount = 0;
@@ -676,15 +678,16 @@ sealed class EItem {
                     }
                   if (extension == 'jpeg' || extension == 'png') {
                       try {
-                        await storageRef.child("$baseRefName.$extension").putFile(imageFile, SettableMetadata(contentType: 'images/$extension')).then((value) async {
+                        await storageRef.child("$baseRefName.$extension").putFile(imageFile, SettableMetadata(contentType: 'images/$extension'))
+                        .then((value) async {
                           final imageUrl = await storageRef.child("$baseRefName.$extension").getDownloadURL();
                           item.product.productMedia!.add( 
-                        {
-                          'name': baseRefName,
-                          'contentType': (extension == 'mp4' ? 'video' : 'image'),
-                          'fileType' : extension,
-                          'downloadUrl': imageUrl,
-                        });
+                          {
+                            'name': baseRefName,
+                            'contentType': 'image',
+                            'fileType' : extension,
+                            'downloadUrl': imageUrl,
+                          });
                         });
                         nonPrimaryCount++;
                       } catch (e, stackTrace) {
@@ -692,10 +695,26 @@ sealed class EItem {
                       }
                   }
                   else if (extension == 'mp4') {
-                    final video = await ApiVideoService.createVideo('$baseRefName.$extension');
-                    final videoId = video['videoId'];
-                    final url = await ApiVideoService.uploadVideo(videoId, imageFile.path);
-                    item.product.productMediaUrls!.add(url);
+                    await storageRef.child("$baseRefName.$extension").putFile(imageFile, SettableMetadata(contentType: 'video/mp4'))
+                    .then((value) async {
+                      final videoUrl = await storageRef.child("$baseRefName.$extension").getDownloadURL();
+                      final videoResponse = await ApiVideoService.createVideo(title: '$baseRefName.$extension', source: videoUrl);
+                      final videoData = {
+                        'downloadUrl' : videoResponse['assets']['mp4'],
+                        'streamUrl' : videoResponse['assets']['hls'],
+                        'thumbnailUrl' : videoResponse['assets']['thumbnail'],
+                        'playerUrl' : videoResponse['assets']['player']
+                      };
+                      // final videoId = video['videoId'];
+                      // final videoData = await ApiVideoService.uploadVideo(videoId, imageFile.path);
+                      item.product.productMedia!.add({
+                        'name': baseRefName,
+                        'contentType': 'video',
+                        'fileType' : 'mp4',
+                        ...
+                        videoData
+                      });
+                    });
                     nonPrimaryCount++;
                   }
                 }

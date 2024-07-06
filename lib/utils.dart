@@ -118,7 +118,7 @@ class FirebaseUtils {
   }
 
   static Future<void> postCatalogToFirestore(Map<String, dynamic> json) async {
-    await database.collection("devCatalog").add(json)
+    await database.collection("catalog").add(json)
       .then((DocumentReference doc) {
         Log.logger.i('Firestore DocumentSnapshot added with ID: ${doc.id}');
       });
@@ -126,7 +126,7 @@ class FirebaseUtils {
 
   static Future<Map<String,dynamic>> getCatalogFromFirestore() async {
     return await retry(
-      () => database.collection("devCatalog").orderBy("timestamp", descending: true).limit(1).get()
+      () => database.collection("catalog").orderBy("timestamp", descending: true).limit(1).get()
         .timeout(const Duration(seconds: 5))
         .then((event) {
           if (event.docs.isEmpty) {
@@ -165,7 +165,7 @@ class ApiVideoService {
   static const String apiUrl = 'https://ws.api.video/videos';
   static final String apiKey = FirebaseUtils.apiVideoKey;
 
-  static Future<Map<String, dynamic>> createVideo(String title) async {
+  static Future<Map<String, dynamic>> createVideo({required String title, String? source}) async {
     final response = await http.post(
       Uri.parse(apiUrl),
       headers: {
@@ -178,17 +178,20 @@ class ApiVideoService {
         'panoramic': false,
         'mp4Support': true,
         'title': title,
+        'source': source
       }),
     );
 
-    if (response.statusCode == 201) {
+    final jsonResponse = jsonDecode(response.body);
+
+    if ((response.statusCode == 201) || (response.statusCode == 202)) {
       return jsonDecode(response.body);
     } else {
       throw Exception('Failed to create video: ${response.body}');
     }
   }
 
-  static Future<String> uploadVideo(String videoId, String filePath) async {
+  static Future<Map<String, dynamic>> uploadVideo(String videoId, String filePath) async {
     final file = File(filePath);
     final fileStream = file.openRead();
     final length = await file.length();
@@ -212,7 +215,12 @@ class ApiVideoService {
     if (response.statusCode == 201) {
       final responseBody = jsonDecode(await response.stream.bytesToString());
       debugPrint('Video uploaded successfully');
-      return responseBody['assets']['mp4'];
+      return {
+        'downloadUrl' : responseBody['assets']['mp4'],
+        'streamUrl' : responseBody['assets']['hls'],
+        'thumbnailUrl' : responseBody['assets']['thumbnail'],
+        'playerUrl' : responseBody['assets']['player']
+      };
     } else {
       debugPrint('Failed to upload video: ${response.reasonPhrase}');
       debugPrint(await response.stream.bytesToString());
@@ -232,5 +240,35 @@ class ApiVideoService {
       throw Exception('Failed to download video: ${response.reasonPhrase}');
     }
   
+  }
+
+  static Future<void> deleteExistingForId(String itemId) async {
+    final response = await http.get(
+      Uri.parse(apiUrl),
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $apiKey',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    var videoList = jsonDecode(response.body)['data'];
+
+    for (var video in videoList) {
+      if (video['title'].contains(itemId)) {
+        final deleteResponse = await http.delete(
+          Uri.parse('$apiUrl/${video['videoId']}'),
+          body: jsonEncode({
+            'videoId': video['videoId'],
+          }),
+          headers: {
+            'Accept': 'application/json',
+            'Authorization': 'Bearer $apiKey',
+            'Content-Type': 'application/json',
+          },
+        );
+        Log.logger.i('HTTP Delete response: ${deleteResponse.statusCode} ${deleteResponse.reasonPhrase}');
+      }
+    }
   }
 }
