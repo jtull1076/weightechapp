@@ -670,52 +670,58 @@ sealed class EItem {
                   }
                 }
                 else {
-                    baseRefName = "${item.id}_${nonPrimaryCount+1}";
-                    String extension = path_handler.extension(imageFile.path).substring(1);
+                    try {
+                      baseRefName = "${item.id}_${nonPrimaryCount+1}";
+                      String extension = path_handler.extension(imageFile.path).substring(1);
 
-                    if (extension == 'jpg') {
-                      extension = 'jpeg';
-                    }
-                  if (extension == 'jpeg' || extension == 'png') {
-                      try {
-                        await storageRef.child("$baseRefName.$extension").putFile(imageFile, SettableMetadata(contentType: 'images/$extension'))
+                      if (extension == 'jpg') {
+                        extension = 'jpeg';
+                      }
+                      if (extension == 'jpeg' || extension == 'png') {
+                          try {
+                            await storageRef.child("$baseRefName.$extension").putFile(imageFile, SettableMetadata(contentType: 'images/$extension'))
+                            .then((value) async {
+                              final imageUrl = await storageRef.child("$baseRefName.$extension").getDownloadURL();
+                              item.product.productMedia!.add( 
+                              {
+                                'name': baseRefName,
+                                'contentType': 'image',
+                                'fileType' : extension,
+                                'downloadUrl': imageUrl,
+                              });
+                            });
+                            nonPrimaryCount++;
+                          } catch (e, stackTrace) {
+                            Log.logger.e("Error encountered while updating non-primary product images.", error: e, stackTrace: stackTrace);
+                          }
+                      }
+                      else if (extension == 'mp4') {
+                        await storageRef.child("$baseRefName.$extension").putFile(imageFile, SettableMetadata(contentType: 'video/mp4'))
                         .then((value) async {
-                          final imageUrl = await storageRef.child("$baseRefName.$extension").getDownloadURL();
-                          item.product.productMedia!.add( 
-                          {
+                          final videoUrl = await storageRef.child("$baseRefName.$extension").getDownloadURL();
+                          final videoResponse = await ApiVideoService.createVideo(title: '$baseRefName.$extension', source: videoUrl);
+                          final videoData = {
+                            'downloadUrl' : videoUrl,
+                            'streamUrl' : videoResponse['assets']['hls'],
+                            'thumbnailUrl' : videoResponse['assets']['thumbnail'],
+                            'playerUrl' : videoResponse['assets']['player'],
+                            'videoId' : videoResponse['videoId']
+                          };
+                          // final videoId = video['videoId'];
+                          // final videoData = await ApiVideoService.uploadVideo(videoId, imageFile.path);
+                          item.product.productMedia!.add({
                             'name': baseRefName,
-                            'contentType': 'image',
-                            'fileType' : extension,
-                            'downloadUrl': imageUrl,
+                            'contentType': 'video',
+                            'fileType' : 'mp4',
+                            ...
+                            videoData
                           });
                         });
                         nonPrimaryCount++;
-                      } catch (e, stackTrace) {
-                        Log.logger.e("Error encountered while updating non-primary product images.", error: e, stackTrace: stackTrace);
                       }
-                  }
-                  else if (extension == 'mp4') {
-                    await storageRef.child("$baseRefName.$extension").putFile(imageFile, SettableMetadata(contentType: 'video/mp4'))
-                    .then((value) async {
-                      final videoUrl = await storageRef.child("$baseRefName.$extension").getDownloadURL();
-                      final videoResponse = await ApiVideoService.createVideo(title: '$baseRefName.$extension', source: videoUrl);
-                      final videoData = {
-                        'downloadUrl' : videoResponse['assets']['mp4'],
-                        'streamUrl' : videoResponse['assets']['hls'],
-                        'thumbnailUrl' : videoResponse['assets']['thumbnail'],
-                        'playerUrl' : videoResponse['assets']['player']
-                      };
-                      // final videoId = video['videoId'];
-                      // final videoData = await ApiVideoService.uploadVideo(videoId, imageFile.path);
-                      item.product.productMedia!.add({
-                        'name': baseRefName,
-                        'contentType': 'video',
-                        'fileType' : 'mp4',
-                        ...
-                        videoData
-                      });
-                    });
-                    nonPrimaryCount++;
+                    } catch (e, stackTrace) {
+                      Log.logger.w("Failed to upload media for $baseRefName: $e");
+                    }
                   }
                 }
                 
@@ -724,7 +730,6 @@ sealed class EItem {
           }
         }
       }
-    }
 
     await traverseItems(editorCatalog);
     Log.logger.t("Images updated.");
@@ -988,6 +993,18 @@ class ECategory extends EItem {
     }
   }
 
+  Future<String> getImagePaths() async {
+    if (imagePath != null) {
+      return imagePath!;
+    }
+    else if (category.imageProvider != null) {
+      if (category.imageUrl != null) {
+        return category.imageUrl!;
+      }
+    }
+    return '';
+  }
+
   Future<void> setImagePaths() async {
     if (imagePath != null) {
       return;
@@ -1002,6 +1019,31 @@ class ECategory extends EItem {
     }
   }
 
+  Future<File> getImageFiles({String? path}) async {
+    if (imageFile != null) {
+      return imageFile!;
+    }
+    else {
+      final basePath = await getTemporaryDirectory();
+      if (path == null) {
+        Log.logger.e("Must set image path before creating file!");
+        throw 'Must provide path before creating file';
+      }
+      else if (isURL(path)) {
+        try {
+          final imageRef = FirebaseUtils.storage.refFromURL(path);
+          final file = File('${basePath.path}/${imageRef.name}');
+
+          await imageRef.writeToFile(file);
+          return file;
+        } catch (e) {
+          Log.logger.e("Failed to download image from $imagePath");
+        }
+      }
+    }
+    throw 'FAILED TO CREATE IMAGE FILE';
+  }
+
   Future<void> setImageFiles() async {
     if (imageFile != null) {
       return;
@@ -1012,11 +1054,16 @@ class ECategory extends EItem {
         return;
       }
       else if (isURL(imagePath)) {
-        final imageRef = FirebaseUtils.storage.refFromURL(imagePath!);
-        final file = File('${basePath.path}/${imageRef.name}');
+        try {
+          final imageRef = FirebaseUtils.storage.refFromURL(imagePath!);
+          final file = File('${basePath.path}/${imageRef.name}');
 
-        await imageRef.writeToFile(file);
-        imageFile = file;
+          await imageRef.writeToFile(file);
+          imageFile = file;
+        } catch (e) {
+          Log.logger.e("Failed to download image from $imagePath");
+
+        }
       }
       else if (imagePath != '') {
         imageFile = File(imagePath!);
@@ -1100,6 +1147,21 @@ class EProduct extends EItem {
     );
   }
 
+  Future<List<String>> getImagePaths() async {
+    if (mediaPaths != null) {
+      return mediaPaths!;
+    }
+    else {
+      List<String> paths = [];
+      if (product.productMedia?.isNotEmpty ?? false) {
+        for (var media in product.productMedia!) {
+          paths.add(media['downloadUrl']);
+        }
+      }
+      return paths;
+    }
+  }
+
   Future<void> setImagePaths() async {
     if (mediaPaths != null) {
       return;
@@ -1114,6 +1176,47 @@ class EProduct extends EItem {
     }
   }
 
+  Future<List<File>> getImageFiles({List<String>? paths}) async {
+    if (mediaFiles != null) {
+      return mediaFiles!;
+    }
+    else {
+      final basePath = await getTemporaryDirectory();
+      List<File> files = [];
+      List<String> tempCopy = [];
+      if (paths == null) {
+        throw "CANNOT CREATE FILE LIST WITHOUT SETTING PATHS";
+      }
+      for (var path in paths) {
+        if (isURL(path)) {
+          try {
+            final imageRef = FirebaseUtils.storage.refFromURL(path);
+            final file = File('${basePath.path}/${imageRef.name}');
+
+            await imageRef.writeToFile(file);
+            files.add(file);
+            tempCopy.add(path);
+          } catch (e) {
+            try {
+              final idx = mediaPaths!.indexOf(path);
+              final file = await ApiVideoService.downloadVideo(path, '${basePath.path}/${id}_$idx');
+              files.add(file);
+              tempCopy.add(path);
+            } catch (e) {
+              Log.logger.w("Failed to download image from $path. Removing from media paths...");
+            }
+          }
+        }
+        else {
+          files.add(File(path));
+          tempCopy.add(path);
+        }
+      }
+      mediaPaths = tempCopy;
+      return files;
+    }
+  }
+
   Future<void> setImageFiles() async {
     if (mediaFiles != null) {
       return;
@@ -1121,6 +1224,7 @@ class EProduct extends EItem {
     else {
       final basePath = await getTemporaryDirectory();
       mediaFiles = [];
+      List<String> tempCopy = [];
       for (var path in mediaPaths!) {
         if (isURL(path)) {
           try {
@@ -1129,17 +1233,23 @@ class EProduct extends EItem {
 
             await imageRef.writeToFile(file);
             mediaFiles!.add(file);
+            tempCopy.add(path);
           } catch (e) {
             try {
-              final file = await ApiVideoService.downloadVideo(path, '$path');
+              final idx = mediaPaths!.indexOf(path);
+              final file = await ApiVideoService.downloadVideo(path, '${basePath.path}/${id}_$idx');
+              mediaFiles!.add(file);
+              tempCopy.add(path);
             } catch (e) {
-              rethrow;
+              Log.logger.w("Failed to download image from $path. Removing from media paths...");
             }
           }
         }
         else {
           mediaFiles!.add(File(path));
+          tempCopy.add(path);
         }
+        mediaPaths = tempCopy;
       }
     }
   }

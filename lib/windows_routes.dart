@@ -424,6 +424,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
           });
           _showSaveLoading(context);
           try {
+            await toggleEditorItem(null);
             await EItem.updateProductCatalog(_editorAll);
           }
           catch (error, stackTrace) {
@@ -1562,8 +1563,8 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                 const SizedBox(height: 10),
                 ElevatedButton(
                   style: const ButtonStyle(
-                    backgroundColor: MaterialStatePropertyAll<Color>(Color(0xFF224190)),
-                    foregroundColor: MaterialStatePropertyAll<Color>(Colors.white)
+                    backgroundColor: WidgetStatePropertyAll<Color>(Color(0xFF224190)),
+                    foregroundColor: WidgetStatePropertyAll<Color>(Colors.white)
                   ),
                   child: _addingItem ? const Text("Add") : const Text("Save"),
                   onPressed: () {
@@ -1762,7 +1763,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                                     const SizedBox(height: 10),
                                                     OutlinedButton(
                                                       style: const ButtonStyle(
-                                                        foregroundColor: MaterialStatePropertyAll<Color>(Colors.black)
+                                                        foregroundColor: WidgetStatePropertyAll<Color>(Colors.black)
                                                       ),                 
                                                       onPressed: () async {
                                                         FilePickerResult? _ = 
@@ -1932,8 +1933,8 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                 const SizedBox(height: 20),
                 ElevatedButton(
                   style: const ButtonStyle(
-                    backgroundColor: MaterialStatePropertyAll<Color>(Color(0xFF224190)),
-                    foregroundColor: MaterialStatePropertyAll<Color>(Colors.white)
+                    backgroundColor: WidgetStatePropertyAll<Color>(Color(0xFF224190)),
+                    foregroundColor: WidgetStatePropertyAll<Color>(Colors.white)
                   ),
                   child: _addingItem ? const Text("Add") : const Text("Save"),
                   onPressed: () {
@@ -2395,14 +2396,14 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
     switch (focusItem) {
       case EProduct _ : {
         setState(() => _loadingSomething = true);
-        await focusItem.setImagePaths();
-        await focusItem.setImageFiles();
+        List<String> newImagePaths = await focusItem.getImagePaths();
+        List<File> newImageFiles = await focusItem.getImageFiles(paths: newImagePaths);
         _mediaPaths.clear();
         _mediaFiles.clear();
         setState(() {
           _focusItem = focusItem;
-          _mediaPaths = List.from(focusItem.mediaPaths!);
-          _mediaFiles = List.from(focusItem.mediaFiles!);
+          _mediaPaths = List.from(newImagePaths);
+          _mediaFiles = List.from(newImageFiles);
           _nameController.text = focusItem.product.name;
           _modelNumberController.text = focusItem.product.modelNumber ?? '';
           _brochure = focusItem.product.retrieveBrochureList();
@@ -2414,14 +2415,14 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
       }
       case ECategory _ : {
         setState(() => _loadingSomething = true);
-        await focusItem.setImagePaths();
-        await focusItem.setImageFiles();
+        String newImagePath = await focusItem.getImagePaths();
+        File newImageFile = await focusItem.getImageFiles(path: newImagePath);
         _mediaPaths.clear();
         _mediaFiles.clear();
         setState(() {
           _focusItem = focusItem;
-          if (focusItem.imagePath != null) _mediaPaths.add(focusItem.imagePath!);
-          if (focusItem.imageFile != null) _mediaFiles.add(focusItem.imageFile!);
+          _mediaPaths.add(newImagePath);
+          _mediaFiles.add(newImageFile);
           _nameController.text = focusItem.category.name;
           _selectedCategory = focusItem.getParent(root: _editorAll) ?? _editorAll;
         });

@@ -192,6 +192,9 @@ class ApiVideoService {
   }
 
   static Future<Map<String, dynamic>> uploadVideo(String videoId, String filePath) async {
+    
+    Log.logger.t("Uploading video to host...");
+    
     final file = File(filePath);
     final fileStream = file.openRead();
     final length = await file.length();
@@ -212,6 +215,8 @@ class ApiVideoService {
 
     final response = await request.send();
 
+    Log.logger.t("Response: ${response.statusCode} ${response.reasonPhrase}");
+
     if (response.statusCode == 201) {
       final responseBody = jsonDecode(await response.stream.bytesToString());
       debugPrint('Video uploaded successfully');
@@ -229,6 +234,7 @@ class ApiVideoService {
   }
 
   static Future<File> downloadVideo(String url, String savePath) async {
+    Log.logger.t("Downloading videos at $url");
     // Send the HTTP GET request to download the file
     final response = await http.get(Uri.parse(url));
 
@@ -243,6 +249,7 @@ class ApiVideoService {
   }
 
   static Future<void> deleteExistingForId(String itemId) async {
+    Log.logger.t("Deleting existing videos for $itemId");
     final response = await http.get(
       Uri.parse(apiUrl),
       headers: {
