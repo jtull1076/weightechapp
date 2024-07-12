@@ -12,7 +12,6 @@ import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:weightechapp/utils.dart';
 import 'package:string_validator/string_validator.dart' show isURL;
-import 'package:flutter_archive/flutter_archive.dart';
 import 'package:http/http.dart' as http;
 
 class ProductManager {
@@ -306,19 +305,6 @@ sealed class CatalogItem {
                     ),
                   )
                 )
-              ),
-              Container(
-                height: 25,
-                alignment: Alignment.center,
-                padding: const EdgeInsets.symmetric(horizontal: 15),
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    name, 
-                    textAlign: TextAlign.center, 
-                    style: const TextStyle(fontSize: 16.0, color: Colors.black)
-                  ),
-                ),
               ),
               Container(
                 height: 25,

@@ -804,14 +804,24 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                                 videoOptions: VideoOptions(videoId: widget.product.productMedia![itemIndex]['videoId']),
                                 autoplay: true
                               );
-                            
-                              return ClipRRect(
-                                borderRadius: BorderRadius.circular(30),
-                                child: ApiVideoPlayer(
-                                controller: controller, 
-                                controlsVisibilityDuration: const Duration(seconds: 0),
-                                )
-                              );
+
+                              return FutureBuilder(
+                                future: controller.initialize(),
+                                builder: ((context, snapshot) {
+                                  if (snapshot.hasData) {
+                                    return ClipRRect(
+                                      borderRadius: BorderRadius.circular(30),
+                                      child: ApiVideoPlayer(
+                                      controller: controller, 
+                                      controlsVisibilityDuration: const Duration(seconds: 0),
+                                      )
+                                    );
+                                  }
+                                  else {
+                                    return LoadingAnimationWidget.newtonCradle(color: const Color(0xFF224190), size: 50);
+                                  }
+                                })
+                              );                              
                             }
                             else {
                               return LoadingAnimationWidget.newtonCradle(color: const Color(0xFF224190), size: 50);
