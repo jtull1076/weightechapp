@@ -392,6 +392,7 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
   late Animation<double> _fadeAnimation;
   late Timer _timer;
   int _current = 0;
+  ApiVideoPlayerController? _videoController;
 
   @override
   void initState() {
@@ -419,6 +420,7 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
   void dispose() {
     _timer.cancel();
     _animationController.dispose();
+    _videoController?.dispose();
     super.dispose();
   }
 
@@ -575,9 +577,10 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                       ),
                       itemCount: widget.product.productMedia!.length,
                       itemBuilder: (BuildContext context, int itemIndex, int pageViewIndex) {
-                        if (widget.product.productMedia![itemIndex]['contentType'] == 'image') {
+                        final media = widget.product.productMedia![itemIndex];
+                        if (media['contentType'] == 'image') {
                           return FutureBuilder(
-                            future: DefaultCacheManager().getSingleFile(widget.product.productMedia![itemIndex]['downloadUrl']),
+                            future: DefaultCacheManager().getSingleFile(media['downloadUrl']),
                             builder: ((context, snapshot) {
                               if (snapshot.hasData) {
                                 return ClipRRect(
@@ -599,19 +602,20 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                             })
                           );
                         }
-                        else if (widget.product.productMedia![itemIndex]['contentType'] == 'video') {
-                          final controller = ApiVideoPlayerController(
-                            videoOptions: VideoOptions(videoId: widget.product.productMedia![itemIndex]['videoId']),
-                            autoplay: true
-                          );
-                        
+                        else if (media['contentType'] == 'video') {
+                          late final player = Player();
+                          late final controller = VideoController(player);
+                          player.open(Media(media['streamUrl']));
                           return ClipRRect(
                             borderRadius: BorderRadius.circular(30),
-                            child: ApiVideoPlayer(
-                            controller: controller, 
-                            controlsVisibilityDuration: const Duration(seconds: 0),
-                            )
+                            child: Video(
+                                  controller: controller, 
+                                  // controls: (VideoState state) => MaterialVideoControls(state), // Uncomment for app usage
+                                  fit: BoxFit.fitWidth, 
+                                  width: double.infinity
+                                )
                           );
+                                          
                         }
                         else {
                           return LoadingAnimationWidget.newtonCradle(color: const Color(0xFF224190), size: 50);
@@ -775,9 +779,10 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                           ),
                           itemCount: widget.product.productMedia!.length,
                           itemBuilder: (BuildContext context, int itemIndex, int pageViewIndex) {
-                            if (widget.product.productMedia![itemIndex]['contentType'] == 'image') {
+                            final media = widget.product.productMedia![itemIndex];
+                            if (media['contentType'] == 'image') {
                               return FutureBuilder(
-                                future: DefaultCacheManager().getSingleFile(widget.product.productMedia![itemIndex]['downloadUrl']),
+                                future: DefaultCacheManager().getSingleFile(media['downloadUrl']),
                                 builder: ((context, snapshot) {
                                   if (snapshot.hasData) {
                                     return ClipRRect(
@@ -799,29 +804,20 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                                 })
                               );
                             }
-                            else if (widget.product.productMedia![itemIndex]['contentType'] == 'video') {
-                              final controller = ApiVideoPlayerController(
-                                videoOptions: VideoOptions(videoId: widget.product.productMedia![itemIndex]['videoId']),
-                                autoplay: true
-                              );
-
-                              return FutureBuilder(
-                                future: controller.initialize(),
-                                builder: ((context, snapshot) {
-                                  if (snapshot.hasData) {
-                                    return ClipRRect(
-                                      borderRadius: BorderRadius.circular(30),
-                                      child: ApiVideoPlayer(
+                            else if (media['contentType'] == 'video') {
+                              late final player = Player();
+                              late final controller = VideoController(player);
+                              player.open(Media(media['streamUrl']));
+                              return ClipRRect(
+                                borderRadius: BorderRadius.circular(30),
+                                child: Video(
                                       controller: controller, 
-                                      controlsVisibilityDuration: const Duration(seconds: 0),
-                                      )
-                                    );
-                                  }
-                                  else {
-                                    return LoadingAnimationWidget.newtonCradle(color: const Color(0xFF224190), size: 50);
-                                  }
-                                })
-                              );                              
+                                      // controls: (VideoState state) => MaterialVideoControls(state), // Uncomment for app usage
+                                      fit: BoxFit.fitWidth, 
+                                      width: double.infinity
+                                    )
+                              );
+                                              
                             }
                             else {
                               return LoadingAnimationWidget.newtonCradle(color: const Color(0xFF224190), size: 50);
