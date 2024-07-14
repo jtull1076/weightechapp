@@ -1097,12 +1097,12 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                                     const SizedBox(height: 10),
                                                     OutlinedButton(
                                                       style: const ButtonStyle(
-                                                        foregroundColor: MaterialStatePropertyAll<Color>(Colors.black)
+                                                        foregroundColor: WidgetStatePropertyAll<Color>(Colors.black)
                                                       ),                 
                                                       onPressed: () async {
                                                         FilePickerResult? _ = 
                                                           await FilePicker.platform.
-                                                            pickFiles(allowMultiple: true, type: FileType.image, allowedExtensions: ['png', 'jpg'])
+                                                            pickFiles(allowMultiple: true, type: FileType.media, allowedExtensions: ['png', 'jpg', 'mp4'])
                                                             .then((result) {
                                                               if (result != null) {
                                                                 List<String> paths = [];
@@ -1164,13 +1164,13 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                                   const SizedBox(width: 20),
                                                   OutlinedButton(
                                                     style: const ButtonStyle(
-                                                      foregroundColor: MaterialStatePropertyAll<Color>(Colors.black)
+                                                      foregroundColor: WidgetStatePropertyAll<Color>(Colors.black)
                                                     ),                 
                                                     onPressed: () async {
                                                       Log.logger.t("...Image upload encountered...");
                                                       FilePickerResult? _ = 
                                                         await FilePicker.platform.
-                                                          pickFiles(allowMultiple: true, type: FileType.image, allowedExtensions: ['png', 'jpg'])
+                                                          pickFiles(allowMultiple: true, type: FileType.media, allowedExtensions: ['png', 'jpg', 'mp4'])
                                                           .then((result) {
                                                             if (result != null) {
                                                               List<String> paths = [];
