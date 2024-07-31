@@ -1,6 +1,7 @@
 import 'package:file_saver/file_saver.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart';
 import 'package:shortid/shortid.dart';
@@ -210,21 +211,15 @@ class ProductManager {
     await traverseCatalog(catalog);
   }
 
-  static Future<void> precacheImages() async {
+  static Future<void> precacheImages(BuildContext context) async {
 
     Future<void> traverseCatalog(CatalogItem item) async {
-      item.precachePrimaryImage();
-      // switch (item) {
-      //   case ProductCategory _ : {
-      //     item.precacheImages(context);
-      //     for (var subItem in item.catalogItems) {
-      //       traverseCatalog(subItem);
-      //     }
-      //   }
-      //   case Product _ : {
-      //     item.precacheImages(context);
-      //   }
-      // }
+      item.precachePrimaryImage(context);
+      if (item is ProductCategory) {
+        for (var subItem in item.catalogItems) {
+          traverseCatalog(subItem);
+        }
+      }
     }
 
     await traverseCatalog(all!);
@@ -260,8 +255,9 @@ sealed class CatalogItem {
     }
   }
 
-  Future<void> precachePrimaryImage() async {
-    if (imageUrl != null) await DefaultCacheManager().downloadFile(imageUrl!);
+  Future<void> precachePrimaryImage(BuildContext context) async {
+    debugPrint('Cached $name image');
+    if (imageUrl != null) await precacheImage(imageProvider!, context);
   }
 
   Widget buildCard(VoidCallback onTapCallback) {
@@ -289,21 +285,38 @@ sealed class CatalogItem {
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(10,15,10,15),
-                  child: Container (
-                    padding: const EdgeInsets.only(left: 20.0, right: 20.0, top: 20, bottom: 20),
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(20),
-                      image: DecorationImage(
-                        fit: BoxFit.cover,
-                        image: ResizeImage(
-                          imageProvider!,
-                          policy: ResizeImagePolicy.fit,
-                          height: 400,
-                        )
-                      )
-                    ),
-                  )
+                  child: FutureBuilder(
+                    future: DefaultCacheManager().getSingleFile(imageUrl!),
+                    builder: ((context, snapshot) {
+                      if (snapshot.hasData) {
+                        return Container (
+                          padding: const EdgeInsets.only(left: 20.0, right: 20.0, top: 20, bottom: 20),
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(20),
+                            image: DecorationImage(
+                              fit: BoxFit.cover,
+                              image: ResizeImage(
+                                imageProvider!,
+                                policy: ResizeImagePolicy.fit,
+                                height: 250,
+                              )
+                            )
+                          ),
+                        );
+                      }
+                      else {
+                        return Center(
+                          child: LoadingAnimationWidget.discreteCircle(
+                            color: const Color(0xFF224190), 
+                            secondRingColor: const Color(0xFFC9C9CC),
+                            thirdRingColor: Colors.white,
+                            size: 30
+                          )
+                        );
+                      }
+                    })
+                  )                  
                 )
               ),
               Container(
