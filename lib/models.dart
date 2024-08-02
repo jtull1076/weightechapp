@@ -256,8 +256,14 @@ sealed class CatalogItem {
   }
 
   Future<void> precachePrimaryImage(BuildContext context) async {
-    debugPrint('Cached $name image');
-    if (imageUrl != null) await precacheImage(imageProvider!, context);
+    debugPrint('Caching $name image...');
+    if (imageUrl != null) {
+      await precacheImage(
+        imageProvider!, 
+        context,
+        onError : (error, stackTrace) => debugPrint(error.toString()),
+      );
+    }
   }
 
   Widget buildCard(VoidCallback onTapCallback) {
@@ -299,7 +305,7 @@ sealed class CatalogItem {
                               image: ResizeImage(
                                 imageProvider!,
                                 policy: ResizeImagePolicy.fit,
-                                height: 250,
+                                height: 400,
                               )
                             )
                           ),
@@ -389,12 +395,6 @@ sealed class CatalogItem {
       categoryImageRef.putFile(imageFile);
     } on FirebaseException catch (e) {
       Log.logger.t("Failed to add ${id}_0 to Firebase. Error code: ${e.code}");
-    }
-  }
-
-  void precacheImages(BuildContext context) async {
-    if (imageProvider != null) {
-      await precacheImage(imageProvider!, context, onError: (error, stackTrace) {debugPrint('Image for $name failed to load: $error');});
     }
   }
 }
@@ -638,15 +638,6 @@ class Product extends CatalogItem {
     return json;
   }
 
-  Future<Map<String,dynamic>> _mapProductMedia() async {
-    Map<String, dynamic> result = {};
-
-    for (var media in productMedia ?? []) {
-
-    }
-
-    return result;
-  }
 
   factory Product.fromJson(Map<String, dynamic> json) {
     return Product(

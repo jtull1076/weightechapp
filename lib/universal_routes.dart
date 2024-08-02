@@ -564,67 +564,7 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
               child:
                 Column(
                   children: [
-                    CarouselSlider.builder(
-                      options: CarouselOptions(
-                        enableInfiniteScroll: widget.product.productMedia!.length > 1 ? true : false, 
-                        enlargeCenterPage: true,
-                        enlargeFactor: 1,
-                        viewportFraction: 1,
-                        onPageChanged: (index, reason) {
-                          setState(() {
-                            _current = index;
-                          });
-                        },
-                      ),
-                      itemCount: widget.product.productMedia!.length,
-                      itemBuilder: (BuildContext context, int itemIndex, int pageViewIndex) {
-                        final media = widget.product.productMedia![itemIndex];
-                        if (media['contentType'] == 'image') {
-                        //   return FutureBuilder(
-                        //     future: DefaultCacheManager().getSingleFile(media['downloadUrl']),
-                        //     builder: ((context, snapshot) {
-                        //       if (snapshot.hasData) {
-                        //         return ClipRRect(
-                        //           borderRadius: BorderRadius.circular(30),
-                        //           child: FullScreenWidget(
-                        //             disposeLevel: DisposeLevel.low,
-                        //             child: Hero(
-                        //               tag: "$itemIndex-hero",
-                        //               child: Center(
-                        //                 child: Image.file(snapshot.data!, cacheWidth: MediaQuery.of(context).size.width.ceil(), fit: BoxFit.fitWidth, width: double.infinity)
-                        //               )
-                        //             )
-                        //           )
-                        //         );
-                        //       }
-                        //       else {
-                        //         return LoadingAnimationWidget.newtonCradle(color: const Color(0xFF224190), size: 50);
-                        //       }
-                        //     })
-                        //   );
-                        // }
-                          return CachedNetworkImage(imageUrl: media['downloadUrl']!);
-                        }
-                        else if (media['contentType'] == 'video') {
-                          late final player = Player();
-                          late final controller = VideoController(player);
-                          player.open(Media(media['streamUrl']));
-                          return ClipRRect(
-                            borderRadius: BorderRadius.circular(30),
-                            child: Video(
-                                  controller: controller, 
-                                  // controls: (VideoState state) => MaterialVideoControls(state), // Uncomment for app usage
-                                  fit: BoxFit.fitWidth, 
-                                  width: double.infinity
-                                )
-                          );
-                                          
-                        }
-                        else {
-                          return LoadingAnimationWidget.newtonCradle(color: const Color(0xFF224190), size: 50);
-                        }
-                      }
-                    ),
+                    mediaCarousel(mediaList: widget.product.productMedia!),
                     const SizedBox(height: 10),
                     if (widget.product.productMedia!.length > 1)
                       Row(
@@ -768,75 +708,7 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                   child:
                     Column(
                       children: [
-                        CarouselSlider.builder(
-                          options: CarouselOptions(
-                            enableInfiniteScroll: widget.product.productMedia!.length > 1 ? true : false, 
-                            enlargeCenterPage: true,
-                            enlargeFactor: 1,
-                            viewportFraction: 1,
-                            onPageChanged: (index, reason) {
-                              setState(() {
-                                _current = index;
-                              });
-                            },
-                          ),
-                          itemCount: widget.product.productMedia!.length,
-                          itemBuilder: (BuildContext context, int itemIndex, int pageViewIndex) {
-                            final media = widget.product.productMedia![itemIndex];
-                            if (media['contentType'] == 'image') {
-                              return FutureBuilder(
-                                future: DefaultCacheManager().getSingleFile(media['downloadUrl']),
-                                builder: ((context, snapshot) {
-                                  if (snapshot.hasData) {
-                                    return ClipRRect(
-                                      borderRadius: BorderRadius.circular(30),
-                                      child: FullScreenWidget(
-                                        disposeLevel: DisposeLevel.low,
-                                        child: Hero(
-                                          tag: "$itemIndex-hero",
-                                          child: Center(
-                                            child: Image.file(snapshot.data!, cacheWidth: MediaQuery.of(context).size.width.ceil(), fit: BoxFit.fitWidth, width: double.infinity)
-                                          )
-                                        )
-                                      )
-                                    );
-                                  }
-                                  else {
-                                    return FutureBuilder(
-                                      future: Future.delayed(const Duration(milliseconds: 500)),
-                                      builder: ((context, snapshot) {
-                                        if (snapshot.hasData) {
-                                          return LoadingAnimationWidget.newtonCradle(color: const Color(0xFF224190), size: 50);
-                                        }
-                                        else {
-                                          return const SizedBox();
-                                        }
-                                      })
-                                    );
-                                  }
-                                })
-                              );
-                            }
-                            else if (media['contentType'] == 'video') {
-                              late final player = Player();
-                              late final controller = VideoController(player);
-                              player.open(Media(media['streamUrl']));
-                              return ClipRRect(
-                                borderRadius: BorderRadius.circular(30),
-                                child: Video(
-                                      controller: controller, 
-                                      // controls: (VideoState state) => MaterialVideoControls(state), // Uncomment for app usage
-                                      fit: BoxFit.fitWidth, 
-                                      width: double.infinity
-                                    )
-                              );
-                                              
-                            }
-                            else {
-                              return LoadingAnimationWidget.newtonCradle(color: const Color(0xFF224190), size: 50);
-                            }
-                          }
-                        ),
+                        mediaCarousel(mediaList: widget.product.productMedia!),
                         const SizedBox(height: 10),
                         if (widget.product.productMedia!.length > 1)
                           Row(
@@ -954,6 +826,79 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
             )
         )
       ],
+    );
+  }
+
+
+  Widget mediaCarousel({required List mediaList}) {
+    return CarouselSlider.builder(
+      options: CarouselOptions(
+        enableInfiniteScroll: mediaList.length > 1 ? true : false, 
+        enlargeCenterPage: true,
+        enlargeFactor: 1,
+        viewportFraction: 1,
+        onPageChanged: (index, reason) {
+          setState(() {
+            _current = index;
+          });
+        },
+      ),
+      itemCount: mediaList.length,
+      itemBuilder: (BuildContext context, int itemIndex, int pageViewIndex) {
+        final media = mediaList[itemIndex];
+        if (media['contentType'] == 'image') {
+          return FutureBuilder(
+            future: DefaultCacheManager().getSingleFile(media['downloadUrl']),
+            builder: ((context, snapshot) {
+              if (snapshot.hasData) {
+                return ClipRRect(
+                  borderRadius: BorderRadius.circular(30),
+                  child: FullScreenWidget(
+                    disposeLevel: DisposeLevel.low,
+                    child: Hero(
+                      tag: "$itemIndex-hero",
+                      child: Center(
+                        child: Image.file(snapshot.data!, cacheWidth: MediaQuery.of(context).size.width.ceil(), fit: BoxFit.fitWidth, width: double.infinity)
+                      )
+                    )
+                  )
+                );
+              }
+              else {
+                return FutureBuilder(
+                  future: Future.delayed(const Duration(milliseconds: 500)),
+                  builder: ((context, snapshot) {
+                    if (snapshot.hasData) {
+                      return LoadingAnimationWidget.newtonCradle(color: const Color(0xFF224190), size: 50);
+                    }
+                    else {
+                      return const SizedBox();
+                    }
+                  })
+                );
+              }
+            })
+          );
+        }
+        else if (media['contentType'] == 'video') {
+          late final player = Player();
+          late final controller = VideoController(player);
+          player.open(Media(media['streamUrl']));
+          return ClipRRect(
+            borderRadius: BorderRadius.circular(30),
+            child: Video(
+                  controller: controller, 
+                  // controls: (VideoState state) => MaterialVideoControls(state), // Uncomment for app usage
+                  fit: BoxFit.fitWidth, 
+                  width: double.infinity
+                )
+          );
+                          
+        }
+        else {
+          return LoadingAnimationWidget.newtonCradle(color: const Color(0xFF224190), size: 50);
+        }
+      }
     );
   }
 }
