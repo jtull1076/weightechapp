@@ -591,9 +591,9 @@ sealed class EItem {
     return all;
   }
 
-  static Future<void> updateProductCatalog(ECategory editorCatalog) async {
+  static Future<void> updateProductCatalog(ECategory editorCatalog, StreamController? stream) async {
     try {
-      await updateImages(editorCatalog);
+      await updateImages(editorCatalog, stream);
       Log.logger.t("Product images updated.");
       ProductManager.all = editorCatalog.category;
       await ProductManager.postCatalogToFirestore();
@@ -603,11 +603,12 @@ sealed class EItem {
     }
   }
 
-  static Future<void> updateImages(ECategory editorCatalog) async {
+  static Future<void> updateImages(ECategory editorCatalog, StreamController? stream) async {
     final storageRef = FirebaseUtils.storage.ref().child("devImages2");
 
     Future<void> traverseItems(ECategory category) async {
       if (category.imageFile != null) {
+        stream?.add(category);
         final refName = "${category.id}_0${path_handler.extension(category.imageFile!.path)}";
 
         final SettableMetadata metadata = SettableMetadata(contentType: 'images/${path_handler.extension(category.imageFile!.path)}');
@@ -630,6 +631,7 @@ sealed class EItem {
           }
           case EProduct _: {
             if (item.mediaPaths != null) {
+              stream?.add(item);
 
               // if (item.product.productImageUrls != null) {
               //   await Future.wait([

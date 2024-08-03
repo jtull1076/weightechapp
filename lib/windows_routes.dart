@@ -422,10 +422,13 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
           setState(() {
             _ignoringPointer = true;
           });
-          _showSaveLoading(context);
+
+          StreamController<dynamic> streamController = StreamController<dynamic>();
+
+          _showSaveLoading(context, streamController);
           try {
             await toggleEditorItem(null);
-            await EItem.updateProductCatalog(_editorAll);
+            await EItem.updateProductCatalog(_editorAll, streamController);
           }
           catch (error, stackTrace) {
             Log.logger.e("Error encountered while updating product catalog: ", error: error, stackTrace: stackTrace);
@@ -434,6 +437,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
             });
             return;
           }
+          streamController.close();
           await ProductManager.create();
           setState(() {
             _ignoringPointer = false;
@@ -2024,7 +2028,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
     }
   }
 
-  Future<void> _showSaveLoading(BuildContext context) async {
+  Future<void> _showSaveLoading(BuildContext context, StreamController stream) async {
     await showDialog<void>(
       context: context,
       builder: (BuildContext context) {
@@ -2038,7 +2042,52 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
             children: [
               LoadingAnimationWidget.hexagonDots(color: const Color(0xFF224190), size: 60),
               const SizedBox(height: 50),
-              const Text("Saving changes... this may take a moment.")
+              StreamBuilder(
+                stream: stream.stream,
+                initialData: 'Saving changes... this may take a moment.',
+                builder: (context, snapshot) {
+                  if (snapshot.data is EProduct) {
+                    return RichText(
+                      text: TextSpan(
+                        text: 'Saving images for... ', 
+                        style: DefaultTextStyle.of(context).style,
+                        children: [
+                          TextSpan(
+                            text: snapshot.data.product.name, 
+                            style: DefaultTextStyle.of(context).style.copyWith(color: const Color(0xFF224190))
+                          ),
+                          TextSpan(
+                            text: '...',
+                            style: DefaultTextStyle.of(context).style,
+                          )
+                        ]
+                      )
+                    );
+                  }
+                  else if (snapshot.data is ECategory) {
+                    return RichText(
+                      text: TextSpan(
+                        text: 'Saving images for... ', 
+                        style: DefaultTextStyle.of(context).style,
+                        children: [
+                          TextSpan(
+                            text: snapshot.data.category.name, 
+                            style: DefaultTextStyle.of(context).style.copyWith(color: const Color(0xFF224190))
+                          ),
+                          TextSpan(
+                            text: '...',
+                            style: DefaultTextStyle.of(context).style,
+                          )
+                        ]
+                      )
+                    );
+                  }
+                  else {
+                    return SimpleRichText(snapshot.data!);
+                  }
+                },
+              )
+              // const Text("Saving changes... this may take a moment.")
             ]
           )
         );
