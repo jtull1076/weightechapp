@@ -1,22 +1,7 @@
 name: weightechapp
 description: "A Flutter implementation for WeighTech's sales app."
 publish_to: 'none'
-version: 1.0.0
-
-msix_config:
-  display_name: WeighTech Inc. Sales
-  publisher_display_name: Jeremy Tull
-  msix_version: 1.0.0.0
-  app_installer: 
-    publish_folder_path: build/windows/installers
-    hours_between_update_checks: 0
-    automatic_background_task: false
-    update_blocks_activation: true
-    show_prompt: true
-    force_update_from_any_version: false
-  certificate_path: CERTIFICATE.pfx
-  certificate_password: RileyCoyote
-
+version: 0.2.12
 
 environment:
   sdk: '>=3.3.0 <4.0.0'
@@ -24,56 +9,62 @@ environment:
 dependencies:
   carousel_slider: ^4.2.1
   desktop_drop: ^0.4.4
-  dotted_border: ^2.1.0
   feedback: ^3.1.0
-  feedback_gitlab: ^3.0.0
-  file_picker: ^5.2.10
-  firebase_core: ^2.26.0
-  firebase_database: ^10.5.2
-  firebase_storage: ^11.6.8
+  file_picker: ^8.0.3
+  firebase_core: ^3.0.0
+  firebase_storage: ^12.0.0
   flutter:
     sdk: flutter
   flutter_launcher_icons: ^0.13.1
   google_fonts: ^6.2.1 
-  image_picker: ^1.0.7
-  mailto: ^2.0.0
   path_provider: ^2.1.2
-  provider: ^6.1.2
   shortid: ^0.1.2
   simple_rich_text: ^2.0.49
   url_launcher: ^6.2.6
-  wakelock: ^0.6.2
   window_manager: ^0.3.8
   feedback_github:
     git: 
       url: https://github.com/defuncart/feedback_github/
       ref: main
   http: ^1.2.1
-  cloud_firestore: ^4.17.0
+  cloud_firestore: ^5.0.0
   cached_network_image: ^3.3.1
   flutter_cache_manager: ^3.3.2
   string_validator: ^1.0.2
   loading_animation_widget: ^1.2.1
+  updat: ^1.3.2
+  package_info_plus: ^8.0.0
+  path: ^1.9.0
+  logger: ^2.2.0
+  firebase_auth: ^5.0.0
+  file_saver: ^0.2.12
+  retry: ^3.1.2
+  internet_connection_checker_plus: ^2.3.0
+  media_kit: ^1.1.10+1
+  media_kit_video: ^1.2.4
+  media_kit_libs_video: ^1.0.4
+  mime: ^1.0.5
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^3.0.0
-  msix: ^3.16.7
+  flutter_lints: ^4.0.0
 
 flutter:
   uses-material-design: true
   assets:
     - assets/weightech_logo.png
-    - assets/product_images/
+    - assets/weightech_logo_beta.png
+    - assets/icon/wt_icon.ico
+    - assets/skullanimation_v2.gif
+    - assets/skull2.gif
+    - assets/skullbadge2.gif
+    - assets/skullbadge_small.gif
 
 flutter_launcher_icons:
   android: "launcher_icon"
-  ios: true
-  image_path_ios: "assets/icon/apple_icon.png"
-  remove_alpha_ios: true
-  image_path: "assets/icon/icon.png"
+  image_path: "assets/icon/wt_icon.ico"
   windows:
     generate: true
-    image_path: "path/to/image.png"
-    icon_size: 48
+    image_path: "assets/icon/wt_icon.ico"
+    icon_size: 256
