@@ -2,7 +2,8 @@ import 'package:weightechapp/themes.dart';
 import 'package:weightechapp/utils.dart';
 import 'package:weightechapp/universal_routes.dart';
 import 'package:weightechapp/windows_routes.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' as material;
+import 'package:fluent_ui/fluent_ui.dart';
 import 'package:weightechapp/extra_widgets.dart';
 import 'dart:async';
 import 'dart:io';
@@ -55,10 +56,10 @@ class WeightechApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return const FluentApp(
       title: "Weightech Inc. Sales",
-      theme: WeightechThemes.lightTheme, 
-      home: const StartupPage()
+      //theme: WeightechThemes.lightTheme, 
+      home: StartupPage()
     );
   }
 }

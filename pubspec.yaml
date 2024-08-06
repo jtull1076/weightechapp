@@ -44,6 +44,8 @@ dependencies:
   media_kit_video: ^1.2.4
   media_kit_libs_video: ^1.0.4
   mime: ^1.0.5
+  fluent_ui: ^4.9.0
+  fluentui_system_icons: ^1.1.251
 
 dev_dependencies:
   flutter_test:
