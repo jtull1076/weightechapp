@@ -14,6 +14,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:weightechapp/firebase_options.dart';
 import 'package:shortid/shortid.dart';
 import 'package:retry/retry.dart';
+import 'package:flutter_fancy_tree_view/flutter_fancy_tree_view.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:string_validator/string_validator.dart' as validator;
+import 'package:path/path.dart' as p;
 
 class AppInfo {
   static late PackageInfo packageInfo;
@@ -56,9 +60,16 @@ class Log {
     logger = Logger(
       filter: AppLogFilter(),
       printer: AppLogPrinter(),
-      output: FileOutput(
-        file: await File("${appDocsDir.path}/logs/app-${AppInfo.sessionId}.log").create(recursive: true))
+      output: MultiOutput(
+        [
+          FileOutput(
+            file: await File("${appDocsDir.path}/logs/app-${AppInfo.sessionId}.log").create(recursive: true)
+          ),
+          ConsoleOutput()
+        ]
+      )
     );
+    debugPrint("Log location: ${appDocsDir.path}/logs/app-${AppInfo.sessionId}.log");
     Log.logger.t("...Logger initialized...");
     Log.logger.t(DateTime.now().toString());
   }
@@ -86,6 +97,50 @@ class AppLogPrinter extends PrettyPrinter {
     colors: true, 
     printEmojis: true
   );
+}
+
+class FileUtils {
+  static final DefaultCacheManager cacheManager = DefaultCacheManager();
+
+  static Future<File> getSingleFile({required String url}) {
+    return cacheManager.getSingleFile(url);
+  }
+
+  static Future<FileInfo> cacheFile({required String url}) {
+    return cacheManager.downloadFile(url);
+  }
+
+  static Future<File> getLocalFile({required String path}) async {
+    return File(path);
+  }
+
+  static bool isURL({required String path}) {
+    return validator.isURL(path);
+  }
+
+  static bool isLocalPathAndExists({required String path}) {
+    try {
+      return File(path).existsSync() || Directory(path).existsSync();
+    } catch (e) {
+      return false;
+    }
+  }
+
+  static String extension(path) {
+    return p.extension(path);
+  }
+
+  static bool isMP4(String path) {
+    return extension(path) == '.mp4';
+  }
+
+  static bool isImage(String path) {
+    return ['.jpg', '.png', '.jpeg'].contains(extension(path));
+  }
+
+  static String dirname(String path) {
+    return p.dirname(path);
+  }
 }
 
 class FirebaseUtils {
@@ -144,16 +199,18 @@ class FirebaseUtils {
     );
   }
 
-  static Future<void> downloadFromFirebaseStorage({required String url}) async {
-    final downloadsDirectory = await getDownloadsDirectory();
+  static Future<dynamic> downloadFromFirebaseStorage({required String url, Directory? directory, bool returnFile = false}) async {
+    directory ??= await getDownloadsDirectory();
     
     try {
       final imageRef = FirebaseUtils.storage.refFromURL(url);
-      final file = File('${downloadsDirectory!.path}/${imageRef.name}');
+      final file = File('${directory!.path}/${imageRef.name}');
 
       imageRef.writeToFile(file);
 
-      Log.logger.t("Downloaded image at $url to ${downloadsDirectory.path}");
+      Log.logger.t("Downloaded image at $url to ${directory.path}");
+
+      if (returnFile) return file;
     }
     catch (e, stackTrace) {
       Log.logger.e("Failed to download file at $url.", error: e, stackTrace: stackTrace);
@@ -277,6 +334,25 @@ class ApiVideoService {
         );
         Log.logger.i('HTTP Delete response: ${deleteResponse.statusCode} ${deleteResponse.reasonPhrase}');
       }
+    }
+  }
+}
+
+extension TreeMapping on TreeDragAndDropDetails<Object> {
+  T mapDropPosition<T>({
+    required T Function() whenAbove,
+    required T Function() whenInside,
+    required T Function() whenBelow,
+  }) {
+    final double oneThirdOfTotalHeight = targetBounds.height * 0.3;
+    final double pointerVerticalOffset = dropPosition.dy;
+
+    if (pointerVerticalOffset < oneThirdOfTotalHeight) {
+       return whenAbove();
+    } else if (pointerVerticalOffset < oneThirdOfTotalHeight * 2) {
+      return whenInside();
+    } else {
+      return whenBelow();
     }
   }
 }

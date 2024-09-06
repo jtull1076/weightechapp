@@ -1,307 +1,307 @@
-import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:weightechapp/models.dart';
-import 'package:weightechapp/utils.dart';
-import 'package:weightechapp/universal_routes.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
-import 'package:weightechapp/extra_widgets.dart';
-import 'package:file_picker/file_picker.dart';
-import 'dart:async';
-import 'dart:io';
-import 'package:simple_rich_text/simple_rich_text.dart';
-import 'package:carousel_slider/carousel_slider.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:feedback_github/feedback_github.dart';
-import 'package:desktop_drop/desktop_drop.dart';
-import 'package:shortid/shortid.dart';
-import 'package:path/path.dart' as p;
-import 'package:string_validator/string_validator.dart';
-import 'package:loading_animation_widget/loading_animation_widget.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:file_saver/file_saver.dart';
-import 'package:media_kit/media_kit.dart';
-import 'package:media_kit_video/media_kit_video.dart';
-import 'package:internet_connection_checker_plus/internet_connection_checker_plus.dart';
-import 'package:updat/updat.dart';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-import 'package:flutter_cache_manager/flutter_cache_manager.dart';
-import 'package:weightechapp/fluent_routes.dart';
+// import 'package:flutter/services.dart';
+// import 'package:google_fonts/google_fonts.dart';
+// import 'package:weightechapp/models.dart';
+// import 'package:weightechapp/utils.dart';
+// import 'package:weightechapp/universal_routes.dart';
+// import 'package:flutter/material.dart';
+// import 'package:flutter/foundation.dart';
+// import 'package:weightechapp/extra_widgets.dart';
+// import 'package:file_picker/file_picker.dart';
+// import 'dart:async';
+// import 'dart:io';
+// import 'package:simple_rich_text/simple_rich_text.dart';
+// import 'package:carousel_slider/carousel_slider.dart';
+// import 'package:path_provider/path_provider.dart';
+// import 'package:feedback_github/feedback_github.dart';
+// import 'package:desktop_drop/desktop_drop.dart';
+// import 'package:shortid/shortid.dart';
+// import 'package:path/path.dart' as p;
+// import 'package:string_validator/string_validator.dart';
+// import 'package:loading_animation_widget/loading_animation_widget.dart';
+// import 'package:url_launcher/url_launcher.dart';
+// import 'package:file_saver/file_saver.dart';
+// import 'package:media_kit/media_kit.dart';
+// import 'package:media_kit_video/media_kit_video.dart';
+// import 'package:internet_connection_checker_plus/internet_connection_checker_plus.dart';
+// import 'package:updat/updat.dart';
+// import 'dart:convert';
+// import 'package:http/http.dart' as http;
+// import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+// import 'package:weightechapp/fluent_routes.dart';
 
-//MARK: OFFLINE PAGE
+// //MARK: OFFLINE PAGE
 
-/// A class defining the stateful HomePage, i.e. the 'All' category listing page. 
-/// 
-/// Defined separately as stateful to handle all animations from [IdlePage]. 
-/// 
-/// See also: [_OfflinePageState]
-class OfflinePage extends StatefulWidget {
-  const OfflinePage({super.key});
+// /// A class defining the stateful HomePage, i.e. the 'All' category listing page. 
+// /// 
+// /// Defined separately as stateful to handle all animations from [IdlePage]. 
+// /// 
+// /// See also: [_OfflinePageState]
+// class OfflinePage extends StatefulWidget {
+//   const OfflinePage({super.key});
 
-  @override
-  State<OfflinePage> createState() => _OfflinePageState();
-}
+//   @override
+//   State<OfflinePage> createState() => _OfflinePageState();
+// }
 
-class _OfflinePageState extends State<OfflinePage> with TickerProviderStateMixin {
-  late StreamSubscription listener;
+// class _OfflinePageState extends State<OfflinePage> with TickerProviderStateMixin {
+//   late StreamSubscription listener;
   
-  @override
-  void initState() {
-    super.initState();
-    listener = InternetConnection().onStatusChange
-      .listen((InternetStatus status) {
-        switch (status) {
-          case InternetStatus.connected:
-            // The internet is now connectioni
-            Navigator.of(context).pushReplacement(PageRouteBuilder(pageBuilder: (BuildContext context, _, __) => const IdlePage()));
-            break;
-          case InternetStatus.disconnected:
-            // The internet is now disconnected
-            break;
-        }
-      });
-  }
+//   @override
+//   void initState() {
+//     super.initState();
+//     listener = InternetConnection().onStatusChange
+//       .listen((InternetStatus status) {
+//         switch (status) {
+//           case InternetStatus.connected:
+//             // The internet is now connectioni
+//             Navigator.of(context).pushReplacement(PageRouteBuilder(pageBuilder: (BuildContext context, _, __) => const IdlePage()));
+//             break;
+//           case InternetStatus.disconnected:
+//             // The internet is now disconnected
+//             break;
+//         }
+//       });
+//   }
 
-  @override
-  void dispose() {
-    listener.cancel();
-    super.dispose();
-  }
+//   @override
+//   void dispose() {
+//     listener.cancel();
+//     super.dispose();
+//   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: Stack(
-          children: [
-            Container(
-              constraints: const BoxConstraints(maxHeight: 100),
-              alignment: Alignment.topCenter,
-              child: Hero(tag: 'main-logo', child: Image.asset('assets/weightech_logo_beta.png', fit: BoxFit.scaleDown))
-            ),
-            Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text("You're offline", style: TextStyle(fontSize: 25)),
-                  Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      const Icon(Icons.signal_wifi_bad, size: 50,),
-                      Padding(
-                        padding: const EdgeInsets.all(20),
-                        child: LoadingAnimationWidget.twoRotatingArc(color: const Color(0xFF224190), size: 100)
-                      )
-                    ]
-                  ),
-                  const Text("Waiting for Internet connection"),
-                ]
-              )
-            )
-          ]
-        )
-      )
-    );
-  }
-}
-
-
-
-//MARK: ERROR PAGE
-/// A class defining the stateless [ErrorPage]. Used as the landing page (though not called "LandingPage" because "IdlePage" seemed more apt). 
-class ErrorPage extends StatelessWidget {
-  final Object? message;
-  const ErrorPage({this.message, super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: Stack(
-          children: [
-            Container(
-              constraints: const BoxConstraints(maxHeight: 100),
-              alignment: Alignment.topCenter,
-              child: Hero(tag: 'main-logo', child: Image.asset('assets/weightech_logo_beta.png', fit: BoxFit.scaleDown))
-            ),
-            Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text("Error Occurred", style: TextStyle(fontSize: 25)),
-                  const Icon(Icons.error_outline, size: 160),
-                  (message != null)
-                  ? Text("$message")
-                  : const Text("Unknown error."),
-                  const Text("Restart the app to try again."),
-                ]
-              )
-            )
-          ]
-        )
-      )
-    );
-  }
-}
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       body: Center(
+//         child: Stack(
+//           children: [
+//             Container(
+//               constraints: const BoxConstraints(maxHeight: 100),
+//               alignment: Alignment.topCenter,
+//               child: Hero(tag: 'main-logo', child: Image.asset('assets/weightech_logo_beta.png', fit: BoxFit.scaleDown))
+//             ),
+//             Center(
+//               child: Column(
+//                 mainAxisSize: MainAxisSize.min,
+//                 children: [
+//                   const Text("You're offline", style: TextStyle(fontSize: 25)),
+//                   Stack(
+//                     alignment: Alignment.center,
+//                     children: [
+//                       const Icon(Icons.signal_wifi_bad, size: 50,),
+//                       Padding(
+//                         padding: const EdgeInsets.all(20),
+//                         child: LoadingAnimationWidget.twoRotatingArc(color: const Color(0xFF224190), size: 100)
+//                       )
+//                     ]
+//                   ),
+//                   const Text("Waiting for Internet connection"),
+//                 ]
+//               )
+//             )
+//           ]
+//         )
+//       )
+//     );
+//   }
+// }
 
 
-class StartupPage extends StatefulWidget {
-  const StartupPage({super.key});
 
-  @override
-  State<StartupPage> createState() => _StartupPageState();
-}
+// //MARK: ERROR PAGE
+// /// A class defining the stateless [ErrorPage]. Used as the landing page (though not called "LandingPage" because "IdlePage" seemed more apt). 
+// class ErrorPage extends StatelessWidget {
+//   final Object? message;
+//   const ErrorPage({this.message, super.key});
 
-class _StartupPageState extends State<StartupPage> with TickerProviderStateMixin {
-  late String _startupTaskMessage;
-  late StreamController<String> _progressStreamController;
-  late bool _updateReady;
-  late bool _checkingForUpdate;
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       body: Center(
+//         child: Stack(
+//           children: [
+//             Container(
+//               constraints: const BoxConstraints(maxHeight: 100),
+//               alignment: Alignment.topCenter,
+//               child: Hero(tag: 'main-logo', child: Image.asset('assets/weightech_logo_beta.png', fit: BoxFit.scaleDown))
+//             ),
+//             Center(
+//               child: Column(
+//                 mainAxisSize: MainAxisSize.min,
+//                 children: [
+//                   const Text("Error Occurred", style: TextStyle(fontSize: 25)),
+//                   const Icon(Icons.error_outline, size: 160),
+//                   (message != null)
+//                   ? Text("$message")
+//                   : const Text("Unknown error."),
+//                   const Text("Restart the app to try again."),
+//                 ]
+//               )
+//             )
+//           ]
+//         )
+//       )
+//     );
+//   }
+// }
 
-  @override
-  void initState() {
-    super.initState();
-    _startupTaskMessage = '';
-    _progressStreamController = StreamController<String>();
-    _updateReady = false;
-    _checkingForUpdate = false;
-    _runStartupTasks();
-  }
 
-  Future<void> _runStartupTasks() async { 
+// class StartupPage extends StatefulWidget {
+//   const StartupPage({super.key});
 
-    if (!await InternetConnection().hasInternetAccess) {
-      if (mounted) {
-        Navigator.of(context).pushReplacement(PageRouteBuilder(pageBuilder: (BuildContext context, _, __) => const OfflinePage()));
-      }
-    }
+//   @override
+//   State<StartupPage> createState() => _StartupPageState();
+// }
 
-    try {
-      Log.logger.t('...Clearing existing cache');
-      _progressStreamController.add('...Clearing cache...');
-      await DefaultCacheManager().emptyCache();
+// class _StartupPageState extends State<StartupPage> with TickerProviderStateMixin {
+//   late String _startupTaskMessage;
+//   late StreamController<String> _progressStreamController;
+//   late bool _updateReady;
+//   late bool _checkingForUpdate;
 
-      Log.logger.t('...Initializing Firebase...');
-      _progressStreamController.add('...Initializing Firebase...');
-      await FirebaseUtils().init();
+//   @override
+//   void initState() {
+//     super.initState();
+//     _startupTaskMessage = '';
+//     _progressStreamController = StreamController<String>();
+//     _updateReady = false;
+//     _checkingForUpdate = false;
+//     _runStartupTasks();
+//   }
 
-      Log.logger.t('...Initializing Product Manager...');
-      _progressStreamController.add('...Initializing Product Manager...');
+//   Future<void> _runStartupTasks() async { 
 
-      await ProductManager.create();
-    } catch (e) {
-      Log.logger.e("Error encountered retrieving catalog.", error: e);
-      if (mounted) {
-        Navigator.of(context).pushReplacement(PageRouteBuilder(pageBuilder: (BuildContext context, _, __) => ErrorPage(message: e)));
-      }
-    }
+//     if (!await InternetConnection().hasInternetAccess) {
+//       if (mounted) {
+//         Navigator.of(context).pushReplacement(PageRouteBuilder(pageBuilder: (BuildContext context, _, __) => const OfflinePage()));
+//       }
+//     }
 
-    Log.logger.t('...App Startup...');
-    _progressStreamController.add('...App Startup...');
+//     try {
+//       Log.logger.t('...Clearing existing cache');
+//       _progressStreamController.add('...Clearing cache...');
+//       await DefaultCacheManager().emptyCache();
 
-    _progressStreamController.close();
-  }
+//       Log.logger.t('...Initializing Firebase...');
+//       _progressStreamController.add('...Initializing Firebase...');
+//       await FirebaseUtils().init();
 
-  @override
-  void dispose() {
-    _progressStreamController.close();
-    super.dispose();
-  }
+//       Log.logger.t('...Initializing Product Manager...');
+//       _progressStreamController.add('...Initializing Product Manager...');
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(right: 0),
-              child: Image.asset('assets/icon/wt_icon.ico', height: 200),
-            ),
-            const SizedBox(height: 10), 
-            Text("App Version: ${AppInfo.packageInfo.version}"),
-            Text(_startupTaskMessage),
-            StreamBuilder(
-              stream: _progressStreamController.stream,
-              initialData: '',
-              builder:(context, AsyncSnapshot<String> snapshot) {
-                if (snapshot.connectionState == ConnectionState.active) {
-                  if (snapshot.hasData) {
-                    return Text(snapshot.data!);
-                  } else {
-                    return const CircularProgressIndicator(); // Or any loading indicator
-                  }
-                }
-                else if (snapshot.connectionState == ConnectionState.done) {
-                  return Stack(
-                    children: [
-                      if (_checkingForUpdate) const Center(child: Text("...Checking for updates...")),
-                      Center(
-                        child: UpdatWidget(
-                          currentVersion: AppInfo.packageInfo.version,
-                          getLatestVersion: () async {
-                            // Use Github latest endpoint
-                            try {
-                              final data = await http.get(
-                                Uri.parse(
-                                "https://api.github.com/repos/jtull1076/weightechapp/releases/latest"
-                                ),
-                                headers: {
-                                  'Authorization': 'Bearer ${FirebaseUtils.githubToken}'
-                                }
-                              );
-                              final latestVersion = jsonDecode(data.body)["tag_name"];
-                              final verCompare = AppInfo.versionCompare(latestVersion, AppInfo.packageInfo.version);
-                              Log.logger.i('Latest version: $latestVersion : This app version is ${(verCompare == 0) ? "up-to-date." : (verCompare == 1) ? "deprecated." : "in development."}');
-                              return latestVersion;
-                            } catch (e) {
-                              Log.logger.e("Error encounted retrieving latest version.", error: e);
-                            }
-                          },
-                          getBinaryUrl: (version) async {
-                            return "https://github.com/jtull1076/weightechapp/releases/download/$version/weightechsales-windows-$version.exe";
-                          },
-                          appName: "WeighTech Inc. Sales",
-                          getChangelog: (_, __) async {
-                            final data = await http.get(
-                              Uri.parse(
-                              "https://api.github.com/repos/jtull1076/weightechapp/releases/latest"
-                              ),
-                              headers: {
-                                'Authorization': 'Bearer ${FirebaseUtils.githubToken}'
-                              }
-                            );
-                            Log.logger.t('Changelog: ${jsonDecode(data.body)["body"]}');
-                            return jsonDecode(data.body)["body"];
-                          },
-                          callback: (status) {
-                            if (status == UpdatStatus.upToDate || status == UpdatStatus.error) {
-                              WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-                                Navigator.of(context).pushReplacement(PageRouteBuilder(pageBuilder: (BuildContext context, _, __) => const IdlePage()));
-                              });
-                            }
-                            // else if (status == UpdatStatus.readyToInstall) {
-                            //   setState(() => _updateReady = true);
-                            // }
-                          }
-                        )
-                      ),
-                    ]
-                  );
-                }
-                else {
-                  return const Text("Other");
-                }
-              }
-            )
-          ]
-        )
-      )
-    );
-  }
-}
+//       await ProductManager.create();
+//     } catch (e) {
+//       Log.logger.e("Error encountered retrieving catalog.", error: e);
+//       if (mounted) {
+//         Navigator.of(context).pushReplacement(PageRouteBuilder(pageBuilder: (BuildContext context, _, __) => ErrorPage(message: e)));
+//       }
+//     }
+
+//     Log.logger.t('...App Startup...');
+//     _progressStreamController.add('...App Startup...');
+
+//     _progressStreamController.close();
+//   }
+
+//   @override
+//   void dispose() {
+//     _progressStreamController.close();
+//     super.dispose();
+//   }
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       body: Center(
+//         child: Column(
+//           mainAxisSize: MainAxisSize.min,
+//           children: [
+//             Padding(
+//               padding: const EdgeInsets.only(right: 0),
+//               child: Image.asset('assets/icon/wt_icon.ico', height: 200),
+//             ),
+//             const SizedBox(height: 10), 
+//             Text("App Version: ${AppInfo.packageInfo.version}"),
+//             Text(_startupTaskMessage),
+//             StreamBuilder(
+//               stream: _progressStreamController.stream,
+//               initialData: '',
+//               builder:(context, AsyncSnapshot<String> snapshot) {
+//                 if (snapshot.connectionState == ConnectionState.active) {
+//                   if (snapshot.hasData) {
+//                     return Text(snapshot.data!);
+//                   } else {
+//                     return const CircularProgressIndicator(); // Or any loading indicator
+//                   }
+//                 }
+//                 else if (snapshot.connectionState == ConnectionState.done) {
+//                   return Stack(
+//                     children: [
+//                       if (_checkingForUpdate) const Center(child: Text("...Checking for updates...")),
+//                       Center(
+//                         child: UpdatWidget(
+//                           currentVersion: AppInfo.packageInfo.version,
+//                           getLatestVersion: () async {
+//                             // Use Github latest endpoint
+//                             try {
+//                               final data = await http.get(
+//                                 Uri.parse(
+//                                 "https://api.github.com/repos/jtull1076/weightechapp/releases/latest"
+//                                 ),
+//                                 headers: {
+//                                   'Authorization': 'Bearer ${FirebaseUtils.githubToken}'
+//                                 }
+//                               );
+//                               final latestVersion = jsonDecode(data.body)["tag_name"];
+//                               final verCompare = AppInfo.versionCompare(latestVersion, AppInfo.packageInfo.version);
+//                               Log.logger.i('Latest version: $latestVersion : This app version is ${(verCompare == 0) ? "up-to-date." : (verCompare == 1) ? "deprecated." : "in development."}');
+//                               return latestVersion;
+//                             } catch (e) {
+//                               Log.logger.e("Error encounted retrieving latest version.", error: e);
+//                             }
+//                           },
+//                           getBinaryUrl: (version) async {
+//                             return "https://github.com/jtull1076/weightechapp/releases/download/$version/weightechsales-windows-$version.exe";
+//                           },
+//                           appName: "WeighTech Inc. Sales",
+//                           getChangelog: (_, __) async {
+//                             final data = await http.get(
+//                               Uri.parse(
+//                               "https://api.github.com/repos/jtull1076/weightechapp/releases/latest"
+//                               ),
+//                               headers: {
+//                                 'Authorization': 'Bearer ${FirebaseUtils.githubToken}'
+//                               }
+//                             );
+//                             Log.logger.t('Changelog: ${jsonDecode(data.body)["body"]}');
+//                             return jsonDecode(data.body)["body"];
+//                           },
+//                           callback: (status) {
+//                             if (status == UpdatStatus.upToDate || status == UpdatStatus.error) {
+//                               WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+//                                 Navigator.of(context).pushReplacement(PageRouteBuilder(pageBuilder: (BuildContext context, _, __) => const IdlePage()));
+//                               });
+//                             }
+//                             // else if (status == UpdatStatus.readyToInstall) {
+//                             //   setState(() => _updateReady = true);
+//                             // }
+//                           }
+//                         )
+//                       ),
+//                     ]
+//                   );
+//                 }
+//                 else {
+//                   return const Text("Other");
+//                 }
+//               }
+//             )
+//           ]
+//         )
+//       )
+//     );
+//   }
+// }
 
 
 
