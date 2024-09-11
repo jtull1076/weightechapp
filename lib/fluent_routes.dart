@@ -340,30 +340,21 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
 
   EItem? _focusItem;
   late bool _addingItem;
-  late bool _dragging;
-  late List<EItem> _itemsToDisplay;
 
   final TextEditingController _dropdownController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _modelNumberController = TextEditingController();
-  late int _brochureActiveIndex;
   final _formKey = GlobalKey<FormState>();
-
-  final ScrollController _scrollController = ScrollController();
 
   late List<String> _mediaPaths;
   late List<File> _mediaFiles;
   late int _primaryImageIndex;
   late bool _fileDragging;
-  late bool _hoverOnAll;
-  late bool _hoverOnDelete;
 
   late bool _loadingSomething;
   late Widget _loadingWidget;
   late bool _ignoringPointer;
-
-  final int _selectedIndex = 0;
 
   late TreeController<EItem> _treeController;
 
@@ -381,15 +372,10 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
     _editorAll = EItem.createEditorCatalog(ProductManager.all!);
     _editorAll.showChildren = true;
     
-    _itemsToDisplay = _editorAll.editorItems;
     _selectedCategory = _editorAll;
 
     _addingItem = false;
-    _dragging = false;
-    _hoverOnAll = false;
-    _hoverOnDelete = false;
 
-    _brochureActiveIndex = -1;
     _mediaPaths = [];
     _mediaFiles = [];
     _primaryImageIndex = 0;
@@ -445,7 +431,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
         label: const Text('New Product', style: TextStyle(fontSize: 12)),
         onPressed: () {
           final newProduct = EProduct.temp();
-          toggleEditorItem(newProduct);
+          toggleEditorItem(newProduct, newItem: true);
         },
       ),
       CommandBarButton(
@@ -453,7 +439,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
         label: const Text('New Category', style: TextStyle(fontSize: 12)),
         onPressed: () {
           final newCategory = ECategory.temp();
-          toggleEditorItem(newCategory);
+          toggleEditorItem(newCategory, newItem: true);
         },
       ),
       const CommandBarSeparator(),
@@ -646,11 +632,6 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
           _treeController.rebuild();
         },
         builder: (BuildContext context, TreeDragAndDropDetails? details) {
-          Widget myTreeNodeTile = Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Text(entry.node.name),
-          );
-
           // If details is not null, a dragging tree node is hovering this
           // drag target. Add some decoration to give feedback to the user.
           Decoration? decoration;
@@ -828,39 +809,32 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                       if (_addingItem) {
                         Product newProduct = Product(
                           name: _nameController.text,
-                          parentId: _selectedCategory.id,
                           modelNumber: _modelNumberController.text,
                           description: _descriptionController.text,
                           brochure: mapListToBrochure(_brochure)
                         );
-                        if (_mediaFiles[_primaryImageIndex].path.endsWith('.mp4')) {
-                          final newPrimaryIndex = (_mediaFiles.map((x) => x.path).toList()).indexWhere((y) => !y.endsWith('.mp4'));
-                          if (newPrimaryIndex != -1) {
-                            _primaryImageIndex = newPrimaryIndex;
-                          }
-                        }
-                        EProduct newEProduct = EProduct(product: newProduct, rank: _selectedCategory.rank+1, mediaPaths: List.from(_mediaPaths), primaryImageIndex: _primaryImageIndex);
-                        _selectedCategory.addItem(newEProduct);
+                        EProduct newEProduct = EProduct(product: newProduct, rank: _selectedCategory.rank+1);
+                        
+                        newEProduct.save(
+                          parent: _selectedCategory,
+                          mediaPaths: List.from(_mediaPaths),
+                          mediaFiles: List.from(_mediaFiles)
+                        );
                       }
                       else if (product != null) {
-                        if (product.parentId != _selectedCategory.id) {
-                          product.reassignParent(newParent: _selectedCategory);
-                        }
-                        product.product.name = _nameController.text;
-                        product.product.modelNumber = _modelNumberController.text;
-                        product.product.description = _descriptionController.text;
-                        product.product.brochure = mapListToBrochure(_brochure);
-                        product.mediaPaths = List.from(_mediaPaths);
-                        product.mediaFiles = List.from(_mediaFiles);
-                        if (_mediaFiles[_primaryImageIndex].path.endsWith('.mp4')) {
-                          final newPrimaryIndex = (_mediaFiles.map((x) => x.path).toList()).indexWhere((y) => !y.endsWith('.mp4'));
-                          if (newPrimaryIndex != -1) {
-                            _primaryImageIndex = newPrimaryIndex;
-                          }
-                        }
-                        product.primaryImageIndex = _primaryImageIndex;
+                        product.save(
+                          name: _nameController.text,
+                          parent: _selectedCategory,
+                          modelNumber: _modelNumberController.text,
+                          description: _descriptionController.text,
+                          brochure: mapListToBrochure(_brochure),
+                          mediaPaths: List.from(_mediaPaths),
+                          mediaFiles: List.from(_mediaFiles),
+                          primaryImageIndex: _primaryImageIndex,
+                        );                       
                       }
                       setState(() {
+                        _treeController.rebuild();
                         _addingItem = false;
                         _focusItem = null;
                       });
@@ -1641,203 +1615,6 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
     );
   }
 
-  Widget buildCategoryCardPreview() {
-    bool hoverOnImageRemove = false;
-
-    return material.Card(
-      shape: material.RoundedRectangleBorder(
-        borderRadius: material.BorderRadius.circular(8)
-      ),
-      surfaceTintColor: material.Colors.white,
-      shadowColor: material.Colors.white,
-      margin: const EdgeInsets.only(left: 10.0, right: 10.0, bottom: 30.0, top: 30.0),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Flexible(
-            fit: FlexFit.loose,
-            child: DropTarget(
-              onDragDone: (detail) {
-                List<String> paths = [];
-
-                for (var file in detail.files) {
-                  if (_mediaPaths.contains(file.path)) {
-                    Log.logger.t("Image already assigned to item.");
-                    continue;
-                  }
-                  String extension = file.path.substring(file.path.length - 4);
-                  if (extension == ".jpg" || extension == ".png") {
-                    Log.logger.t("Image added to paths: ${file.path}");
-                    paths.add(file.path);
-                  }
-                  else if (file.path.substring(file.path.length - 5) == ".jpeg") {
-                    Log.logger.t("Image added to paths: ${file.path}");
-                    paths.add(file.path);
-                  }
-                  else {
-                    Log.logger.t("Invalid file type: File type $extension not supported.");
-                  }
-                }
-
-                setState(() {
-                  _mediaPaths = [];
-                  _mediaFiles = [];
-                  _mediaPaths.add(paths[0]);
-                  _mediaFiles.add(File(paths[0]));
-                });
-              },
-              onDragEntered: (details) => setState(() => _fileDragging = true),
-              onDragExited: (details) => setState(() => _fileDragging = false),
-              child: SizedBox(
-                height: 250,
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 250),
-                  padding: EdgeInsets.symmetric(horizontal: _fileDragging ? 0 : 15, vertical: _fileDragging ? 0 : 15),
-                  width: 400,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.black),
-                  ),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 50),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(10),
-                      color: _fileDragging ? const Color(0x88396CED) : const Color(0x55C9C9CC),
-                    ),
-                    height: 250,
-                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 5),
-                    alignment: Alignment.center,
-                    child: 
-                      _mediaPaths.isEmpty ?
-                        Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(FluentIcons.image_20_regular, size: 70),
-                            const Text("Drag and drop file here", style: TextStyle(fontWeight: FontWeight.bold)),
-                            const SizedBox(height: 10),
-                            const Row(
-                              mainAxisAlignment: MainAxisAlignment.center, 
-                              children: [
-                                Expanded(child: Divider(direction: Axis.vertical, style: DividerThemeData(thickness: 1, horizontalMargin: EdgeInsets.symmetric(vertical: 15)))), 
-                                Text("or"), 
-                                Expanded(child: Divider(direction: Axis.vertical, style: DividerThemeData(thickness: 1, horizontalMargin: EdgeInsets.symmetric(vertical: 15))))
-                              ]
-                            ),
-                            const SizedBox(height: 10),
-                            OutlinedButton(
-                              style: const ButtonStyle(
-                                foregroundColor: WidgetStatePropertyAll<Color>(Colors.black)
-                              ),                 
-                              onPressed: () async {
-                                FilePickerResult? _ = 
-                                  await FilePicker.platform.
-                                    pickFiles(allowMultiple: false, type: FileType.image, allowedExtensions: ['png', 'jpg'])
-                                    .then((result) {
-                                      if (result != null) {
-                                        List<String> paths = [];
-
-                                        for (var path in result.paths) {
-                                          if (_mediaPaths.contains(path)) {
-                                            Log.logger.t("Image already assigned to item.");
-                                            continue;
-                                          }
-                                          String extension = path!.substring(path.length - 4);
-                                          if (extension == ".jpg" || extension == ".png") {
-                                            Log.logger.t("Image added to paths: $path");
-                                            paths.add(path);
-                                          }
-                                          else if (path.substring(path.length - 5) == ".jpeg") {
-                                            Log.logger.t("Image added to paths: $path");
-                                            paths.add(path);
-                                          }
-                                          else {
-                                            Log.logger.t("Invalid file type: File type $extension not supported.");
-                                          }
-                                        }
-
-                                        setState(() {
-                                          _mediaPaths = [];
-                                          _mediaFiles = [];
-                                          _mediaPaths.add(paths[0]);
-                                          _mediaFiles.add(File(paths[0]));
-                                        });
-                                      }
-                                      else {
-                                        Log.logger.t("File upload aborted/failed.");
-                                      }
-                                      return null;
-                                    });
-                              },
-                              child: const Text("Browse Files")
-                            ),
-                            const SizedBox(height: 10),
-                            const Text("File must be .jpg or .png", style: TextStyle(fontSize: 12.0, fontStyle: FontStyle.italic))
-                          ]
-                        )
-                      : Stack(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Stack(
-                              children: [
-                                Image.file(_mediaFiles[0], height: 300),
-                                StatefulBuilder(
-                                  builder: (context, setState) {
-                                    return Positioned.fill(
-                                      child: material.Material(
-                                          color: Colors.transparent,
-                                          child: material.InkWell(
-                                            hoverColor: const Color(0x55000000),
-                                            onHover: (isHovering) {
-                                              if (isHovering) {
-                                                setState(() => hoverOnImageRemove = true);
-                                              }
-                                              else {
-                                                setState(() => hoverOnImageRemove = false);
-                                              }
-                                            },
-                                            onTap: () {
-                                              _mediaFiles.clear();
-                                              _mediaPaths.clear();
-                                              super.setState(() {});
-                                            },
-                                            child: hoverOnImageRemove ? const Icon(FluentIcons.dismiss_20_regular, size:40, color: Color(0xFFC9C9CC)) : const SizedBox()
-                                          )
-                                        )
-                                    );
-                                  }
-                                )
-                              ]
-                            )
-                          ),
-                          
-                        ]
-                      )
-                  ),
-                ), 
-              ),
-            ),
-          ),
-          Container(
-            height: 25,
-            alignment: Alignment.center,
-            padding: const EdgeInsets.symmetric(horizontal: 15),
-            child: TextFormBox(
-              controller: _nameController,
-              placeholder: "Category Name *",
-              validator: (String? value) {
-                return (value == null || value == '' || value == 'All') ? "Name required (and cannot be 'All')." : null;
-              }
-            ),
-          ),
-          const SizedBox(height: 10),
-        ],
-      ),
-    );
-  }
-
   Widget categoryInfoWidget(category) {
     bool switchValue = false;
 
@@ -1897,7 +1674,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
   }
 
 
-  Future<void> toggleEditorItem(EItem? focusItem) async {
+  Future<void> toggleEditorItem(EItem? focusItem, {bool newItem = false}) async {
     StreamController<String> updateStreamController = StreamController<String>();
 
     setState(() => _toggleLoading(textStream: updateStreamController.stream));
@@ -1919,6 +1696,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
         updateStreamController.add('Loading...');
         _descriptionController.text = focusItem.product.description ?? '';
         _selectedCategory = focusItem.getParent() ?? _editorAll;
+        _addingItem = newItem;
       }
       case ECategory _ : {
         String newImagePath = await focusItem.getImagePaths();
@@ -1932,15 +1710,12 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
         _mediaFiles = List.from([newImageFile]);
         _nameController.text = focusItem.category.name;
         _selectedCategory = focusItem.getParent() ?? _editorAll;
+        _addingItem = newItem;
       }
       case null : {
         _mediaPaths.clear();
         _mediaFiles.clear();
-        _brochure = [BrochureHeader(), BrochureSubheader(), BrochureEntry(), BrochureHeader(), BrochureEntry()];
-        _nameController.text = '';
-        _descriptionController.text = '';
-        _modelNumberController.text = '';
-        _selectedCategory = _editorAll;
+        _focusItem = null;
       }
     }
     setState(() => _toggleLoading());

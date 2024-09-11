@@ -18,6 +18,7 @@ import 'package:flutter_fancy_tree_view/flutter_fancy_tree_view.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:string_validator/string_validator.dart' as validator;
 import 'package:path/path.dart' as p;
+import 'package:internet_connection_checker_plus/internet_connection_checker_plus.dart';
 
 class AppInfo {
   static late PackageInfo packageInfo;
@@ -99,6 +100,7 @@ class AppLogPrinter extends PrettyPrinter {
   );
 }
 
+
 class FileUtils {
   static final DefaultCacheManager cacheManager = DefaultCacheManager();
 
@@ -174,7 +176,7 @@ class FirebaseUtils {
   }
 
   static Future<void> postCatalogToFirestore(Map<String, dynamic> json) async {
-    await database.collection("catalog").add(json)
+    await database.collection("devCatalog").add(json)
       .then((DocumentReference doc) {
         Log.logger.i('Firestore DocumentSnapshot added with ID: ${doc.id}');
       });
@@ -199,21 +201,21 @@ class FirebaseUtils {
     );
   }
 
-  static Future<dynamic> downloadFromFirebaseStorage({required String url, Directory? directory, bool returnFile = false}) async {
+  static Future<File> downloadFromFirebaseStorage({required String url, Directory? directory, bool returnFile = false}) async {
     directory ??= await getDownloadsDirectory();
     
     try {
       final imageRef = FirebaseUtils.storage.refFromURL(url);
       final file = File('${directory!.path}/${imageRef.name}');
 
-      imageRef.writeToFile(file);
+      final task = await imageRef.writeToFile(file);
 
-      Log.logger.t("Downloaded image at $url to ${directory.path}");
-
-      if (returnFile) return file;
+      return file;
+      
     }
     catch (e, stackTrace) {
       Log.logger.e("Failed to download file at $url.", error: e, stackTrace: stackTrace);
+      throw("Failed to download file at $url");
     }
   }
 }

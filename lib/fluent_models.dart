@@ -1,31 +1,23 @@
-import 'package:file_saver/file_saver.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart' as material;
 import 'package:path_provider/path_provider.dart';
-import 'package:shortid/shortid.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'dart:convert';
 import 'dart:io';
 import 'dart:async';
-import 'package:cached_network_image/cached_network_image.dart';
+import 'dart:convert';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:path/path.dart' as path_handler;
-import 'dart:math' as math;
 import 'package:string_validator/string_validator.dart';
 import 'package:weightechapp/utils.dart';
 import 'package:weightechapp/models.dart';
-import 'package:mime/mime.dart';
-import 'package:http/http.dart' as http;
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons, TreeView, TreeViewItem;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
-import 'package:flutter_fancy_tree_view/flutter_fancy_tree_view.dart';
 
 sealed class EItem {
   late int rank;
   final String name;
   final String id;
   String? parentId;
+  bool hasChanges = false;
   EItem({required this.id, required this.name, required this.rank, this.parentId});
 
   static late ECategory all;
@@ -68,7 +60,7 @@ sealed class EItem {
   }
 
   static Future<void> updateImages(ECategory editorCatalog, StreamController? stream) async {
-    final storageRef = FirebaseUtils.storage.ref().child("devImages2");
+    final storageRef = FirebaseUtils.storage.ref().child("devImages3");
 
     Future<void> traverseItems(ECategory category) async {
       if (category.imageFile != null) {
@@ -89,113 +81,107 @@ sealed class EItem {
         }
       }
       for (var item in category.editorItems) {
-        switch (item) {
-          case ECategory _: {
-            await traverseItems(item);
-          }
-          case EProduct _: {
-            if (item.mediaPaths != null) {
-              stream?.add(item);
+        if (item.hasChanges) {
+          switch (item) {
+            case ECategory _: {
+              await traverseItems(item);
+            }
+            case EProduct _: {
+              if (item.mediaPaths != null) {
+                stream?.add(item);
+                
+                ApiVideoService.deleteExistingForId(item.id);
+                item.product.productMedia = [];
 
-              // if (item.product.productImageUrls != null) {
-              //   await Future.wait([
-              //     for (var url in item.product.productImageUrls!)
-              //       FirebaseUtils.storage.refFromURL(url).delete(),
-              //   ]);
-              // }
+                int nonPrimaryCount = 0;
+                for (int i = 0; i < item.mediaFiles!.length; i++) {
+                  File imageFile = item.mediaFiles![i];
+                  String baseRefName = '';
+                  if (i == item.primaryImageIndex) {
+                    baseRefName = "${item.id}_0";
+                    String extension = path_handler.extension(imageFile.path).substring(1);
 
-              
-              ApiVideoService.deleteExistingForId(item.id);
-              item.product.productMedia = [];
-
-              int nonPrimaryCount = 0;
-              for (int i = 0; i < item.mediaFiles!.length; i++) {
-                File imageFile = item.mediaFiles![i];
-                String baseRefName = '';
-                if (i == item.primaryImageIndex) {
-                  baseRefName = "${item.id}_0";
-                  String extension = path_handler.extension(imageFile.path).substring(1);
-
-                  if (extension == 'jpg') {
-                    extension = 'jpeg';
-                  }
-                  
-                  try {
-                    await storageRef.child("$baseRefName.$extension").putFile(imageFile, SettableMetadata(contentType: 'images/$extension')).then((value) async {
-                      final imageUrl = await storageRef.child("$baseRefName.$extension").getDownloadURL();
-                      item.product.productMedia!.insert(0, 
-                      {
-                        'name': baseRefName,
-                        'contentType': (extension == 'mp4' ? 'video' : 'image'),
-                        'fileType': extension,
-                        'downloadUrl': imageUrl
-                      });
-                    });
-                  } catch (e, stackTrace) {
-                    Log.logger.e("Error encountered while updating primary product image.", error: e, stackTrace: stackTrace);
-                  }
-                }
-                else {
+                    if (extension == 'jpg') {
+                      extension = 'jpeg';
+                    }
+                    
                     try {
-                      baseRefName = "${item.id}_${nonPrimaryCount+1}";
-                      String extension = path_handler.extension(imageFile.path).substring(1);
-
-                      if (extension == 'jpg') {
-                        extension = 'jpeg';
-                      }
-                      if (extension == 'jpeg' || extension == 'png') {
-                          try {
-                            await storageRef.child("$baseRefName.$extension").putFile(imageFile, SettableMetadata(contentType: 'images/$extension'))
-                            .then((value) async {
-                              final imageUrl = await storageRef.child("$baseRefName.$extension").getDownloadURL();
-                              item.product.productMedia!.add( 
-                              {
-                                'name': baseRefName,
-                                'contentType': 'image',
-                                'fileType' : extension,
-                                'downloadUrl': imageUrl,
-                              });
-                            });
-                            nonPrimaryCount++;
-                          } catch (e, stackTrace) {
-                            Log.logger.e("Error encountered while updating non-primary product images.", error: e, stackTrace: stackTrace);
-                          }
-                      }
-                      else if (extension == 'mp4') {
-                        await storageRef.child("$baseRefName.$extension").putFile(imageFile, SettableMetadata(contentType: 'video/mp4'))
-                        .then((value) async {
-                          final videoUrl = await storageRef.child("$baseRefName.$extension").getDownloadURL();
-                          final videoResponse = await ApiVideoService.createVideo(title: '$baseRefName.$extension', source: videoUrl);
-                          final videoData = {
-                            'downloadUrl' : videoUrl,
-                            'streamUrl' : videoResponse['assets']['hls'],
-                            'thumbnailUrl' : videoResponse['assets']['thumbnail'],
-                            'playerUrl' : videoResponse['assets']['player'],
-                            'videoId' : videoResponse['videoId']
-                          };
-                          // final videoId = video['videoId'];
-                          // final videoData = await ApiVideoService.uploadVideo(videoId, imageFile.path);
-                          item.product.productMedia!.add({
-                            'name': baseRefName,
-                            'contentType': 'video',
-                            'fileType' : 'mp4',
-                            ...
-                            videoData
-                          });
+                      await storageRef.child("$baseRefName.$extension").putFile(imageFile, SettableMetadata(contentType: 'images/$extension')).then((value) async {
+                        final imageUrl = await storageRef.child("$baseRefName.$extension").getDownloadURL();
+                        item.product.productMedia!.insert(0, 
+                        {
+                          'name': baseRefName,
+                          'contentType': (extension == 'mp4' ? 'video' : 'image'),
+                          'fileType': extension,
+                          'downloadUrl': imageUrl
                         });
-                        nonPrimaryCount++;
-                      }
+                      });
                     } catch (e, stackTrace) {
-                      Log.logger.w("Failed to upload media for $baseRefName: $e");
+                      Log.logger.e("Error encountered while updating primary product image.", error: e, stackTrace: stackTrace);
                     }
                   }
+                  else {
+                      try {
+                        baseRefName = "${item.id}_${nonPrimaryCount+1}";
+                        String extension = path_handler.extension(imageFile.path).substring(1);
+
+                        if (extension == 'jpg') {
+                          extension = 'jpeg';
+                        }
+                        if (extension == 'jpeg' || extension == 'png') {
+                            try {
+                              await storageRef.child("$baseRefName.$extension").putFile(imageFile, SettableMetadata(contentType: 'images/$extension'))
+                              .then((value) async {
+                                final imageUrl = await storageRef.child("$baseRefName.$extension").getDownloadURL();
+                                item.product.productMedia!.add( 
+                                {
+                                  'name': baseRefName,
+                                  'contentType': 'image',
+                                  'fileType' : extension,
+                                  'downloadUrl': imageUrl,
+                                });
+                              });
+                              nonPrimaryCount++;
+                            } catch (e, stackTrace) {
+                              Log.logger.e("Error encountered while updating non-primary product images.", error: e, stackTrace: stackTrace);
+                            }
+                        }
+                        else if (extension == 'mp4') {
+                          await storageRef.child("$baseRefName.$extension").putFile(imageFile, SettableMetadata(contentType: 'video/mp4'))
+                          .then((value) async {
+                            final videoUrl = await storageRef.child("$baseRefName.$extension").getDownloadURL();
+                            final videoResponse = await ApiVideoService.createVideo(title: '$baseRefName.$extension', source: videoUrl);
+                            final videoData = {
+                              'downloadUrl' : videoUrl,
+                              'streamUrl' : videoResponse['assets']['hls'],
+                              'thumbnailUrl' : videoResponse['assets']['thumbnail'],
+                              'playerUrl' : videoResponse['assets']['player'],
+                              'videoId' : videoResponse['videoId']
+                            };
+                            // final videoId = video['videoId'];
+                            // final videoData = await ApiVideoService.uploadVideo(videoId, imageFile.path);
+                            item.product.productMedia!.add({
+                              'name': baseRefName,
+                              'contentType': 'video',
+                              'fileType' : 'mp4',
+                              ...
+                              videoData
+                            });
+                          });
+                          nonPrimaryCount++;
+                        }
+                      } catch (e, stackTrace) {
+                        Log.logger.w("Failed to upload media for $baseRefName: $e");
+                      }
+                    }
+                  }
+                  
                 }
-                
               }
-            }
           }
         }
       }
+    }
 
     await traverseItems(editorCatalog);
     Log.logger.t("Images updated.");
@@ -311,10 +297,6 @@ class ECategory extends EItem {
 
   ECategory.temp() : this(category: ProductCategory.temp(), editorItems: [], rank: 0);
 
-  bool open = false;
-  bool play = false;
-
-
   @override
   List<EItem> getSubItems() {
     return editorItems;
@@ -413,12 +395,12 @@ class ECategory extends EItem {
       }
       else if (isURL(path)) {
         try {
-          final file = await FirebaseUtils.downloadFromFirebaseStorage(url: path, directory: basePath, returnFile: true);
+          final File? file = await FirebaseUtils.downloadFromFirebaseStorage(url: path, directory: basePath, returnFile: true);
 
-          return file as File;
+          return file;
 
         } catch (e) {
-          Log.logger.e("Failed to download image from $imagePath");
+          Log.logger.e("Failed to download image from $path");
         }
       }
     }
@@ -565,30 +547,100 @@ class EProduct extends EItem {
       for (var path in mediaPaths!) {
         if (isURL(path)) {
           try {
-            final imageRef = FirebaseUtils.storage.refFromURL(path);
-            final file = File('${basePath.path}/${imageRef.name}');
-
-            await imageRef.writeToFile(file);
-            mediaFiles!.add(file);
+            final cacheFile = await DefaultCacheManager().getSingleFile(path);
+            mediaFiles!.add(cacheFile);
             tempCopy.add(path);
           } catch (e) {
             try {
-              final idx = mediaPaths!.indexOf(path);
-              final file = await ApiVideoService.downloadVideo(path, '${basePath.path}/${id}_$idx');
-              mediaFiles!.add(file);
+              final file = await FirebaseUtils.downloadFromFirebaseStorage(url: path, directory: basePath, returnFile: true);
+
+              mediaFiles!.add(file as File);
               tempCopy.add(path);
             } catch (e) {
-              Log.logger.w("Failed to download image from $path. Removing from media paths...");
+              try {
+                final idx = mediaPaths!.indexOf(path);
+                final file = await ApiVideoService.downloadVideo(path, '${basePath.path}/${id}_$idx');
+                mediaFiles!.add(file);
+                tempCopy.add(path);
+              } catch (e) {
+                Log.logger.w("Failed to download image from $path. Removing from media paths...");
+              }
             }
           }
         }
         else {
           mediaFiles!.add(File(path));
-          tempCopy.add(path);
         }
-        mediaPaths = tempCopy;
       }
     }
+  }
+
+  void setHasChangesRecursive(EItem leafItem) {
+    
+    void traverse(EItem? item) {
+      if (item != null) {
+        item.hasChanges = true;
+        traverse(item.getParent());
+      }
+    }
+
+    traverse(leafItem);
+  }
+
+  void save({
+    String? name,
+    ECategory? parent,
+    String? modelNumber = '',
+    String? description = '',
+    List<Map<String, dynamic>>? brochure,
+    List<String>? mediaPaths,
+    List<File>? mediaFiles,
+    int primaryImageIndex = 0,
+  }) {
+
+    Log.logger.t(
+      """
+        Saving product...
+
+        Previous attributes: 
+        ${product.toJson()}
+      """
+    );
+
+    if (parentId == null) {
+      (parent ?? EItem.all).addItem(this);
+    }
+    else {
+      if (parentId != (parent ?? EItem.all).id) {
+        reassignParent(newParent: parent ?? EItem.all);
+      }
+    }
+    if (name != null) product.name = name;
+    if (modelNumber != null) product.modelNumber = modelNumber;
+    if (description != null) product.description = description;
+    if (brochure != null) product.brochure = brochure;
+    if (mediaPaths != null) this.mediaPaths = List.from(mediaPaths);
+    if (mediaFiles != null) {
+      this.mediaFiles = List.from(mediaFiles);
+      if (mediaFiles.isNotEmpty) {
+        if (mediaFiles[primaryImageIndex].path.endsWith('.mp4')) {
+          final newPrimaryIndex = (mediaFiles.map((x) => x.path).toList()).indexWhere((y) => !y.endsWith('.mp4'));
+          if (newPrimaryIndex != -1) {
+            primaryImageIndex = newPrimaryIndex;
+          }
+        }
+      }
+    }
+    primaryImageIndex = primaryImageIndex;
+    
+    setHasChangesRecursive(this);
+
+    Log.logger.t(
+      """
+        New attributes:
+        ${product.toJson()}
+      """
+    );
   }
 }
 
