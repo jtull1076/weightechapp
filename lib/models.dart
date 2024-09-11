@@ -320,19 +320,6 @@ sealed class CatalogItem {
                   ),
                 ),
               ),
-              Container(
-                height: 25,
-                alignment: Alignment.center,
-                padding: const EdgeInsets.symmetric(horizontal: 15),
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    name, 
-                    textAlign: TextAlign.center, 
-                    style: const TextStyle(fontSize: 16.0, color: Colors.black)
-                  ),
-                ),
-              ),
               const SizedBox(height: 10),
             ],
           ),
