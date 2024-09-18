@@ -252,6 +252,35 @@ Widget buildBrochureList({List<BrochureItem>? brochure,}) {
         return ReorderableListView.builder(
           shrinkWrap: true,
           buildDefaultDragHandles: false,
+          footer: (brochureActiveIndex == -1) ?
+            Container(
+              padding: const EdgeInsets.only(top: 10),
+              alignment: Alignment.center,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Text('+Header', style: TextStyle(fontSize: 12)),
+                    onPressed: () {
+                      setState(() => brochure!.add(BrochureHeader()));
+                    }
+                  ),
+                  IconButton(
+                    icon: const Text('+Subheader', style: TextStyle(fontSize: 12)),
+                    onPressed: () {
+                      setState(() => brochure!.add(BrochureSubheader()));
+                    }
+                  ),
+                  IconButton(
+                    icon: const Text('+Entry', style: TextStyle(fontSize: 12)),
+                    onPressed: () {
+                      setState(() => brochure!.add(BrochureEntry()));
+                    }
+                  )
+                ]
+              )
+            )
+            : null,
           itemBuilder: (context, index) {
             return MouseRegion(
               key: Key('$index'),

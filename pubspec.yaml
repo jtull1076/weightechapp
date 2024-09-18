@@ -47,6 +47,7 @@ dependencies:
   fluent_ui: ^4.9.0
   fluentui_system_icons: ^1.1.251
   flutter_fancy_tree_view: ^1.6.0
+  non_uniform_border: ^1.0.0
 
 dev_dependencies:
   flutter_test:

@@ -32,6 +32,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_fancy_tree_view/flutter_fancy_tree_view.dart';
+import 'package:non_uniform_border/non_uniform_border.dart';
 
 
 //MARK: OFFLINE PAGE
@@ -396,55 +397,6 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
       parentProvider: (EItem item) => item.getParent()
     );
 
-    _primaryCommandItems = [
-      CommandBarButton(
-        icon: const Icon(FluentIcons.cloud_arrow_up_20_regular),
-        label: const Text('Save to Cloud', style: TextStyle(fontSize: 12)),
-        onPressed: () {},
-      ),
-      CommandBarButton(
-        icon: const Icon(FluentIcons.save_20_regular),
-        label: const Text('Save Local', style: TextStyle(fontSize: 12)),
-        onPressed: () {},
-      ),
-      CommandBarButton(
-        icon: const Icon(FluentIcons.document_arrow_up_20_regular),
-        label: const Text('Upload Local', style: TextStyle(fontSize: 12)),
-        onPressed: () {},
-      ),
-      CommandBarButton(
-        icon: const Icon(FluentIcons.clock_arrow_download_20_regular),
-        label: const Text('Restore Previous', style: TextStyle(fontSize: 12)),
-        onPressed: () {},
-      ),
-      const CommandBarSeparator(
-        thickness: 0.5,
-        color: Colors.black,
-      ),
-      CommandBarButton(
-        icon: const Icon(FluentIcons.eye_20_regular),
-        label: const Text('Preview', style: TextStyle(fontSize: 12)),
-        onPressed: () {},
-      ),
-      CommandBarButton(
-        icon: const Icon(FluentIcons.production_20_regular),
-        label: const Text('New Product', style: TextStyle(fontSize: 12)),
-        onPressed: () {
-          final newProduct = EProduct.temp();
-          toggleEditorItem(newProduct, newItem: true);
-        },
-      ),
-      CommandBarButton(
-        icon: const Icon(FluentIcons.list_bar_20_regular),
-        label: const Text('New Category', style: TextStyle(fontSize: 12)),
-        onPressed: () {
-          final newCategory = ECategory.temp();
-          toggleEditorItem(newCategory, newItem: true);
-        },
-      ),
-      const CommandBarSeparator(),
-    ];
-
     _secondaryCommands = [
       CommandBarButton(
         icon: const Icon(FluentIcons.settings_20_regular),
@@ -484,7 +436,6 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
     _treeController.dispose();
     super.dispose();
   }
-
   
 
   @override
@@ -500,7 +451,191 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
             // margin: const EdgeInsets.symmetric(horizontal: 5),
             backgroundColor: const Color(0x44C9C9CC),
             child: CommandBar(
-              primaryItems: _primaryCommandItems,
+              primaryItems: [
+                CommandBarButton(
+                  icon: const Icon(FluentIcons.cloud_arrow_up_20_regular),
+                  label: const Text('Save to Cloud', style: TextStyle(fontSize: 12)),
+                  onPressed: () {},
+                ),
+                CommandBarButton(
+                  icon: const Icon(FluentIcons.save_20_regular),
+                  label: const Text('Save Local', style: TextStyle(fontSize: 12)),
+                  onPressed: () {},
+                ),
+                CommandBarButton(
+                  icon: const Icon(FluentIcons.document_arrow_up_20_regular),
+                  label: const Text('Upload Local', style: TextStyle(fontSize: 12)),
+                  onPressed: () {},
+                ),
+                CommandBarButton(
+                  icon: const Icon(FluentIcons.clock_arrow_download_20_regular),
+                  label: const Text('Restore Previous', style: TextStyle(fontSize: 12)),
+                  onPressed: () {},
+                ),
+                const CommandBarSeparator(
+                  thickness: 0.5,
+                  color: Colors.black,
+                ),
+                CommandBarButton(
+                  icon: const Icon(FluentIcons.production_20_regular),
+                  label: const Text('New Product', style: TextStyle(fontSize: 12)),
+                  onPressed: () {
+                    final newProduct = EProduct.temp();
+                    toggleEditorItem(newProduct, newItem: true);
+                  },
+                ),
+                CommandBarButton(
+                  icon: const Icon(FluentIcons.list_bar_20_regular),
+                  label: const Text('New Category', style: TextStyle(fontSize: 12)),
+                  onPressed: () {
+                    final newCategory = ECategory.temp();
+                    toggleEditorItem(newCategory, newItem: true);
+                  },
+                ),
+                if (_focusItem != null) ... [
+                  const CommandBarSeparator(
+                    thickness: 0.5,
+                    color: Colors.black,
+                  ),
+                  const CommandBarSeparator(),
+                  CommandBarBuilderItem(
+                    builder: (context, displayMode, child) {
+                      return Container(
+                        constraints: const BoxConstraints(minWidth: 80),
+                        padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 5),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF696969),
+                          borderRadius: BorderRadius.only(
+                            topLeft: Radius.circular(8),
+                            bottomLeft: Radius.circular(8),
+                          )
+                        ),
+                        child: child
+                      );
+                    }, 
+                    wrappedItem: CommandBarButton(
+                      icon: const Icon(FluentIcons.document_save_20_regular, color: Colors.white),
+                      label: const Text('Save', style: TextStyle(fontSize: 12, color: Colors.white)),
+                      onPressed: () {
+                        if (_focusItem is EProduct) {
+                          if (_formKey.currentState!.validate()) {
+                            if (_addingItem) {
+                              Product newProduct = Product(
+                                name: _nameController.text,
+                                modelNumber: _modelNumberController.text,
+                                description: _descriptionController.text,
+                                brochure: mapListToBrochure(_brochure)
+                              );
+                              EProduct newEProduct = EProduct(product: newProduct, rank: _selectedCategory.rank+1);
+                              
+                              newEProduct.save(
+                                parent: _selectedCategory,
+                                mediaPaths: List.from(_mediaPaths),
+                                mediaFiles: List.from(_mediaFiles)
+                              );
+                            }
+                            else {
+                              final product = _focusItem as EProduct;
+                              product.save(
+                                name: _nameController.text,
+                                parent: _selectedCategory,
+                                modelNumber: _modelNumberController.text,
+                                description: _descriptionController.text,
+                                brochure: mapListToBrochure(_brochure),
+                                mediaPaths: List.from(_mediaPaths),
+                                mediaFiles: List.from(_mediaFiles),
+                                primaryImageIndex: _primaryImageIndex,
+                              );                       
+                            }
+                            setState(() {
+                              _treeController.rebuild();
+                              _addingItem = false;
+                              _focusItem = null;
+                            });
+                          }
+                        }
+                        else if (_focusItem is ECategory) {
+                          if (_addingItem) {
+                            ProductCategory newCategory = ProductCategory(
+                              name: _nameController.text,
+                            );
+                            ECategory newECategory = ECategory(category: newCategory, rank: _selectedCategory.rank+1, editorItems: []);
+                            
+                            newECategory.save(
+                              parent: _selectedCategory,
+                              imagePath: (_mediaPaths.isEmpty) ? null : _mediaPaths.first,
+                              imageFile: (_mediaFiles.isEmpty) ? null : _mediaFiles.first
+                            );
+                          }
+                          else {
+                            final category = _focusItem as ECategory;
+                            category.save(
+                              name: _nameController.text,
+                              parent: _selectedCategory,
+                              imagePath: (_mediaPaths.isEmpty) ? null : _mediaPaths.first,
+                              imageFile: (_mediaFiles.isEmpty) ? null : _mediaFiles.first,
+                            );
+                          }
+                          setState(() {
+                            _treeController.rebuild();
+                            _addingItem = false;
+                            _focusItem = null;
+                          });
+                        }
+                      }
+                    )
+                  ),
+                  if (_focusItem is EProduct) 
+                    CommandBarBuilderItem(
+                      builder: (context, displayMode, child) {
+                        return Container(
+                          constraints: const BoxConstraints(minWidth: 80),
+                          padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 5),
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF696969),
+                          ),
+                          child: child
+                        );
+                      }, 
+                      wrappedItem: CommandBarButton(
+                        icon: const Icon(FluentIcons.eye_20_regular, color: Colors.white),
+                        label: const Text('Preview', style: TextStyle(fontSize: 12, color: Colors.white)),
+                        onPressed: () {
+                          _showPreviewDialog(context);
+                        },
+                      )
+                    ),
+                    
+                  CommandBarBuilderItem(
+                    builder: (context, displayMode, child) {
+                      return Container(
+                        constraints: const BoxConstraints(minWidth: 80),
+                        padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 5),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF696969),
+                          borderRadius: BorderRadius.only(
+                            topRight: Radius.circular(8),
+                            bottomRight: Radius.circular(8),
+                          )
+                        ),
+                        child: child
+                      );
+                    }, 
+                    wrappedItem: CommandBarButton(
+                      icon: const Icon(FluentIcons.delete_20_regular, color: Colors.white),
+                      label: const Text('Delete', style: TextStyle(fontSize: 12, color: Colors.white)),
+                      onPressed: () async {
+                        final confirmed = await _showItemDeleteDialog(context, _focusItem!);
+                        if (confirmed) {
+                          _focusItem!.removeFromParent();
+                          _treeController.rebuild();
+                          setState(() => _focusItem = null);
+                        }
+                      },
+                    )
+                  )
+                ]
+              ],
               secondaryItems: _secondaryCommands,
             ),
           )
@@ -1373,7 +1508,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
               width: 280,
               child: ComboBox<ECategory>(
                 placeholder: const Text("Category *"),
-                value: product.getParent() ?? _editorAll,
+                value: _selectedCategory,
                 items: _editorAll.getSubCategories().map<ComboBoxItem<ECategory>>((ECategory category){
                   return ComboBoxItem<ECategory>(
                     value: category,
@@ -1407,48 +1542,54 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
     return SizedBox(
       height: MediaQuery.of(context).size.height,
       width: double.infinity,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          categoryInfoWidget(category),
-          Container(
-            constraints: const BoxConstraints(minHeight: 300),
-            child: 
-              buildCategoryEditorCard()
-          ),
-          const SizedBox(height: 0),
-          Button(
-            style: const ButtonStyle(
-              backgroundColor: WidgetStatePropertyAll<Color>(Color(0xFF224190)),
-              foregroundColor: WidgetStatePropertyAll<Color>(Colors.white)
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            categoryInfoWidget(category),
+            Container(
+              constraints: const BoxConstraints(minHeight: 300),
+              child: 
+                buildCategoryEditorCard()
             ),
-            child: _addingItem ? const Text("Add") : const Text("Save"),
-            onPressed: () {
-              if (_addingItem) {
-                ProductCategory newCategory = ProductCategory(
-                  name: _nameController.text,
-                  parentId: _selectedCategory.id,
-                );
-                ECategory newECategory = ECategory(category: newCategory, rank: _selectedCategory.rank+1, editorItems: [], imagePath: _mediaPaths.isNotEmpty ? _mediaPaths[0] : null);
-                _selectedCategory.addItem(newECategory);
-              }
-              else if (category != null) {
-                if (category.parentId != _selectedCategory.id) {
-                  category.reassignParent(newParent: _selectedCategory);
+            const SizedBox(height: 0),
+            Button(
+              style: const ButtonStyle(
+                backgroundColor: WidgetStatePropertyAll<Color>(Color(0xFF224190)),
+                foregroundColor: WidgetStatePropertyAll<Color>(Colors.white)
+              ),
+              child: _addingItem ? const Text("Add") : const Text("Save"),
+              onPressed: () {
+                if (_addingItem) {
+                  ProductCategory newCategory = ProductCategory(
+                    name: _nameController.text,
+                  );
+                  ECategory newECategory = ECategory(category: newCategory, rank: _selectedCategory.rank+1, editorItems: []);
+                  
+                  newECategory.save(
+                    parent: _selectedCategory,
+                    imagePath: (_mediaPaths.isEmpty) ? null : _mediaPaths.first,
+                    imageFile: (_mediaFiles.isEmpty) ? null : _mediaFiles.first
+                  );
                 }
-                category.category.name = _nameController.text;
-                category.imagePath = _mediaPaths.isNotEmpty ? _mediaPaths[0] : null;
-                category.imageFile = _mediaFiles.isNotEmpty ? _mediaFiles[0] : null;
-                category.rank = _selectedCategory.rank+1;
+                else if (category != null) {
+                  category.save(
+                    name: _nameController.text,
+                    parent: _selectedCategory,
+                    imagePath: (_mediaPaths.isEmpty) ? null : _mediaPaths.first,
+                    imageFile: (_mediaFiles.isEmpty) ? null : _mediaFiles.first,
+                  );
+                }
+                setState(() {
+                  _treeController.rebuild();
+                  _addingItem = false;
+                  _focusItem = null;
+                });
               }
-              setState(() {
-                _addingItem = false;
-                _focusItem = null;
-              });
-            }
-          ),
-          const SizedBox(height: 20),
-        ]
+            ),
+            const SizedBox(height: 20),
+          ]
+        )
       )
     );
   }
@@ -1521,76 +1662,116 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                       )
                     ]
                   )
-                  : Container(
-                    padding: const EdgeInsets.all(20),
-                    alignment: Alignment.center,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(FluentIcons.image_20_regular, size: 70),
-                        const Text("Drag and drop file here", style: TextStyle(fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 10),
-                        const Row(
-                          mainAxisAlignment: MainAxisAlignment.center, 
-                          children: [
-                            Expanded(child: Divider(direction: Axis.vertical, style: DividerThemeData(thickness: 1, horizontalMargin: EdgeInsets.symmetric(vertical: 15)))), 
-                            Text("or"), 
-                            Expanded(child: Divider(direction: Axis.vertical, style: DividerThemeData(thickness: 1, horizontalMargin: EdgeInsets.symmetric(vertical: 15))))
-                          ]
-                        ),
-                        const SizedBox(height: 10),
-                        OutlinedButton(
-                          style: const ButtonStyle(
-                            foregroundColor: WidgetStatePropertyAll<Color>(Colors.black)
-                          ),                 
-                          onPressed: () async {
-                            FilePickerResult? _ = 
-                              await FilePicker.platform.
-                                pickFiles(allowMultiple: false, type: FileType.image, allowedExtensions: ['png', 'jpg'])
-                                .then((result) {
-                                  if (result != null) {
-                                    List<String> paths = [];
+                  : DropTarget(
+                    onDragDone: (detail) {
+                      List<String> paths = [];
 
-                                    for (var path in result.paths) {
-                                      if (_mediaPaths.contains(path)) {
-                                        Log.logger.t("Image already assigned to item.");
-                                        continue;
+                      Log.logger.t("...Image drop-upload encounter...");
+                      for (var file in detail.files) {
+                        if (_mediaPaths.contains(file.path)) {
+                          Log.logger.t("-> Image already assigned to item.");
+                          continue;
+                        }
+                        String extension = file.path.substring(file.path.length - 4);
+                        if (extension == ".jpg" || extension == ".png") {
+                          Log.logger.t("-> Image added to paths: ${file.path}");
+                          paths.add(file.path);
+                        }
+                        else if (file.path.substring(file.path.length - 5) == ".jpeg") {
+                          Log.logger.t("-> Image added to paths: ${file.path}");
+                          paths.add(file.path);
+                        }
+                        else {
+                          Log.logger.t("-> Invalid file type: File type $extension not supported.");
+                        }
+                      }
+
+                      setState(() {
+                        _mediaPaths.add(paths.first);
+                        _mediaFiles.add(File(_mediaPaths.first));
+                      });
+                    },
+                    onDragEntered: (details) => setState(() => _fileDragging = true),
+                    onDragExited: (details) => setState(() => _fileDragging = false),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 250),
+                      width: 400,
+                      height: 400,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: const Color(0xFFC9C9CC)),
+                        color: _fileDragging ? const Color(0xFFC9C9CC) : const Color(0x44C9C9CC),
+                      ),
+                      padding: const EdgeInsets.all(20),
+                      alignment: Alignment.center,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(FluentIcons.image_20_regular, size: 70),
+                          const Text("Drag and drop file here", style: TextStyle(fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 10),
+                          const Row(
+                            mainAxisAlignment: MainAxisAlignment.center, 
+                            children: [
+                              Expanded(child: Divider(direction: Axis.vertical, style: DividerThemeData(thickness: 1, horizontalMargin: EdgeInsets.symmetric(vertical: 15)))), 
+                              Text("or"), 
+                              Expanded(child: Divider(direction: Axis.vertical, style: DividerThemeData(thickness: 1, horizontalMargin: EdgeInsets.symmetric(vertical: 15))))
+                            ]
+                          ),
+                          const SizedBox(height: 10),
+                          OutlinedButton(
+                            style: const ButtonStyle(
+                              foregroundColor: WidgetStatePropertyAll<Color>(Colors.black)
+                            ),                 
+                            onPressed: () async {
+                              FilePickerResult? _ = 
+                                await FilePicker.platform.
+                                  pickFiles(allowMultiple: false, type: FileType.image, allowedExtensions: ['png', 'jpg'])
+                                  .then((result) {
+                                    if (result != null) {
+                                      List<String> paths = [];
+
+                                      for (var path in result.paths) {
+                                        if (_mediaPaths.contains(path)) {
+                                          Log.logger.t("Image already assigned to item.");
+                                          continue;
+                                        }
+                                        String extension = path!.substring(path.length - 4);
+                                        if (extension == ".jpg" || extension == ".png") {
+                                          Log.logger.t("Image added to paths: $path");
+                                          paths.add(path);
+                                        }
+                                        else if (path.substring(path.length - 5) == ".jpeg") {
+                                          Log.logger.t("Image added to paths: $path");
+                                          paths.add(path);
+                                        }
+                                        else {
+                                          Log.logger.t("Invalid file type: File type $extension not supported.");
+                                        }
                                       }
-                                      String extension = path!.substring(path.length - 4);
-                                      if (extension == ".jpg" || extension == ".png") {
-                                        Log.logger.t("Image added to paths: $path");
-                                        paths.add(path);
-                                      }
-                                      else if (path.substring(path.length - 5) == ".jpeg") {
-                                        Log.logger.t("Image added to paths: $path");
-                                        paths.add(path);
-                                      }
-                                      else {
-                                        Log.logger.t("Invalid file type: File type $extension not supported.");
-                                      }
+
+                                      setState(() {
+                                        _mediaPaths = [];
+                                        _mediaFiles = [];
+                                        _mediaPaths.add(paths[0]);
+                                        _mediaFiles.add(File(paths[0]));
+                                      });
                                     }
-
-                                    setState(() {
-                                      _mediaPaths = [];
-                                      _mediaFiles = [];
-                                      _mediaPaths.add(paths[0]);
-                                      _mediaFiles.add(File(paths[0]));
-                                    });
-                                  }
-                                  else {
-                                    Log.logger.t("File upload aborted/failed.");
-                                  }
-                                  return null;
-                                });
-                          },
-                          child: const Text("Browse Files")
-                        ),
-                        const SizedBox(height: 10),
-                        const Text("File must be .jpg or .png", style: TextStyle(fontSize: 12.0, fontStyle: FontStyle.italic))
-                      ]
-                    )
-                  ),
+                                    else {
+                                      Log.logger.t("File upload aborted/failed.");
+                                    }
+                                    return null;
+                                  });
+                            },
+                            child: const Text("Browse Files")
+                          ),
+                          const SizedBox(height: 10),
+                          const Text("File must be .jpg or .png", style: TextStyle(fontSize: 12.0, fontStyle: FontStyle.italic))
+                        ]
+                      )
+                    ),
+                  )
               )
             ),
             Container(
@@ -1654,8 +1835,8 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
             const SizedBox(height: 10),
             Button(
               onPressed: () async {
-                _mediaPaths = [(await category.editorItems.first.getImagePaths())[0]];
-                _mediaFiles = [(await category.editorItems.first.getImageFiles(paths: [_mediaPaths[0]]))[0]];
+                _mediaPaths = [(await category.editorItems.first.getImagePaths())];
+                _mediaFiles = [(await category.editorItems.first.getImageFiles(path: _mediaPaths[0]))];
                 setState(() {});
               },
               child: const Text('Use Default Image')
@@ -1672,7 +1853,6 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
       )
     );
   }
-
 
   Future<void> toggleEditorItem(EItem? focusItem, {bool newItem = false}) async {
     StreamController<String> updateStreamController = StreamController<String>();
@@ -1707,7 +1887,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
         _mediaFiles.clear();
         _focusItem = focusItem;
         _mediaPaths = List.from([newImagePath]);
-        _mediaFiles = List.from([newImageFile]);
+        _mediaFiles = (newImageFile != null) ? List.from([newImageFile]) : [];
         _nameController.text = focusItem.category.name;
         _selectedCategory = focusItem.getParent() ?? _editorAll;
         _addingItem = newItem;
@@ -1744,6 +1924,292 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
       style: ContentDialogThemeData(
         bodyPadding: const EdgeInsets.symmetric(horizontal: 50),
       )
+    );
+  }
+
+
+  Future<bool> _showItemDeleteDialog(BuildContext context, EItem data) async {
+    bool? confirmation = false;
+    
+    switch (data) {
+      case ECategory _ : {
+        confirmation = await showDialog<bool>(
+          context: context,
+          builder: (BuildContext context) {
+            return StatefulBuilder(
+              builder: (context, setState) {
+                return ContentDialog(
+                  title: const Text("Warning!"),
+                  content: Text("You are about to delete ${data.category.name} and all of its contents (including sub-products). This action cannot be undone. \n\nAre you sure?"),
+                  actions: <Widget>[
+                    Button(
+                      child: const Text("Delete"),
+                      onPressed: () {
+                        Navigator.of(context).pop(true);
+                      }
+                    ),
+                    Button(
+                      child: const Text("Cancel"),
+                      onPressed: () {
+                        Navigator.of(context).pop(false);
+                      }
+                    )
+                  ]
+                );
+              }
+            );
+          }
+        );
+      }
+      case EProduct _ : {
+        confirmation = await showDialog<bool>(
+          context: context,
+          builder: (BuildContext context) {
+            return StatefulBuilder(
+              builder: (context, setState) {
+                return ContentDialog(
+                  title: const Text("Warning!"),
+                  content: Text("You are about to delete ${data.product.name} and all of its contents. This action cannot be undone. \n\nAre you sure?"),
+                  actions: <Widget>[
+                    Button(
+                      child: const Text("Delete"),
+                      onPressed: () {
+                        Navigator.of(context).pop(true);
+                      }
+                    ),
+                    Button(
+                      style: const ButtonStyle(
+                        backgroundColor: WidgetStatePropertyAll<Color>(Color(0xFF224190)),
+                        foregroundColor: WidgetStatePropertyAll<Color>(Colors.white),
+                      ),
+                      child: const Text("Cancel"),
+                      onPressed: () {
+                        Navigator.of(context).pop(false);
+                      }
+                    )
+                  ]
+                );
+              }
+            );
+          }
+        );
+      }
+    }
+    return confirmation ?? false;
+  }
+
+  Future<void> _showPreviewDialog(BuildContext context) async {
+    await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            int? current;
+            List<Map<String, dynamic>> tempBrochure = mapListToBrochure(_brochure);
+
+            return ContentDialog(
+              constraints: BoxConstraints(
+                minWidth: MediaQuery.of(context).size.width*0.7,
+                minHeight: MediaQuery.of(context).size.height*0.7,
+                maxWidth: MediaQuery.of(context).size.width*0.7,
+                maxHeight: MediaQuery.of(context).size.height*0.7,
+              ),
+              style: const ContentDialogThemeData(
+                padding: EdgeInsets.fromLTRB(24, 16, 24, 8),
+              ),
+              content: SizedBox(
+                child: Column(
+                  children: [
+                    Container(
+                      alignment: Alignment.topCenter,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF224190),
+                        border: Border.all(color: const Color(0xFF224190))
+                      ),
+                      width: double.infinity,
+                      child: 
+                        Padding(
+                          padding: const EdgeInsets.all(1.4),
+                          child:
+                            FadeTransition(
+                              opacity: _fadeAnimation,
+                              child: 
+                                Text(_nameController.text, 
+                                  textAlign: TextAlign.center, 
+                                  style: const TextStyle(fontSize: 22.4, fontWeight: FontWeight.bold, color: Colors.white),
+                                )
+                            )
+                        )
+                      ),
+                    Expanded(
+                      child: 
+                        SingleChildScrollView(
+                          scrollDirection: Axis.vertical,
+                          child: 
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Flexible(
+                                  child:
+                                    ListView(
+                                      padding: const EdgeInsets.only(left: 42, right: 14, top: 21),
+                                      shrinkWrap: true,
+                                      physics: const NeverScrollableScrollPhysics(),
+                                      children: [
+                                        SimpleRichText(_descriptionController.text, textAlign: TextAlign.justify, style: GoogleFonts.openSans(color: Colors.black, fontSize: 12.6)),
+                                        const SizedBox(height: 21),
+                                        Column(
+                                          children: [
+                                            CarouselSlider.builder(
+                                              options: CarouselOptions(
+                                                enableInfiniteScroll: _mediaFiles.length > 1 ? true : false, 
+                                                enlargeCenterPage: true,
+                                                enlargeFactor: 1,
+                                                onPageChanged: (index, reason) {
+                                                  setState(() {
+                                                    current = index;
+                                                  });
+                                                },
+                                              ),
+                                              itemCount: _mediaFiles.length,
+                                              itemBuilder: (BuildContext context, int itemIndex, int pageViewIndex) {
+                                                return ClipRRect(
+                                                  borderRadius: BorderRadius.circular(30.0),
+                                                  child: Image.file(_mediaFiles[itemIndex])
+                                                );
+                                              }
+                                            ),
+                                            const SizedBox(height: 7),
+                                            if (_mediaFiles.length > 1)
+                                              Row(
+                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                children: _mediaFiles.asMap().entries.map((entry) {
+                                                  return Container(
+                                                    width: 7,
+                                                    height: 7,
+                                                    margin: const EdgeInsets.symmetric(vertical: 5.6, horizontal: 2.8),
+                                                    decoration: BoxDecoration(
+                                                        shape: BoxShape.circle,
+                                                        color: (FluentTheme.of(context).brightness == Brightness.dark
+                                                                ? const Color(0xFFC9C9CC)
+                                                                : const Color(0xFF224190))
+                                                            .withOpacity((current ?? 0) == entry.key ? 1 : 0.3)),
+                                                  );
+                                                }).toList(),
+                                              ),
+                                          ]
+                                        )
+                                      ]
+                                    ),
+                                ),
+                                Flexible(
+                                  child:    
+                                    Padding(
+                                      padding: const EdgeInsets.only(left: 28, right: 42, top: 3.5),
+                                      child: 
+                                        ListView.builder(
+                                          shrinkWrap: true,
+                                          padding: const EdgeInsets.only(top: 14),
+                                          physics: const NeverScrollableScrollPhysics(),
+                                          itemCount: tempBrochure.length,
+                                          itemBuilder: (context, index) {
+                                            final headerKey = tempBrochure[index].keys.first;
+                                            final headerValue = tempBrochure[index][headerKey] as List;
+                                            final headerEntries = headerValue.singleWhere((element) => (element as Map).keys.first == "Entries", orElse: () => <String, List<String>>{})["Entries"];
+                                            final subheaders = List.from(headerValue);
+                                            subheaders.removeWhere((element) => element.keys.first == "Entries");
+
+                                            return Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(headerKey, style: const TextStyle(color: Color(0xFF224190), fontSize: 19.6, fontWeight: FontWeight.bold), softWrap: true,),
+                                                if (headerEntries?.isNotEmpty ?? false)
+                                                  ListView.builder(
+                                                    padding: const EdgeInsets.only(top: 3.5, left: 3.5),
+                                                    shrinkWrap: true,
+                                                    physics: const NeverScrollableScrollPhysics(),
+                                                    itemCount: headerEntries.length,
+                                                    itemBuilder: (context, entryIndex) {
+                                                      final entry = headerEntries[entryIndex];
+                                                      return Padding(
+                                                        padding: const EdgeInsets.only(top: 3.5),
+                                                        child:
+                                                          Row(
+                                                            crossAxisAlignment: CrossAxisAlignment.start, 
+                                                            children: [
+                                                              const Text("\u2022"),
+                                                              const SizedBox(width: 5.6),
+                                                              Expanded(child: Text(entry, style: const TextStyle(fontSize: 11.2), softWrap: true,))
+                                                            ]
+                                                          )
+                                                      );
+                                                    }
+                                                  ),
+                                                const SizedBox(height: 7),
+                                                ListView.builder(
+                                                  shrinkWrap: true,
+                                                  physics: const NeverScrollableScrollPhysics(),
+                                                  itemCount: subheaders.length,
+                                                  itemBuilder: (context, subIndex) {
+                                                    final subheaderKey = subheaders[subIndex].keys.first;
+                                                    final subheaderValue = subheaders[subIndex][subheaderKey] as List<String>;
+
+                                                    return Column(
+                                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                                      children: [
+                                                        Padding(
+                                                          padding: const EdgeInsets.only(left: 3.5),
+                                                          child: Text(subheaderKey, style: const TextStyle(color: Color(0xFF333333), fontSize: 15.4, fontWeight: FontWeight.w800), softWrap: true,),
+                                                        ),
+                                                        ListView.builder(
+                                                          padding: const EdgeInsets.only(left: 3.5, top: 3.5),
+                                                          shrinkWrap: true,
+                                                          physics: const NeverScrollableScrollPhysics(),
+                                                          itemCount: subheaderValue.length,
+                                                          itemBuilder: (context, entryIndex) {
+                                                            final entry = subheaderValue[entryIndex];
+                                                            return Row(
+                                                              crossAxisAlignment: CrossAxisAlignment.start, 
+                                                              children: [
+                                                                const Text("\u2022"),
+                                                                const SizedBox(width: 3.5),
+                                                                Expanded(child: Text(entry, style: const TextStyle(fontSize: 11.2), softWrap: true,))
+                                                              ]
+                                                            );
+                                                          }
+                                                        ),
+                                                        const SizedBox(height: 7),
+                                                      ],
+                                                    );
+                                                  },
+                                                ),
+                                                const SizedBox(height: 7),
+                                              ]
+                                            );
+                                          }
+                                        )
+                                    )
+                                )
+                              ],
+                            ),
+                        )   
+                        
+                    )
+                  ]
+                )
+              ),
+              actions: <Widget>[
+                Button(
+                  child: const Text("Close"),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  }
+                )
+              ],
+            );
+          }
+        );
+      }
     );
   }
 

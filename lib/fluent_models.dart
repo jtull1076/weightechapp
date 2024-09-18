@@ -285,6 +285,8 @@ sealed class EItem {
     removeFromParent();
     parent.addItem(this, index: newIndex);
   }
+
+  void save();
 }
 
 class ECategory extends EItem {
@@ -332,6 +334,7 @@ class ECategory extends EItem {
     switch (item) {
       case ECategory _ :
         item.parentId = id;
+        item.category.parentId = id;
         item.rank = rank+1;
         if (index != null) {
            editorItems.insert(index, item);
@@ -344,6 +347,7 @@ class ECategory extends EItem {
         Log.logger.i("Added ${item.category.name} to ${category.name}");
       case EProduct _ :
         item.parentId = id;
+        item.product.parentId = id;
         item.rank = rank+1;
         if (index != null) {
            editorItems.insert(index, item);
@@ -393,18 +397,27 @@ class ECategory extends EItem {
         Log.logger.e("Must set image path before creating file!");
         throw 'Must provide path before creating file';
       }
+      else if (path == "") {
+        Log.logger.t('This looks like a new category is being created. If something bad happens, idk');
+        return null;
+      }
       else if (isURL(path)) {
         try {
-          final File? file = await FirebaseUtils.downloadFromFirebaseStorage(url: path, directory: basePath, returnFile: true);
-
-          return file;
-
+          final cacheFile = await DefaultCacheManager().getSingleFile(path);
+          return cacheFile;
         } catch (e) {
-          Log.logger.e("Failed to download image from $path");
+          try {
+            final file = await FirebaseUtils.downloadFromFirebaseStorage(url: path, directory: basePath, returnFile: true);
+
+            return file;
+
+          } catch (e2) {
+            Log.logger.w("Failed to download image from $path. Removing from media paths...", error: [e,e2]);
+          }
         }
       }
     }
-    Log.logger.f('Failure to create image file from path. Check path.');
+    Log.logger.f('No image file found at $path for $id.');
     return null;
   }
 
@@ -434,6 +447,46 @@ class ECategory extends EItem {
       }
     }
   }
+
+  @override
+  void save({
+    String? name,
+    ECategory? parent,
+    String? imagePath,
+    File? imageFile,
+  }) {
+
+    Log.logger.t(
+      """
+        Saving product...
+
+        Previous attributes: 
+        ${category.toJson()}
+      """
+    );
+
+    if (parentId == null) {
+      (parent ?? EItem.all).addItem(this);
+    }
+    else {
+      if (parentId != (parent ?? EItem.all).id) {
+        reassignParent(newParent: parent ?? EItem.all);
+      }
+    }
+    if (name != null) category.name = name;
+    if (imagePath != null) this.imagePath = imagePath;
+    if (imageFile != null) this.imageFile = imageFile;
+
+    hasChanges = true;
+
+    Log.logger.t(
+      """
+        New attributes:
+        ${category.toJson()}
+      """
+    );
+  }
+
 }
 
 class EProduct extends EItem {
@@ -512,7 +565,7 @@ class EProduct extends EItem {
             try {
               final file = await FirebaseUtils.downloadFromFirebaseStorage(url: path, directory: basePath, returnFile: true);
 
-              files.add(file as File);
+              files.add(file);
               tempCopy.add(path);
             } catch (e) {
               try {
@@ -575,7 +628,7 @@ class EProduct extends EItem {
     }
   }
 
-  void setHasChangesRecursive(EItem leafItem) {
+  static void setHasChangesRecursive(EItem leafItem) {
     
     void traverse(EItem? item) {
       if (item != null) {
@@ -587,6 +640,7 @@ class EProduct extends EItem {
     traverse(leafItem);
   }
 
+  @override
   void save({
     String? name,
     ECategory? parent,
@@ -598,12 +652,14 @@ class EProduct extends EItem {
     int primaryImageIndex = 0,
   }) {
 
+    const encoder = JsonEncoder.withIndent('  ');
+
     Log.logger.t(
       """
         Saving product...
 
         Previous attributes: 
-        ${product.toJson()}
+        ${encoder.convert(product.toJson())}
       """
     );
 
@@ -638,7 +694,7 @@ class EProduct extends EItem {
     Log.logger.t(
       """
         New attributes:
-        ${product.toJson()}
+        ${encoder.convert(product.toJson())}
       """
     );
   }
