@@ -350,7 +350,7 @@ Widget buildBrochureList({List<BrochureItem>? brochure,}) {
                 )
             );
           }, 
-          itemCount: brochure!.length, 
+          itemCount: brochure.length, 
           onReorder: (oldIndex, newIndex) {
             setState(() {
               if (newIndex > brochure!.length) newIndex = brochure.length;
@@ -358,7 +358,7 @@ Widget buildBrochureList({List<BrochureItem>? brochure,}) {
               final item = brochure.removeAt(oldIndex);
               brochure.insert(newIndex, item);
             });
-          }
+          },
         );
       }
       else {

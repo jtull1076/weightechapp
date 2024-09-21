@@ -447,10 +447,12 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
         height: 50,
         child: 
           CommandBarCard(
+            borderRadius: const BorderRadius.all(Radius.zero),
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             // margin: const EdgeInsets.symmetric(horizontal: 5),
             backgroundColor: const Color(0x44C9C9CC),
             child: CommandBar(
+              overflowBehavior: CommandBarOverflowBehavior.scrolling,
               primaryItems: [
                 CommandBarButton(
                   icon: const Icon(FluentIcons.cloud_arrow_up_20_regular),
@@ -504,7 +506,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                         constraints: const BoxConstraints(minWidth: 80),
                         padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 5),
                         decoration: const BoxDecoration(
-                          color: Color(0xFF696969),
+                          color: Color(0xFFD9D9D9),
                           borderRadius: BorderRadius.only(
                             topLeft: Radius.circular(8),
                             bottomLeft: Radius.circular(8),
@@ -514,8 +516,8 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                       );
                     }, 
                     wrappedItem: CommandBarButton(
-                      icon: const Icon(FluentIcons.document_save_20_regular, color: Colors.white),
-                      label: const Text('Save', style: TextStyle(fontSize: 12, color: Colors.white)),
+                      icon: const Icon(FluentIcons.document_save_20_regular, color: Colors.black),
+                      label: const Text('Save', style: TextStyle(fontSize: 12, color: Colors.black)),
                       onPressed: () {
                         if (_focusItem is EProduct) {
                           if (_formKey.currentState!.validate()) {
@@ -592,14 +594,14 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                           constraints: const BoxConstraints(minWidth: 80),
                           padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 5),
                           decoration: const BoxDecoration(
-                            color: Color(0xFF696969),
+                            color: Color(0xFFD9D9D9),
                           ),
                           child: child
                         );
                       }, 
                       wrappedItem: CommandBarButton(
-                        icon: const Icon(FluentIcons.eye_20_regular, color: Colors.white),
-                        label: const Text('Preview', style: TextStyle(fontSize: 12, color: Colors.white)),
+                        icon: const Icon(FluentIcons.eye_20_regular, color: Colors.black),
+                        label: const Text('Preview', style: TextStyle(fontSize: 12, color: Colors.black)),
                         onPressed: () {
                           _showPreviewDialog(context);
                         },
@@ -612,7 +614,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                         constraints: const BoxConstraints(minWidth: 80),
                         padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 5),
                         decoration: const BoxDecoration(
-                          color: Color(0xFF696969),
+                          color: Color(0xFFD9D9D9),
                           borderRadius: BorderRadius.only(
                             topRight: Radius.circular(8),
                             bottomRight: Radius.circular(8),
@@ -622,12 +624,12 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                       );
                     }, 
                     wrappedItem: CommandBarButton(
-                      icon: const Icon(FluentIcons.delete_20_regular, color: Colors.white),
-                      label: const Text('Delete', style: TextStyle(fontSize: 12, color: Colors.white)),
+                      icon: const Icon(FluentIcons.delete_20_regular, color: Colors.black),
+                      label: const Text('Delete', style: TextStyle(fontSize: 12, color: Colors.black)),
                       onPressed: () async {
-                        final confirmed = await _showItemDeleteDialog(context, _focusItem!);
+                        final confirmed = await _showItemDeleteDialog(context, _focusItem!, currentName: _nameController.text);
                         if (confirmed) {
-                          _focusItem!.removeFromParent();
+                          _focusItem!.delete();
                           _treeController.rebuild();
                           setState(() => _focusItem = null);
                         }
@@ -654,7 +656,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                       border: Border.symmetric(
                         vertical: BorderSide(
                           color: Color(0x19000000)
-                        )
+                        ),
                       )
                     ),
                     child: catalogBuilder(item: _editorAll)
@@ -819,7 +821,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                   tileColor: (entry.node == _focusItem) 
                     ? const WidgetStatePropertyAll<Color>(Color(0xFF696969))
                     : entry.isExpanded ? const WidgetStatePropertyAll<Color>(Color(0xFFD9D9D9)) : null,
-                  contentPadding: const EdgeInsets.all(0),
+                  contentPadding: const EdgeInsets.only(right: 10),
                   onPressed: () {
                     if (entry.node is ECategory) {
                       if (!entry.isExpanded) {
@@ -1860,9 +1862,9 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
     setState(() => _toggleLoading(textStream: updateStreamController.stream));
     switch (focusItem) {
       case EProduct _ : {
-        List<String> newImagePaths = await focusItem.getImagePaths();
+        List<String> newImagePaths = await focusItem.getImagePaths() ?? [];
         updateStreamController.add('Downloading product media...');
-        List<File> newImageFiles = await focusItem.getImageFiles(paths: newImagePaths);
+        List<File> newImageFiles = await focusItem.getImageFiles(paths: newImagePaths) ?? [];
         updateStreamController.add('Loading...');
         _mediaPaths.clear();
         _mediaFiles.clear();
@@ -1879,7 +1881,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
         _addingItem = newItem;
       }
       case ECategory _ : {
-        String newImagePath = await focusItem.getImagePaths();
+        String newImagePath = await focusItem.getImagePaths() ?? '';
         updateStreamController.add('Downloading category image...');
         File? newImageFile = await focusItem.getImageFiles(path: newImagePath);
         updateStreamController.add('Loading...');
@@ -1928,7 +1930,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
   }
 
 
-  Future<bool> _showItemDeleteDialog(BuildContext context, EItem data) async {
+  Future<bool> _showItemDeleteDialog(BuildContext context, EItem data, {String? currentName}) async {
     bool? confirmation = false;
     
     switch (data) {
@@ -1940,7 +1942,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
               builder: (context, setState) {
                 return ContentDialog(
                   title: const Text("Warning!"),
-                  content: Text("You are about to delete ${data.category.name} and all of its contents (including sub-products). This action cannot be undone. \n\nAre you sure?"),
+                  content: Text("You are about to delete ${currentName ?? data.category.name} and all of its contents (including sub-products). This action cannot be undone. \n\nAre you sure?"),
                   actions: <Widget>[
                     Button(
                       child: const Text("Delete"),
@@ -1969,7 +1971,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
               builder: (context, setState) {
                 return ContentDialog(
                   title: const Text("Warning!"),
-                  content: Text("You are about to delete ${data.product.name} and all of its contents. This action cannot be undone. \n\nAre you sure?"),
+                  content: Text("You are about to delete ${currentName ?? data.product.name} and all of its contents. This action cannot be undone. \n\nAre you sure?"),
                   actions: <Widget>[
                     Button(
                       child: const Text("Delete"),
@@ -1999,12 +2001,14 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
   }
 
   Future<void> _showPreviewDialog(BuildContext context) async {
+    
+    int? current;
+
     await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
         return StatefulBuilder(
           builder: (context, setState) {
-            int? current;
             List<Map<String, dynamic>> tempBrochure = mapListToBrochure(_brochure);
 
             return ContentDialog(
@@ -2073,9 +2077,49 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                               ),
                                               itemCount: _mediaFiles.length,
                                               itemBuilder: (BuildContext context, int itemIndex, int pageViewIndex) {
-                                                return ClipRRect(
-                                                  borderRadius: BorderRadius.circular(30.0),
-                                                  child: Image.file(_mediaFiles[itemIndex])
+                                                return FutureBuilder(
+                                                  future: (FileUtils.isURL(path: _mediaPaths[itemIndex])) ? DefaultCacheManager().getSingleFile(_mediaPaths[itemIndex]) : Future.delayed(const Duration(milliseconds: 1), () async {return _mediaFiles[itemIndex];}),
+                                                  builder: ((context, snapshot) {
+                                                    if (snapshot.hasData) {
+                                                      if (FileUtils.isMP4(snapshot.data!.path)) {
+                                                        late final player = Player();
+                                                        late final controller = VideoController(player);
+                                                        player.open(Media(snapshot.data!.path));
+                                                        return ClipRRect(
+                                                          borderRadius: BorderRadius.circular(30),
+                                                          child: FullScreenWidget(
+                                                            disposeLevel: DisposeLevel.low,
+                                                            child: Hero(
+                                                              tag: "$itemIndex-hero",
+                                                              child: Video(
+                                                                controller: controller, 
+                                                                // controls: (VideoState state) => MaterialVideoControls(state), // Uncomment for app usage
+                                                                fit: BoxFit.fitWidth, 
+                                                                width: double.infinity
+                                                              )
+                                                            )
+                                                          )
+                                                        );
+                                                      }
+                                                      else {
+                                                        return ClipRRect(
+                                                          borderRadius: BorderRadius.circular(30),
+                                                          child: FullScreenWidget(
+                                                            disposeLevel: DisposeLevel.low,
+                                                            child: Hero(
+                                                              tag: "$itemIndex-hero",
+                                                              child: Center(
+                                                                child: Image.file(snapshot.data!, fit: BoxFit.fitWidth, width: double.infinity)
+                                                              )
+                                                            )
+                                                          )
+                                                        );
+                                                      }
+                                                    }
+                                                    else {
+                                                      return LoadingAnimationWidget.newtonCradle(color: const Color(0xFF224190), size: 50);
+                                                    }
+                                                  })
                                                 );
                                               }
                                             ),
@@ -2152,7 +2196,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                                   itemCount: subheaders.length,
                                                   itemBuilder: (context, subIndex) {
                                                     final subheaderKey = subheaders[subIndex].keys.first;
-                                                    final subheaderValue = subheaders[subIndex][subheaderKey] as List<String>;
+                                                    final subheaderValue = subheaders[subIndex][subheaderKey] as List<dynamic>;
 
                                                     return Column(
                                                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2193,17 +2237,27 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                               ],
                             ),
                         )   
-                        
-                    )
+                    ),
                   ]
                 )
               ),
               actions: <Widget>[
-                Button(
-                  child: const Text("Close"),
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  }
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        'Note that there might be minor differences between this preview and how it appears in the mobile app', 
+                        style: TextStyle(fontStyle: FontStyle.italic)
+                      ),
+                    ),
+                    Button(
+                      child: const Text("Close"),
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      }
+                    )
+                  ]
                 )
               ],
             );

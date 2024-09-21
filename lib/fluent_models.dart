@@ -12,6 +12,8 @@ import 'package:weightechapp/models.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons, TreeView, TreeViewItem;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 
+
+
 sealed class EItem {
   late int rank;
   final String name;
@@ -47,7 +49,7 @@ sealed class EItem {
     return all;
   }
 
-  static Future<void> updateProductCatalog(ECategory editorCatalog, StreamController? stream) async {
+  static Future<void> saveCatalogToCloud(ECategory editorCatalog, StreamController? stream) async {
     try {
       await updateImages(editorCatalog, stream);
       Log.logger.t("Product images updated.");
@@ -254,19 +256,21 @@ sealed class EItem {
   List<EItem> getSubItems();
 
   void removeFromParent() {
-    final ECategory parent = getItemById(root: all, id: parentId) as ECategory;
+    final ECategory? parent = getItemById(root: all, id: parentId) as ECategory?;
 
-    parent.editorItems.remove(this);
-    parentId = null;
+    if (parent != null) {
+      parent.editorItems.remove(this);
+      parentId = null;
 
-    switch (this) {
-      case ECategory _ : {
-        parent.category.catalogItems.remove((this as ECategory).category);
-        Log.logger.i("Removed ${(this as ECategory).category.name} from ${parent.category.name}");
-      }
-      case EProduct _ : {
-        parent.category.catalogItems.remove((this as EProduct).product);
-        Log.logger.i("Removed ${(this as EProduct).product.name} from ${parent.category.name}");
+      switch (this) {
+        case ECategory _ : {
+          parent.category.catalogItems.remove((this as ECategory).category);
+          Log.logger.i("Removed ${(this as ECategory).category.name} from ${parent.category.name}");
+        }
+        case EProduct _ : {
+          parent.category.catalogItems.remove((this as EProduct).product);
+          Log.logger.i("Removed ${(this as EProduct).product.name} from ${parent.category.name}");
+        }
       }
     }
   }
@@ -286,7 +290,24 @@ sealed class EItem {
     parent.addItem(this, index: newIndex);
   }
 
+  void setHasChangesRecursive() {
+    
+    void traverse(EItem? item) {
+      if (item != null) {
+        item.hasChanges = true;
+        traverse(item.getParent());
+      }
+    }
+
+    traverse(this);
+  }
+
   void save();
+
+  void delete() {
+    getParent()?.setHasChangesRecursive();
+    removeFromParent();
+  }
 }
 
 class ECategory extends EItem {
@@ -361,9 +382,12 @@ class ECategory extends EItem {
     }
   }
 
-  Future<String> getImagePaths() async {
+  Future<String?> getImagePaths() async {
     if (imagePath != null) {
       return imagePath!;
+    }
+    else if (hasChanges) {
+      return imagePath;
     }
     else if (category.imageProvider != null) {
       if (category.imageUrl != null) {
@@ -392,27 +416,32 @@ class ECategory extends EItem {
       return imageFile!;
     }
     else {
-      final basePath = await getTemporaryDirectory();
-      if (path == null) {
-        Log.logger.e("Must set image path before creating file!");
-        throw 'Must provide path before creating file';
+      if (hasChanges) {
+        return imageFile;
       }
-      else if (path == "") {
-        Log.logger.t('This looks like a new category is being created. If something bad happens, idk');
-        return null;
-      }
-      else if (isURL(path)) {
-        try {
-          final cacheFile = await DefaultCacheManager().getSingleFile(path);
-          return cacheFile;
-        } catch (e) {
+      else {
+        final basePath = await getTemporaryDirectory();
+        if (path == null) {
+          Log.logger.e("Must set image path before creating file!");
+          throw 'Must provide path before creating file';
+        }
+        else if (path == "") {
+          Log.logger.t('This looks like a new category is being created. If something bad happens, idk');
+          return null;
+        }
+        else if (isURL(path)) {
           try {
-            final file = await FirebaseUtils.downloadFromFirebaseStorage(url: path, directory: basePath, returnFile: true);
+            final cacheFile = await DefaultCacheManager().getSingleFile(path);
+            return cacheFile;
+          } catch (e) {
+            try {
+              final file = await FirebaseUtils.downloadFromFirebaseStorage(url: path, directory: basePath, returnFile: true);
 
-            return file;
+              return file;
 
-          } catch (e2) {
-            Log.logger.w("Failed to download image from $path. Removing from media paths...", error: [e,e2]);
+            } catch (e2) {
+              Log.logger.w("Failed to download image from $path. Removing from media paths...", error: [e,e2]);
+            }
           }
         }
       }
@@ -474,8 +503,8 @@ class ECategory extends EItem {
       }
     }
     if (name != null) category.name = name;
-    if (imagePath != null) this.imagePath = imagePath;
-    if (imageFile != null) this.imageFile = imageFile;
+    this.imagePath = imagePath;
+    this.imageFile = imageFile;
 
     hasChanges = true;
 
@@ -515,18 +544,23 @@ class EProduct extends EItem {
     return [];
   }
 
-  Future<List<String>> getImagePaths() async {
+  Future<List<String>?> getImagePaths() async {
     if (mediaPaths != null) {
       return mediaPaths!;
     }
     else {
-      List<String> paths = [];
-      if (product.productMedia?.isNotEmpty ?? false) {
-        for (var media in product.productMedia!) {
-          paths.add(media['downloadUrl']);
-        }
+      if (hasChanges) {
+        return mediaPaths;
       }
-      return paths;
+      else {
+        List<String> paths = [];
+        if (product.productMedia?.isNotEmpty ?? false) {
+          for (var media in product.productMedia!) {
+            paths.add(media['downloadUrl']);
+          }
+        }
+        return paths;
+      }
     }
   }
 
@@ -544,48 +578,53 @@ class EProduct extends EItem {
     }
   }
 
-  Future<List<File>> getImageFiles({List<String>? paths}) async {
+  Future<List<File>?> getImageFiles({List<String>? paths}) async {
     if (mediaFiles != null) {
       return mediaFiles!;
     }
     else {
-      final basePath = await getTemporaryDirectory();
-      List<File> files = [];
-      List<String> tempCopy = [];
-      if (paths == null) {
-        throw "CANNOT CREATE FILE LIST WITHOUT SETTING PATHS";
+      if (hasChanges) {
+        return mediaFiles;
       }
-      for (var path in paths) {
-        if (isURL(path)) {
-          try {
-            final cacheFile = await DefaultCacheManager().getSingleFile(path);
-            files.add(cacheFile);
-            tempCopy.add(path);
-          } catch (e) {
+      else {
+        final basePath = await getTemporaryDirectory();
+        List<File> files = [];
+        List<String> tempCopy = [];
+        if (paths == null) {
+          throw "CANNOT CREATE FILE LIST WITHOUT SETTING PATHS";
+        }
+        for (var path in paths) {
+          if (isURL(path)) {
             try {
-              final file = await FirebaseUtils.downloadFromFirebaseStorage(url: path, directory: basePath, returnFile: true);
-
-              files.add(file);
+              final cacheFile = await DefaultCacheManager().getSingleFile(path);
+              files.add(cacheFile);
               tempCopy.add(path);
             } catch (e) {
               try {
-                final idx = mediaPaths!.indexOf(path);
-                final file = await ApiVideoService.downloadVideo(path, '${basePath.path}/${id}_$idx');
+                final file = await FirebaseUtils.downloadFromFirebaseStorage(url: path, directory: basePath, returnFile: true);
+
                 files.add(file);
                 tempCopy.add(path);
               } catch (e) {
-                Log.logger.w("Failed to download image from $path. Removing from media paths...");
+                try {
+                  final idx = mediaPaths!.indexOf(path);
+                  final file = await ApiVideoService.downloadVideo(path, '${basePath.path}/${id}_$idx');
+                  files.add(file);
+                  tempCopy.add(path);
+                } catch (e) {
+                  Log.logger.w("Failed to download image from $path. Removing from media paths...");
+                }
               }
             }
           }
+          else {
+            files.add(File(path));
+            tempCopy.add(path);
+          }
         }
-        else {
-          files.add(File(path));
-          tempCopy.add(path);
-        }
+        // mediaPaths = tempCopy;
+        return files;
       }
-      // mediaPaths = tempCopy;
-      return files;
     }
   }
 
@@ -628,18 +667,6 @@ class EProduct extends EItem {
     }
   }
 
-  static void setHasChangesRecursive(EItem leafItem) {
-    
-    void traverse(EItem? item) {
-      if (item != null) {
-        item.hasChanges = true;
-        traverse(item.getParent());
-      }
-    }
-
-    traverse(leafItem);
-  }
-
   @override
   void save({
     String? name,
@@ -675,7 +702,7 @@ class EProduct extends EItem {
     if (modelNumber != null) product.modelNumber = modelNumber;
     if (description != null) product.description = description;
     if (brochure != null) product.brochure = brochure;
-    if (mediaPaths != null) this.mediaPaths = List.from(mediaPaths);
+    this.mediaPaths = List.from(mediaPaths ?? []);
     if (mediaFiles != null) {
       this.mediaFiles = List.from(mediaFiles);
       if (mediaFiles.isNotEmpty) {
@@ -687,9 +714,12 @@ class EProduct extends EItem {
         }
       }
     }
+    else {
+      this.mediaFiles = [];
+    }
     primaryImageIndex = primaryImageIndex;
     
-    setHasChangesRecursive(this);
+    setHasChangesRecursive();
 
     Log.logger.t(
       """
