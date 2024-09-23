@@ -17,11 +17,21 @@ import 'package:archive/archive_io.dart';
 
 class CatalogEditor {
   CatalogEditor(ProductCategory catalog) {
+    name = 'Untitled 1';
+    isLocal = false;
     createEditorCatalog(catalog);
-    publishedCatalog = getPublishedVersion(ProductCategory.fromJson(ProductManager.all!.toJson()));
+    if (AppInfo.hasInternet) {
+      publishedCatalog = getPublishedVersion(ProductCategory.fromJson(ProductManager.all!.toJson()));
+    }
+    else {
+      publishedCatalog = null;
+    }
   }
   static late ECategory all;
-  static late ECategory publishedCatalog;
+  static late ECategory? publishedCatalog;
+  static late String name;
+  static late bool isLocal;
+  static File? currentFile;
 
   static void createEditorCatalog(ProductCategory catalogCopy) {
 
@@ -220,14 +230,16 @@ class CatalogEditor {
     File saveFile = File(path);
     Directory directory = saveFile.parent;
 
+    Directory tempDirectory = directory.createTempSync();
+
     String name = FileUtils.filename(path);
     
-    File jsonFile = await File('${directory.path}/$name/$name.json').create(recursive: true);
+    File jsonFile = await File('${tempDirectory.path}/$name.json').create();
     
     ECategory copyOfAll = ECategory.fromJson(all.toJson());
     
     try {
-      List<ArchiveFile> archiveImages = await _storeBackupImages(catalog: copyOfAll, directory: directory, name: name);
+      List<ArchiveFile> archiveImages = await _storeBackupImages(catalog: copyOfAll, directory: tempDirectory, name: name);
       jsonFile.writeAsStringSync(jsonEncode(copyOfAll.toJson()), mode: FileMode.write);
       final bytes = jsonFile.readAsBytesSync();
 
@@ -250,6 +262,11 @@ class CatalogEditor {
       else {
         saveFile.writeAsBytesSync(encodedArchive); 
       }
+
+      tempDirectory.deleteSync(recursive: true);
+
+      currentFile = saveFile;
+      isLocal = true;
       
     } catch (e, stackTrace) {
       Log.logger.e(e, stackTrace: stackTrace);
@@ -286,6 +303,9 @@ class CatalogEditor {
             Log.logger.i("Save file retrieved and decoded: $name");
             // Log.logger.t("Here's the json:");
             // Log.logger.t((const JsonEncoder.withIndent(' ')).convert(json));
+            CatalogEditor.name = name;
+            currentFile = uploadFile;
+            isLocal = true;
             if (onComplete != null) onComplete();
           } catch (e) {
             // caught error
@@ -796,7 +816,7 @@ class EProduct extends EItem {
   factory EProduct.fromJson(Map<String, dynamic> json) {
     return EProduct(
       product: Product.fromJson(json['product']),
-      mediaPaths: List<String>.from(json['mediaPaths']),
+      mediaPaths: json['mediaPaths'] != null ? List<String>.from(json['mediaPaths']) : null,
       primaryImageIndex: json['primaryImageIndex'],
     );
   }
@@ -805,7 +825,7 @@ class EProduct extends EItem {
   Map<String, dynamic> toJson() {
     Map<String, dynamic> json = super.toJson();
     json['product'] = product.toJson();
-    json['mediaPaths'] = mediaPaths ?? [];
+    json['mediaPaths'] = mediaPaths;
     json['primaryImageIndex'] = primaryImageIndex;
 
     return json;

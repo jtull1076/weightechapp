@@ -17,15 +17,18 @@ import 'package:flutter_fancy_tree_view/flutter_fancy_tree_view.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:string_validator/string_validator.dart' as validator;
 import 'package:path/path.dart' as p;
+import 'package:internet_connection_checker_plus/internet_connection_checker_plus.dart';
 
 class AppInfo {
   static late PackageInfo packageInfo;
   static late String sessionId;
+  static late bool hasInternet;
   AppInfo();
   
   Future<void> init() async {
     packageInfo = await PackageInfo.fromPlatform();
     sessionId = shortid.generate();
+    hasInternet = await InternetConnection().hasInternetAccess;
   }
 
   static int versionCompare(String newVersion, String currentVersion){

@@ -19,6 +19,7 @@ Future<void> main() async {
   await windowManager.ensureInitialized();
   if (Platform.isWindows) {
     WindowManager.instance.setMinimumSize(const Size(850, 550));
+    
   }
 
   await AppInfo().init();
