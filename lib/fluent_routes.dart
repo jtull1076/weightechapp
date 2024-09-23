@@ -6,7 +6,7 @@ import 'package:weightechapp/utils.dart';
 import 'package:weightechapp/brochure.dart';
 import 'package:weightechapp/universal_routes.dart';
 import 'package:weightechapp/fluent_models.dart';
-import 'package:flutter/material.dart' as material;
+import 'package:flutter/material.dart' as material hide CarouselController;
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons, TreeView, TreeViewItem;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/foundation.dart';
@@ -337,7 +337,6 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
   late ECategory _selectedCategory;
   late List<BrochureItem> _brochure;
 
-  late ECategory _editorAll;
 
   EItem? _focusItem;
   late bool _addingItem;
@@ -359,6 +358,9 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
 
   late TreeController<EItem> _treeController;
 
+  late ECategory _editorAll;
+  late ECategory _cloudVersion;
+
   @override
   void initState() {
     super.initState();
@@ -368,12 +370,24 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
     _dividerWidthAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _animationController, curve: const Interval(0.5, 0.7, curve: Curves.ease)));
     _editorHeightAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _animationController, curve: const Interval(0.6, 1.0, curve: Curves.ease)));
 
-    _catalogCopy = CatalogItem.fromJson(ProductManager.all!.toJson()) as ProductCategory;
+    _catalogCopy = ProductCategory.fromJson(ProductManager.all!.toJson());
 
-    _editorAll = EItem.createEditorCatalog(ProductManager.all!);
-    _editorAll.showChildren = true;
+    CatalogEditor(ProductManager.all!);
+    _editorAll = CatalogEditor.all;
+    _cloudVersion = CatalogEditor.all;
+
+    _treeController = TreeController<EItem>(
+      // Provide the root nodes that will be used as a starting point when
+      // traversing your hierarchical data.
+      roots: CatalogEditor.all.editorItems,
+      // Provide a callback for the controller to get the children of a
+      // given node when traversing your hierarchical data. Avoid doing
+      // heavy computations in this method, it should behave like a getter.
+      childrenProvider: (EItem item) => item.getSubItems(),
+      parentProvider: (EItem item) => item.getParent()
+    );
     
-    _selectedCategory = _editorAll;
+    _selectedCategory = CatalogEditor.all;
 
     _addingItem = false;
 
@@ -385,17 +399,6 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
     _loadingSomething = true;
     _loadingWidget = ProgressRing();
     _ignoringPointer = true;
-
-    _treeController = TreeController<EItem>(
-      // Provide the root nodes that will be used as a starting point when
-      // traversing your hierarchical data.
-      roots: _editorAll.editorItems,
-      // Provide a callback for the controller to get the children of a
-      // given node when traversing your hierarchical data. Avoid doing
-      // heavy computations in this method, it should behave like a getter.
-      childrenProvider: (EItem item) => item.getSubItems(),
-      parentProvider: (EItem item) => item.getParent()
-    );
 
     _secondaryCommands = [
       CommandBarButton(
@@ -457,17 +460,74 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                 CommandBarButton(
                   icon: const Icon(FluentIcons.cloud_arrow_up_20_regular),
                   label: const Text('Save to Cloud', style: TextStyle(fontSize: 12)),
-                  onPressed: () {},
+                  onPressed: () async {
+                    StreamController<dynamic> streamController = StreamController<dynamic>();
+                    setState(() => _toggleLoading(dynamicStream: streamController.stream));
+                    await CatalogEditor.saveCatalogToCloud(streamController: streamController);
+                    setState(() => _toggleLoading());
+                  },
                 ),
                 CommandBarButton(
                   icon: const Icon(FluentIcons.save_20_regular),
                   label: const Text('Save Local', style: TextStyle(fontSize: 12)),
-                  onPressed: () {},
+                  onPressed: () async {
+                    FilePickerResult? _ = 
+                      await FilePicker.platform.
+                        saveFile(dialogTitle: 'Save As', fileName: 'file.wtc', allowedExtensions: ['wtc'], type: FileType.custom)
+                        .then((result) async {
+                          if (result != null) {
+                            await CatalogEditor.saveCatalogLocal(path: result);
+                          }
+                          else {
+                            Log.logger.t("-> File save aborted/failed.");
+                            return null;
+                          }
+                        });
+                  },
                 ),
                 CommandBarButton(
                   icon: const Icon(FluentIcons.document_arrow_up_20_regular),
                   label: const Text('Upload Local', style: TextStyle(fontSize: 12)),
-                  onPressed: () {},
+                  onPressed: () async {
+                    FilePickerResult? _ =
+                      await FilePicker.platform.
+                        pickFiles(dialogTitle: "Open", type: FileType.custom, allowedExtensions: ['wtc'])
+                        .then((result) async {
+                          if (result != null) {
+                            setState(() {
+                              _toggleLoading();
+                              _focusItem = null;
+                            });
+                            await CatalogEditor.uploadCatalogLocal(
+                              path: result.paths.first!,
+                              onComplete: () {
+                                _treeController.rebuild();
+                                setState(() {
+                                  _editorAll = CatalogEditor.all;
+
+                                  _treeController = TreeController<EItem>(
+                                    // Provide the root nodes that will be used as a starting point when
+                                    // traversing your hierarchical data.
+                                    roots: CatalogEditor.all.editorItems,
+                                    // Provide a callback for the controller to get the children of a
+                                    // given node when traversing your hierarchical data. Avoid doing
+                                    // heavy computations in this method, it should behave like a getter.
+                                    childrenProvider: (EItem item) => item.getSubItems(),
+                                    parentProvider: (EItem item) => item.getParent()
+                                  );
+                                
+                                  _selectedCategory = CatalogEditor.all;
+                                  _toggleLoading();
+                                });
+                              }
+                            );
+                            
+                          }
+                          else {
+                            Log.logger.t("-> File open aborted/failed.");
+                          }
+                        });
+                  },
                 ),
                 CommandBarButton(
                   icon: const Icon(FluentIcons.clock_arrow_download_20_regular),
@@ -528,7 +588,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                 description: _descriptionController.text,
                                 brochure: mapListToBrochure(_brochure)
                               );
-                              EProduct newEProduct = EProduct(product: newProduct, rank: _selectedCategory.rank+1);
+                              EProduct newEProduct = EProduct(product: newProduct,);
                               
                               newEProduct.save(
                                 parent: _selectedCategory,
@@ -561,7 +621,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                             ProductCategory newCategory = ProductCategory(
                               name: _nameController.text,
                             );
-                            ECategory newECategory = ECategory(category: newCategory, rank: _selectedCategory.rank+1, editorItems: []);
+                            ECategory newECategory = ECategory(category: newCategory, editorItems: []);
                             
                             newECategory.save(
                               parent: _selectedCategory,
@@ -607,7 +667,43 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                         },
                       )
                     ),
-                    
+                  if (!_addingItem)
+                    CommandBarBuilderItem(
+                      builder: (context, displayMode, child) {
+                        return Container(
+                          constraints: const BoxConstraints(minWidth: 80),
+                          padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 5),
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFD9D9D9),
+                          ),
+                          child: child
+                        );
+                      }, 
+                      wrappedItem: CommandBarButton(
+                        icon: const Icon(FluentIcons.arrow_counterclockwise_20_regular, color: Colors.black),
+                        label: const Text('Revert', style: TextStyle(fontSize: 12, color: Colors.black)),
+                        onPressed: () async {
+                          final confirmed = await _showItemRevertDialog(context, _focusItem!, currentName: _nameController.text);
+                          if (confirmed) {
+
+                            final item = _focusItem!;
+
+                            Log.logger.i('Reverting ${item.name} (ID: ${item.id}) to its published version...');
+
+                            final id = item.id;
+                            setState(() => _focusItem = null);
+
+                            await item.revertToPublished();
+
+                            Log.logger.i('-> Done');
+
+                            _treeController.rebuild();
+                            final newVersion = EItem.getItemById(root: CatalogEditor.all, id: id);
+                            toggleEditorItem(newVersion);
+                          }
+                        },
+                      )
+                    ),
                   CommandBarBuilderItem(
                     builder: (context, displayMode, child) {
                       return Container(
@@ -659,7 +755,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                         ),
                       )
                     ),
-                    child: catalogBuilder(item: _editorAll)
+                    child: catalogBuilder(item: CatalogEditor.all)
                   ),
                 ),
                 Flexible(
@@ -950,7 +1046,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                           description: _descriptionController.text,
                           brochure: mapListToBrochure(_brochure)
                         );
-                        EProduct newEProduct = EProduct(product: newProduct, rank: _selectedCategory.rank+1);
+                        EProduct newEProduct = EProduct(product: newProduct,);
                         
                         newEProduct.save(
                           parent: _selectedCategory,
@@ -1511,7 +1607,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
               child: ComboBox<ECategory>(
                 placeholder: const Text("Category *"),
                 value: _selectedCategory,
-                items: _editorAll.getSubCategories().map<ComboBoxItem<ECategory>>((ECategory category){
+                items: CatalogEditor.all.getSubCategories().map<ComboBoxItem<ECategory>>((ECategory category){
                   return ComboBoxItem<ECategory>(
                     value: category,
                     child: Text(category.category.name),
@@ -1566,7 +1662,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                   ProductCategory newCategory = ProductCategory(
                     name: _nameController.text,
                   );
-                  ECategory newECategory = ECategory(category: newCategory, rank: _selectedCategory.rank+1, editorItems: []);
+                  ECategory newECategory = ECategory(category: newCategory, editorItems: []);
                   
                   newECategory.save(
                     parent: _selectedCategory,
@@ -1820,8 +1916,8 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
               width: 280,
               child: ComboBox<ECategory>(
                 placeholder: const Text("Category *"),
-                value: category.getParent() ?? _editorAll,
-                items: _editorAll.getSubCategories().map<ComboBoxItem<ECategory>>((ECategory category){
+                value: category.getParent() ?? CatalogEditor.all,
+                items: CatalogEditor.all.getSubCategories().map<ComboBoxItem<ECategory>>((ECategory category){
                   return ComboBoxItem<ECategory>(
                     value: category,
                     child: Text(category.category.name),
@@ -1837,8 +1933,17 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
             const SizedBox(height: 10),
             Button(
               onPressed: () async {
-                _mediaPaths = [(await category.editorItems.first.getImagePaths())];
-                _mediaFiles = [(await category.editorItems.first.getImageFiles(path: _mediaPaths[0]))];
+                final firstItem = category.editorItems.first;
+                switch (firstItem) {
+                  case ECategory _ : {
+                    _mediaPaths = [(await category.editorItems.first.getImagePaths())];
+                    _mediaFiles = [(await category.editorItems.first.getImageFiles(path: _mediaPaths[0]))];
+                  }
+                  case EProduct _ : {
+                    _mediaPaths = [(await category.editorItems.first.getImagePaths())[0]];
+                    _mediaFiles = [(await category.editorItems.first.getImageFiles(paths: [_mediaPaths[0]]))[0]];
+                  }
+                }
                 setState(() {});
               },
               child: const Text('Use Default Image')
@@ -1877,7 +1982,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
         _brochure = focusItem.product.retrieveBrochureList();
         updateStreamController.add('Loading...');
         _descriptionController.text = focusItem.product.description ?? '';
-        _selectedCategory = focusItem.getParent() ?? _editorAll;
+        _selectedCategory = focusItem.getParent() ?? CatalogEditor.all;
         _addingItem = newItem;
       }
       case ECategory _ : {
@@ -1891,7 +1996,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
         _mediaPaths = List.from([newImagePath]);
         _mediaFiles = (newImageFile != null) ? List.from([newImageFile]) : [];
         _nameController.text = focusItem.category.name;
-        _selectedCategory = focusItem.getParent() ?? _editorAll;
+        _selectedCategory = focusItem.getParent() ?? CatalogEditor.all;
         _addingItem = newItem;
       }
       case null : {
@@ -1904,27 +2009,73 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
   }
 
 
-  void _toggleLoading({Stream<String>? textStream, Stream<Widget>? widgetStream}) {
+  void _toggleLoading({Stream<dynamic>? dynamicStream, Stream<String>? textStream, Stream<Widget>? widgetStream}) {
+    assert(
+      !(((dynamicStream != null) && (textStream != null)) || ((textStream != null) && (widgetStream != null)) || ((dynamicStream != null) && (widgetStream != null))),
+      "_toggleLoading can only be provided with one stream!"
+    );
+
     _loadingSomething = !_loadingSomething;
     _ignoringPointer = !_ignoringPointer;
 
     _loadingWidget = ContentDialog(
-      title: (textStream != null) 
-        ? StreamBuilder(
-          stream: textStream,
-          builder: (context, snapshot) {
-            if (snapshot.hasData) {
-              return Text(snapshot.data!, style: const TextStyle(fontSize: 14), textAlign: TextAlign.center,);
+      title: 
+        (dynamicStream != null)
+          ? StreamBuilder(
+            stream: dynamicStream,
+            builder: (context, snapshot) {
+              if (snapshot.hasData) {
+                if (snapshot.data is String) {
+                  return Text(snapshot.data!, style: const TextStyle(fontSize: 14), textAlign: TextAlign.center);
+                }
+                else if (snapshot.data is EItem) {
+                  EItem item = snapshot.data;
+                  switch (item) {
+                    case ECategory _ : {
+                      return Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (item.imagePath != null) Image.file((File(item.imagePath!))),
+                          Text("${item.name}...")
+                        ]
+                      );
+                    }
+                    case EProduct _ : {
+                      return Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (item.mediaFiles?.isNotEmpty ?? false) Image.file((File(item.mediaPaths![0]))),
+                          Text("${item.name}...")
+                        ]
+                      );
+                    }
+                  }
+                }
+                else {
+                  return const Text('Loading...', style: TextStyle(fontSize: 14), textAlign: TextAlign.center,);
+                }
+              }
+              else {
+                return const Text('Loading...', style: TextStyle(fontSize: 14), textAlign: TextAlign.center,);
+              }
             }
-            else {
-              return const Text('Loading...', style: TextStyle(fontSize: 14), textAlign: TextAlign.center,);
-            }
-          }
-        )
-        : const Text('Loading...', style: TextStyle(fontSize: 14)),
+          )
+          : (textStream != null) 
+            ? StreamBuilder(
+              stream: textStream,
+              builder: (context, snapshot) {
+                if (snapshot.hasData) {
+                  return Text(snapshot.data!, style: const TextStyle(fontSize: 14), textAlign: TextAlign.center,);
+                }
+                else {
+                  return const Text('Loading...', style: TextStyle(fontSize: 14), textAlign: TextAlign.center,);
+                }
+              }
+            )
+            : const Text('Loading...', style: TextStyle(fontSize: 14)),
       content: const ProgressBar(),
-      style: ContentDialogThemeData(
-        bodyPadding: const EdgeInsets.symmetric(horizontal: 50),
+      style: const ContentDialogThemeData(
+        bodyPadding: EdgeInsets.symmetric(horizontal: 50),
       )
     );
   }
@@ -1975,6 +2126,76 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                   actions: <Widget>[
                     Button(
                       child: const Text("Delete"),
+                      onPressed: () {
+                        Navigator.of(context).pop(true);
+                      }
+                    ),
+                    Button(
+                      style: const ButtonStyle(
+                        backgroundColor: WidgetStatePropertyAll<Color>(Color(0xFF224190)),
+                        foregroundColor: WidgetStatePropertyAll<Color>(Colors.white),
+                      ),
+                      child: const Text("Cancel"),
+                      onPressed: () {
+                        Navigator.of(context).pop(false);
+                      }
+                    )
+                  ]
+                );
+              }
+            );
+          }
+        );
+      }
+    }
+    return confirmation ?? false;
+  }
+
+  Future<bool> _showItemRevertDialog(BuildContext context, EItem data, {String? currentName}) async {
+    bool? confirmation = false;
+    
+    switch (data) {
+      case ECategory _ : {
+        confirmation = await showDialog<bool>(
+          context: context,
+          builder: (BuildContext context) {
+            return StatefulBuilder(
+              builder: (context, setState) {
+                return ContentDialog(
+                  title: const Text("Warning!"),
+                  content: Text("You are about to revert ${currentName ?? data.category.name} (ID: ${data.id}) to its most-recent published version. Note that this will revert all of its contents. This action cannot be undone. \n\nAre you sure?"),
+                  actions: <Widget>[
+                    Button(
+                      child: const Text("Revert"),
+                      onPressed: () {
+                        Navigator.of(context).pop(true);
+                      }
+                    ),
+                    Button(
+                      child: const Text("Cancel"),
+                      onPressed: () {
+                        Navigator.of(context).pop(false);
+                      }
+                    )
+                  ]
+                );
+              }
+            );
+          }
+        );
+      }
+      case EProduct _ : {
+        confirmation = await showDialog<bool>(
+          context: context,
+          builder: (BuildContext context) {
+            return StatefulBuilder(
+              builder: (context, setState) {
+                return ContentDialog(
+                  title: const Text("Warning!"),
+                  content: Text("You are about to revert ${currentName ?? data.product.name} to its most-recent published version. This action cannot be undone. \n\nAre you sure?"),
+                  actions: <Widget>[
+                    Button(
+                      child: const Text("Revert"),
                       onPressed: () {
                         Navigator.of(context).pop(true);
                       }

@@ -5,7 +5,7 @@ import 'package:weightechapp/models.dart';
 import 'package:weightechapp/fluent_routes.dart';
 import 'package:weightechapp/utils.dart';
 import 'package:weightechapp/windows_routes.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide CarouselController;
 import 'package:weightechapp/extra_widgets.dart';
 import 'dart:async';
 import 'dart:ui';
@@ -269,7 +269,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 /// 
 /// See also: [_ProductPageState]
 class ProductPage extends StatefulWidget {
-  ProductPage({super.key, required this.product, this.animateDivider = false});
+  const ProductPage({super.key, required this.product, this.animateDivider = false});
 
   final Product product;
   final bool animateDivider;

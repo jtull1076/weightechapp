@@ -2,7 +2,6 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:logger/logger.dart';
 import 'dart:io';
-import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
@@ -18,7 +17,6 @@ import 'package:flutter_fancy_tree_view/flutter_fancy_tree_view.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:string_validator/string_validator.dart' as validator;
 import 'package:path/path.dart' as p;
-import 'package:internet_connection_checker_plus/internet_connection_checker_plus.dart';
 
 class AppInfo {
   static late PackageInfo packageInfo;
@@ -143,6 +141,14 @@ class FileUtils {
   static String dirname(String path) {
     return p.dirname(path);
   }
+
+  static String filename(String path) {
+    return p.basenameWithoutExtension(path);
+  }
+
+  static String filenameWithExtension(String path) {
+    return p.basename(path);
+  }
 }
 
 class FirebaseUtils {
@@ -184,7 +190,7 @@ class FirebaseUtils {
 
   static Future<Map<String,dynamic>> getCatalogFromFirestore() async {
     return await retry(
-      () => database.collection("catalog").orderBy("timestamp", descending: true).limit(1).get()
+      () => database.collection("devCatalog").orderBy("timestamp", descending: true).limit(1).get()
         .timeout(const Duration(seconds: 5))
         .then((event) {
           if (event.docs.isEmpty) {
@@ -201,12 +207,14 @@ class FirebaseUtils {
     );
   }
 
-  static Future<File> downloadFromFirebaseStorage({required String url, Directory? directory, bool returnFile = false}) async {
+  static Future<File> downloadFromFirebaseStorage({required String url, String? suffix, Directory? directory, bool returnFile = false}) async {
     directory ??= await getDownloadsDirectory();
     
     try {
       final imageRef = FirebaseUtils.storage.refFromURL(url);
-      final file = File('${directory!.path}/${imageRef.name}');
+
+      late File file;
+      file = File('${directory!.path}/${FileUtils.filename(imageRef.name)}${suffix ?? ''}${FileUtils.extension(imageRef.name)}');
 
       final task = await imageRef.writeToFile(file);
 

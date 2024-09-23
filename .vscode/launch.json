@@ -7,7 +7,8 @@
         {
             "name": "weightechapp",
             "request": "launch",
-            "type": "dart"
+            "type": "dart",
+            "flutterMode": "debug"
         },
         {
             "name": "weightechapp (profile mode)",

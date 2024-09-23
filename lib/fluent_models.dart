@@ -11,49 +11,72 @@ import 'package:weightechapp/utils.dart';
 import 'package:weightechapp/models.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons, TreeView, TreeViewItem;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:archive/archive_io.dart';
 
 
-
-sealed class EItem {
-  late int rank;
-  final String name;
-  final String id;
-  String? parentId;
-  bool hasChanges = false;
-  EItem({required this.id, required this.name, required this.rank, this.parentId});
-
+class CatalogEditor {
+  CatalogEditor(ProductCategory catalog) {
+    createEditorCatalog(catalog);
+    publishedCatalog = getPublishedVersion(ProductCategory.fromJson(ProductManager.all!.toJson()));
+  }
   static late ECategory all;
+  static late ECategory publishedCatalog;
 
-  static ECategory createEditorCatalog(ProductCategory catalogCopy) {
+  static void createEditorCatalog(ProductCategory catalogCopy) {
 
-    ECategory traverseCategory(category, rank) {
+    ECategory traverseCategory(category) {
       List<EItem> editorItems = [];
 
       for (var item in category.catalogItems) {
         switch (item) {
           case ProductCategory _ : {
-            ECategory newItem = traverseCategory(item, rank+1);
+            ECategory newItem = traverseCategory(item);
             editorItems.add(newItem);
           }
           case Product _ : {
-            editorItems.add(EProduct(product: item, rank: rank));
+            editorItems.add(EProduct(product: item,));
           }
         }
       }
 
-      return ECategory(category: category, editorItems: editorItems, rank: rank-1);
+      return ECategory(category: category, editorItems: editorItems);
     }
 
 
-    all = traverseCategory(catalogCopy, 0);
-    return all;
+    all = traverseCategory(catalogCopy);
   }
 
-  static Future<void> saveCatalogToCloud(ECategory editorCatalog, StreamController? stream) async {
+  static ECategory getPublishedVersion(ProductCategory catalogCopy) {
+
+    ECategory traverseCategory(category) {
+      List<EItem> editorItems = [];
+
+      for (var item in category.catalogItems) {
+        switch (item) {
+          case ProductCategory _ : {
+            ECategory newItem = traverseCategory(item);
+            editorItems.add(newItem);
+          }
+          case Product _ : {
+            editorItems.add(EProduct(product: item,));
+          }
+        }
+      }
+
+      return ECategory(category: category, editorItems: editorItems);
+    }
+
+
+    return traverseCategory(catalogCopy);
+  }
+
+  static Future<void> saveCatalogToCloud({StreamController? streamController}) async {
     try {
-      await updateImages(editorCatalog, stream);
+      await updateImages(streamController);
       Log.logger.t("Product images updated.");
-      ProductManager.all = editorCatalog.category;
+      ProductManager.all = all.category;
+      streamController?.add("Updating catalog...");
       await ProductManager.postCatalogToFirestore();
       Log.logger.t("Catalog update completed.");
     } catch (e) {
@@ -61,7 +84,7 @@ sealed class EItem {
     }
   }
 
-  static Future<void> updateImages(ECategory editorCatalog, StreamController? stream) async {
+  static Future<void> updateImages(StreamController? stream) async {
     final storageRef = FirebaseUtils.storage.ref().child("devImages3");
 
     Future<void> traverseItems(ECategory category) async {
@@ -83,12 +106,12 @@ sealed class EItem {
         }
       }
       for (var item in category.editorItems) {
-        if (item.hasChanges) {
-          switch (item) {
-            case ECategory _: {
-              await traverseItems(item);
-            }
-            case EProduct _: {
+        switch (item) {
+          case ECategory _: {
+            if (item.branchHasChanges) await traverseItems(item);
+          }
+          case EProduct _: {
+            if (item.hasChanges) {
               if (item.mediaPaths != null) {
                 stream?.add(item);
                 
@@ -172,22 +195,195 @@ sealed class EItem {
                           });
                           nonPrimaryCount++;
                         }
-                      } catch (e, stackTrace) {
+                      } catch (e) {
                         Log.logger.w("Failed to upload media for $baseRefName: $e");
                       }
                     }
                   }
-                  
-                }
               }
+                  
+            }
           }
         }
       }
     }
 
-    await traverseItems(editorCatalog);
+    await traverseItems(all);
     Log.logger.t("Images updated.");
   }
+
+  static Future<void> saveCatalogLocal({required String path}) async {
+
+    Log.logger.i("Attempting to save");
+    Log.logger.t("Save file path: $path");
+
+    File saveFile = File(path);
+    Directory directory = saveFile.parent;
+
+    String name = FileUtils.filename(path);
+    
+    File jsonFile = await File('${directory.path}/$name/$name.json').create(recursive: true);
+    
+    ECategory copyOfAll = ECategory.fromJson(all.toJson());
+    
+    try {
+      List<ArchiveFile> archiveImages = await _storeBackupImages(catalog: copyOfAll, directory: directory, name: name);
+      jsonFile.writeAsStringSync(jsonEncode(copyOfAll.toJson()), mode: FileMode.write);
+      final bytes = jsonFile.readAsBytesSync();
+
+
+      final ArchiveFile jsonArchive = ArchiveFile(FileUtils.filenameWithExtension(jsonFile.path), bytes.length, bytes);
+
+      final archive = Archive();
+
+      archive.addFile(jsonArchive);
+      for (ArchiveFile file in archiveImages) {
+        archive.addFile(file);
+      }
+      
+      final encoder = ZipEncoder();
+      final encodedArchive = encoder.encode(archive);
+
+      if (encodedArchive == null) {
+        Log.logger.w("Failed to create save!");
+      }
+      else {
+        saveFile.writeAsBytesSync(encodedArchive); 
+      }
+      
+    } catch (e, stackTrace) {
+      Log.logger.e(e, stackTrace: stackTrace);
+      rethrow;
+    }
+  }
+
+  static Future<void> uploadCatalogLocal({required String path, VoidCallback? onComplete}) async {
+    
+    File uploadFile = File(path);
+    Directory uploadDirectory = uploadFile.parent;
+
+    String name = FileUtils.filenameWithExtension(uploadFile.path);
+    Directory tempDirectory = await uploadDirectory.createTemp('~$name');
+
+
+    try {
+      // Read the Zip file from disk.
+      List<int> bytes = uploadFile.readAsBytesSync();
+
+      final Archive archive = ZipDecoder().decodeBytes(bytes);
+      
+      for (final ArchiveFile file in archive) {
+        final String filename = file.name;
+        if (file.isFile) {
+          final data = file.content as List<int>;
+          File('${tempDirectory.path}/$filename')
+            ..createSync(recursive: true)
+            ..writeAsBytesSync(data);
+          try {
+            final json = jsonDecode(utf8.decode(data));
+            final newAll = ECategory.fromJson(json);
+            all = newAll;
+            Log.logger.i("Save file retrieved and decoded: $name");
+            // Log.logger.t("Here's the json:");
+            // Log.logger.t((const JsonEncoder.withIndent(' ')).convert(json));
+            if (onComplete != null) onComplete();
+          } catch (e) {
+            // caught error
+          }
+        }
+        else {// it should be a directory
+            Directory('${tempDirectory.path}/$filename').create(recursive: true);
+        }
+      }
+      // return catalog;
+    } catch (e) {
+      throw();
+    }
+  }
+
+  static Future<List<ArchiveFile>> _storeBackupImages({required ECategory catalog, required Directory directory, required String name}) async {
+    Directory imageDirectory = await Directory('${directory.path}/$name/images').create(recursive: true);
+    final List<FileSystemEntity> entities = await imageDirectory.list().toList();
+
+    final archiveList = <ArchiveFile>[];
+
+    for (var entity in entities) {
+      entity.deleteSync();
+    }
+
+    Future<void> traverseCatalog(EItem item) async {
+      switch (item) {
+        case ECategory _ : {
+          if (item.imageFile != null) {
+            try {
+              late String newPath;
+              late File newFile;
+
+              if (FileUtils.isURL(path: item.imagePath!)) {
+                  newFile = await FirebaseUtils.downloadFromFirebaseStorage(url: item.imagePath!, directory: imageDirectory, suffix: '_saved');
+                  newPath = newFile.path;
+                  item.imagePath =  newPath;
+
+                }
+                else {
+                  newPath = '${imageDirectory.path}/${FileUtils.filenameWithExtension(item.imagePath!)}';
+                  newFile = item.imageFile!.copySync(newPath);
+                  item.imagePath = newPath;
+                }
+
+              final bytes = newFile.readAsBytesSync();
+
+              archiveList.add(ArchiveFile(FileUtils.filenameWithExtension(newPath), bytes.length, bytes));
+            } catch (e) {
+              throw();
+            }
+          }
+          for (var subItem in item.editorItems) {
+            await traverseCatalog(subItem);
+          }
+        }
+        case EProduct _ : {
+          if (item.mediaFiles?.isNotEmpty ?? false) {
+            for (int i = 0; i < item.mediaFiles!.length; i++) {
+              try {
+                late String newPath;
+                late File newFile;
+
+                if (FileUtils.isURL(path: item.mediaPaths![i])) {
+                  newFile = await FirebaseUtils.downloadFromFirebaseStorage(url: item.mediaPaths![i], directory: imageDirectory, suffix: '_saved');
+                  newPath =  newFile.path;
+                  item.mediaPaths![i] = newPath;
+                }
+                else {
+                  newPath = '${imageDirectory.path}/${FileUtils.filenameWithExtension(item.mediaPaths![i])}';
+                  newFile = item.mediaFiles![i].copySync(newPath);
+                  item.mediaPaths![i] = newPath;
+                }
+
+                final bytes = newFile.readAsBytesSync();
+                archiveList.add(ArchiveFile(FileUtils.filenameWithExtension(newPath), bytes.length, bytes));
+              } catch (e) {
+                throw();
+              }
+            }
+          }
+        }
+      }
+    }
+
+    await traverseCatalog(catalog);
+
+    return archiveList;
+  }
+}
+
+
+sealed class EItem {
+  String name;
+  final String id;
+  String? parentId;
+  bool hasChanges;
+  EItem({required this.id, required this.name, this.parentId, this.hasChanges = false});
 
   static EItem? getItemById({required root, required id}) {
     EItem? result;
@@ -250,13 +446,13 @@ sealed class EItem {
   }
 
   ECategory? getParent() {
-    return getItemById(root: all, id: parentId) as ECategory?;
+    return getItemById(root: CatalogEditor.all, id: parentId) as ECategory?;
   }
 
   List<EItem> getSubItems();
 
   void removeFromParent() {
-    final ECategory? parent = getItemById(root: all, id: parentId) as ECategory?;
+    final ECategory? parent = getItemById(root: CatalogEditor.all, id: parentId) as ECategory?;
 
     if (parent != null) {
       parent.editorItems.remove(this);
@@ -292,14 +488,15 @@ sealed class EItem {
 
   void setHasChangesRecursive() {
     
-    void traverse(EItem? item) {
+    void traverse(ECategory? item) {
       if (item != null) {
-        item.hasChanges = true;
+        item.branchHasChanges = true;
         traverse(item.getParent());
       }
     }
 
-    traverse(this);
+    hasChanges = true;
+    traverse(getParent());
   }
 
   void save();
@@ -308,6 +505,26 @@ sealed class EItem {
     getParent()?.setHasChangesRecursive();
     removeFromParent();
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'name' : name,
+      'id' : id,
+      'parentId' : parentId,
+      'hasChanges' : false,
+    };
+  }
+
+  static EItem fromJson(Map<String, dynamic> json) {
+    if (json['editorItems'] != null) {
+      return ECategory.fromJson(json);
+    }
+    else {
+      return EProduct.fromJson(json);
+    }
+  }
+
+  Future<void> revertToPublished() async {}
 }
 
 class ECategory extends EItem {
@@ -315,10 +532,12 @@ class ECategory extends EItem {
   List<EItem> editorItems;
   String? imagePath;
   File? imageFile;
-  bool showChildren = false;
-  ECategory({required this.category, required super.rank, required this.editorItems, this.imagePath}) : super(id: category.id, name: category.name, parentId: category.parentId);
+  bool branchHasChanges = false;
+  ECategory({required this.category, required this.editorItems, this.imagePath}) : super(id: category.id, name: category.name, parentId: category.parentId) {
+    if (imagePath != null) imageFile = File(imagePath!);
+  }
 
-  ECategory.temp() : this(category: ProductCategory.temp(), editorItems: [], rank: 0);
+  ECategory.temp() : this(category: ProductCategory.temp(), editorItems: []);
 
   @override
   List<EItem> getSubItems() {
@@ -356,7 +575,6 @@ class ECategory extends EItem {
       case ECategory _ :
         item.parentId = id;
         item.category.parentId = id;
-        item.rank = rank+1;
         if (index != null) {
            editorItems.insert(index, item);
            category.catalogItems.insert(index, item.category);
@@ -369,7 +587,6 @@ class ECategory extends EItem {
       case EProduct _ :
         item.parentId = id;
         item.product.parentId = id;
-        item.rank = rank+1;
         if (index != null) {
            editorItems.insert(index, item);
            category.catalogItems.insert(index, item.product);
@@ -495,18 +712,21 @@ class ECategory extends EItem {
     );
 
     if (parentId == null) {
-      (parent ?? EItem.all).addItem(this);
+      (parent ?? CatalogEditor.all).addItem(this);
     }
     else {
-      if (parentId != (parent ?? EItem.all).id) {
-        reassignParent(newParent: parent ?? EItem.all);
+      if (parentId != (parent ?? CatalogEditor.all).id) {
+        reassignParent(newParent: parent ?? CatalogEditor.all);
       }
     }
-    if (name != null) category.name = name;
+    if (name != null) {
+      category.name = name;
+      super.name = name;
+    }
     this.imagePath = imagePath;
     this.imageFile = imageFile;
 
-    hasChanges = true;
+    setHasChangesRecursive();
 
     Log.logger.t(
       """
@@ -516,6 +736,42 @@ class ECategory extends EItem {
     );
   }
 
+  @override
+  Map<String, dynamic> toJson() {
+    Map<String, dynamic> json = super.toJson();
+    json['category'] = category.toJson();
+    json['editorItems'] = editorItems.map((item) => item.toJson()).toList();
+    json['imagePath'] = imagePath;
+    return json;
+  }
+
+  factory ECategory.fromJson(Map<String, dynamic> json) {
+    // Log.logger.t("Converting the following JSON to an ECategory. Here's the JSON:");
+    // Log.logger.t("------");
+    // Log.logger.t((const JsonEncoder.withIndent('   ')).convert(json));
+    // Log.logger.t("------");
+    return ECategory(
+      category: ProductCategory.fromJson(json['category']),
+      editorItems: (json['editorItems'] as List<dynamic>).map((itemJson) => EItem.fromJson(itemJson)).toList(),
+      imagePath: json['imagePath']
+    );
+  }
+
+  @override
+  Future<void> revertToPublished() async {
+    super.revertToPublished();
+
+    final publishedVersion = EItem.getItemById(root: CatalogEditor.publishedCatalog, id: id) as ECategory?;
+    if (publishedVersion != null) {
+      String? newPath = await publishedVersion.getImagePaths();
+      File? newFile = (newPath != null) ? await publishedVersion.getImageFiles(path: newPath) : null;
+      save(
+        name: publishedVersion.name,
+        imagePath: newPath,
+        imageFile: newFile,
+      );
+    }
+  }
 }
 
 class EProduct extends EItem {
@@ -523,7 +779,7 @@ class EProduct extends EItem {
   List<String>? mediaPaths;
   List<File>? mediaFiles;
   int primaryImageIndex;
-  EProduct({required this.product, required super.rank, this.mediaPaths, primaryImageIndex}) : primaryImageIndex = primaryImageIndex ?? 0, super(id: product.id, name: product.name, parentId: product.parentId) {
+  EProduct({required this.product, this.mediaPaths, primaryImageIndex}) : primaryImageIndex = primaryImageIndex ?? 0, super(id: product.id, name: product.name, parentId: product.parentId) {
     if (mediaPaths != null) {
       mediaFiles = [];
       for (var path in mediaPaths!) {
@@ -537,7 +793,25 @@ class EProduct extends EItem {
     }
   }
 
-  EProduct.temp() : this(product: Product.temp(), rank: 0);
+  factory EProduct.fromJson(Map<String, dynamic> json) {
+    return EProduct(
+      product: Product.fromJson(json['product']),
+      mediaPaths: List<String>.from(json['mediaPaths']),
+      primaryImageIndex: json['primaryImageIndex'],
+    );
+  }
+
+  @override
+  Map<String, dynamic> toJson() {
+    Map<String, dynamic> json = super.toJson();
+    json['product'] = product.toJson();
+    json['mediaPaths'] = mediaPaths ?? [];
+    json['primaryImageIndex'] = primaryImageIndex;
+
+    return json;
+  }
+
+  EProduct.temp() : this(product: Product.temp());
 
   @override
   List<EItem> getSubItems() {
@@ -646,7 +920,7 @@ class EProduct extends EItem {
             try {
               final file = await FirebaseUtils.downloadFromFirebaseStorage(url: path, directory: basePath, returnFile: true);
 
-              mediaFiles!.add(file as File);
+              mediaFiles!.add(file);
               tempCopy.add(path);
             } catch (e) {
               try {
@@ -668,11 +942,30 @@ class EProduct extends EItem {
   }
 
   @override
+  Future<void> revertToPublished() async {
+    super.revertToPublished();
+
+    final publishedVersion = EItem.getItemById(root: CatalogEditor.publishedCatalog, id: id) as EProduct?;
+    if (publishedVersion != null) {
+      List<String>? newPaths = await publishedVersion.getImagePaths();
+      List<File>? newFiles = (newPaths != null) ? await publishedVersion.getImageFiles(paths: newPaths) : null;
+      save(
+        name: publishedVersion.name,
+        modelNumber: publishedVersion.product.modelNumber,
+        description: publishedVersion.product.description,
+        brochure: publishedVersion.product.brochure,
+        mediaPaths: newPaths,
+        mediaFiles: newFiles,
+      );
+    }
+  }
+
+  @override
   void save({
     String? name,
     ECategory? parent,
-    String? modelNumber = '',
-    String? description = '',
+    String? modelNumber,
+    String? description,
     List<Map<String, dynamic>>? brochure,
     List<String>? mediaPaths,
     List<File>? mediaFiles,
@@ -691,18 +984,25 @@ class EProduct extends EItem {
     );
 
     if (parentId == null) {
-      (parent ?? EItem.all).addItem(this);
+      (parent ?? CatalogEditor.all).addItem(this);
     }
     else {
-      if (parentId != (parent ?? EItem.all).id) {
-        reassignParent(newParent: parent ?? EItem.all);
+      if (parent != null) {
+        if (parentId != parent.id) {
+          reassignParent(newParent: parent);
+        }
       }
     }
-    if (name != null) product.name = name;
+
+
+    if (name != null) {
+      product.name = name;
+      super.name = name;
+    }
     if (modelNumber != null) product.modelNumber = modelNumber;
     if (description != null) product.description = description;
     if (brochure != null) product.brochure = brochure;
-    this.mediaPaths = List.from(mediaPaths ?? []);
+    if (mediaPaths != null) this.mediaPaths = List.from(mediaPaths);
     if (mediaFiles != null) {
       this.mediaFiles = List.from(mediaFiles);
       if (mediaFiles.isNotEmpty) {
@@ -715,11 +1015,12 @@ class EProduct extends EItem {
       }
     }
     else {
-      this.mediaFiles = [];
+      this.mediaFiles = null;
     }
     primaryImageIndex = primaryImageIndex;
     
     setHasChangesRecursive();
+
 
     Log.logger.t(
       """

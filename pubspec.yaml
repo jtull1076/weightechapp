@@ -7,15 +7,15 @@ environment:
   sdk: '>=3.3.0 <4.0.0'
 
 dependencies:
-  carousel_slider: ^4.2.1
-  desktop_drop: ^0.4.4
+  carousel_slider: ^5.0.0
+  desktop_drop: ^0.5.0
   feedback: ^3.1.0
   file_picker: ^8.0.3
   firebase_core: ^3.0.0
   firebase_storage: ^12.0.0
   flutter:
     sdk: flutter
-  flutter_launcher_icons: ^0.13.1
+  flutter_launcher_icons: ^0.14.0
   google_fonts: ^6.2.1 
   path_provider: ^2.1.2
   shortid: ^0.1.2
@@ -37,7 +37,6 @@ dependencies:
   path: ^1.9.0
   logger: ^2.2.0
   firebase_auth: ^5.0.0
-  file_saver: ^0.2.12
   retry: ^3.1.2
   internet_connection_checker_plus: ^2.3.0
   media_kit: ^1.1.10+1
@@ -48,6 +47,8 @@ dependencies:
   fluentui_system_icons: ^1.1.251
   flutter_fancy_tree_view: ^1.6.0
   non_uniform_border: ^1.0.0
+  archive: ^3.6.1
+  file_saver: ^0.2.14
 
 dev_dependencies:
   flutter_test:

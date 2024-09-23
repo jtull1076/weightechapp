@@ -1,22 +1,13 @@
-import 'package:file_saver/file_saver.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:shortid/shortid.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'dart:convert';
 import 'dart:io';
 import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:path/path.dart' as path_handler;
-import 'dart:math' as math;
-import 'package:string_validator/string_validator.dart';
 import 'package:weightechapp/utils.dart';
 import 'package:weightechapp/brochure.dart';
-import 'package:mime/mime.dart';
-import 'package:http/http.dart' as http;
 
 class ProductManager {
   static ProductCategory? all;

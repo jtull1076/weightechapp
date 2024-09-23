@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'package:feedback/feedback.dart';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
 import 'dart:async';
 
 class FullScreenWidget extends StatelessWidget {

@@ -1,8 +1,6 @@
 import 'package:weightechapp/themes.dart';
 import 'package:weightechapp/utils.dart';
-import 'package:weightechapp/universal_routes.dart';
 import 'package:weightechapp/fluent_routes.dart';
-import 'package:flutter/material.dart' as material;
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:weightechapp/extra_widgets.dart';
 import 'dart:async';
@@ -10,7 +8,6 @@ import 'dart:io';
 import 'package:feedback_github/feedback_github.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:media_kit/media_kit.dart';
-import 'package:internet_connection_checker_plus/internet_connection_checker_plus.dart';
 
 
 //MARK: MAIN
