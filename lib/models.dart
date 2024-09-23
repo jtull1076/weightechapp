@@ -478,16 +478,6 @@ class Product extends CatalogItem {
     return json;
   }
 
-  Future<Map<String,dynamic>> _mapProductMedia() async {
-    Map<String, dynamic> result = {};
-
-    for (var media in productMedia ?? []) {
-
-    }
-
-    return result;
-  }
-
   factory Product.fromJson(Map<String, dynamic> json) {
     return Product(
       name: json['name'],

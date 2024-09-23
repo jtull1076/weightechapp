@@ -1,5 +1,4 @@
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:flutter/material.dart' as material;
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'dart:async';
@@ -10,8 +9,6 @@ import 'package:string_validator/string_validator.dart';
 import 'package:weightechapp/utils.dart';
 import 'package:weightechapp/models.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons, TreeView, TreeViewItem;
-import 'package:fluentui_system_icons/fluentui_system_icons.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:archive/archive_io.dart';
 
 

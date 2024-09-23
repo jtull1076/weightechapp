@@ -1,4 +1,3 @@
-import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:weightechapp/models.dart';
 import 'package:weightechapp/themes.dart';
@@ -9,7 +8,6 @@ import 'package:weightechapp/fluent_models.dart';
 import 'package:flutter/material.dart' as material hide CarouselController;
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons, TreeView, TreeViewItem;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
-import 'package:flutter/foundation.dart';
 import 'package:weightechapp/extra_widgets.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:async';
@@ -32,7 +30,6 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_fancy_tree_view/flutter_fancy_tree_view.dart';
-import 'package:non_uniform_border/non_uniform_border.dart';
 
 
 //MARK: OFFLINE PAGE
@@ -61,7 +58,7 @@ class _OfflinePageState extends State<OfflinePage> with TickerProviderStateMixin
         switch (status) {
           case InternetStatus.connected:
             // The internet is now connectioni
-            Navigator.of(context).pop();
+            if (mounted) Navigator.of(context).pop();
             break;
           case InternetStatus.disconnected:
             // The internet is now disconnected
@@ -262,6 +259,7 @@ class _StartupPageState extends State<StartupPage> with TickerProviderStateMixin
                             } catch (e) {
                               Log.logger.e("Error encounted retrieving latest version.", error: e);
                             }
+                            return null;
                           },
                           getBinaryUrl: (version) async {
                             return "https://github.com/jtull1076/weightechapp/releases/download/$version/weightechsales-windows-$version.exe";
@@ -325,16 +323,10 @@ class ControlPage extends StatefulWidget {
 class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
-  late Animation<double> _dividerWidthAnimation;
-  late Animation<double> _editorHeightAnimation;
-  late ProductCategory _catalogCopy;
 
   late TextEditingController _filenameController;
 
-  late List<CommandBarItem> _primaryCommandItems;
   late List<CommandBarItem> _secondaryCommands;
-
-  late ItemSelect _itemSelection;
 
   late ECategory _selectedCategory;
   late List<BrochureItem> _brochure;
@@ -369,10 +361,6 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
     
     _animationController = AnimationController(duration : const Duration(seconds: 4), vsync: this);
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _animationController, curve: const Interval(0.4, 0.6, curve: Curves.ease)));
-    _dividerWidthAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _animationController, curve: const Interval(0.5, 0.7, curve: Curves.ease)));
-    _editorHeightAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _animationController, curve: const Interval(0.6, 1.0, curve: Curves.ease)));
-
-    _catalogCopy = ProductCategory.fromJson(ProductManager.all!.toJson());
 
     CatalogEditor(ProductManager.all!);
     _editorAll = CatalogEditor.all;
@@ -401,7 +389,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
     _fileDragging = false;
 
     _loadingSomething = true;
-    _loadingWidget = ProgressRing();
+    _loadingWidget = const ProgressRing();
     _ignoringPointer = true;
 
     _secondaryCommands = [
@@ -522,6 +510,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                       Log.logger.t("-> File save aborted/failed.");
                                       return null;
                                     }
+                                    return null;
                                   });
                             },
                           ),
@@ -576,6 +565,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                     else {
                                       Log.logger.t("-> File open aborted/failed.");
                                     }
+                                    return null;
                                   });
                             },
                           ),
@@ -1319,6 +1309,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                           else {
                             Log.logger.t("-> File upload aborted/failed.");
                           }
+                          return null;
                         });
                   },
                   child: const Text("Browse Files")
@@ -1504,6 +1495,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                           else {
                             Log.logger.t("-> File upload aborted/failed.");
                           }
+                          return null;
                         });
                   },
                   child: const Text("Browse Files")
@@ -1704,8 +1696,6 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
   }
 
   Widget categoryEditor({ECategory? category}) {
-    
-    bool hoverOnImageRemove = false;
 
     return SizedBox(
       height: MediaQuery.of(context).size.height,
@@ -1965,8 +1955,6 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
   }
 
   Widget categoryInfoWidget(category) {
-    bool switchValue = false;
-
     return Padding(
       padding: const EdgeInsets.fromLTRB(150, 20, 150, 0),
       child: Container(

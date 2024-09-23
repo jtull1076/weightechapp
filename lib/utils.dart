@@ -219,7 +219,7 @@ class FirebaseUtils {
       late File file;
       file = File('${directory!.path}/${FileUtils.filename(imageRef.name)}${suffix ?? ''}${FileUtils.extension(imageRef.name)}');
 
-      final task = await imageRef.writeToFile(file);
+      await imageRef.writeToFile(file);
 
       return file;
       
@@ -252,8 +252,6 @@ class ApiVideoService {
         'source': source
       }),
     );
-
-    final jsonResponse = jsonDecode(response.body);
 
     if ((response.statusCode == 201) || (response.statusCode == 202)) {
       return jsonDecode(response.body);

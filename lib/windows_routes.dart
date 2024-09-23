@@ -312,6 +312,7 @@
 /// Stateful for handling [IdlePage] -> [ControlPage] animation
 /// 
 /// See also: [_ControlPageState]
+library;
 // class ControlPage extends StatefulWidget {
 //   const ControlPage({super.key});
 
