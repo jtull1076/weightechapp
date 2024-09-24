@@ -11,6 +11,22 @@ class WeightechThemes {
   static late fluent.Color commandBarColor;
   static late fluent.Color startupScaffoldColor;
   static late fluent.Color defaultTextColor;
+  static const fluent.Color weightechBlue = Color(0xFF224190);
+  static const fluent.Color weightechGray = Color(0xFFC9C9CC);
+  static const fluent.Color weightechOrange = Color(0xFFF48128);
+  static const fluent.Color windowsLight = Color(0xFFF3F3F3);
+  static final fluent.AccentColor blueAccent = fluent.AccentColor
+  .swatch(
+    const {
+      'darkest': Color(0xff0a142b),
+      'darker': Color(0xff0f1d40),
+      'dark': Color(0xff0066b4),
+      'normal': weightechBlue,
+      'light': Color(0xff2d55bb),
+      'lighter': Color(0xff3666df),
+      'lightest': Color(0xff3d74ff),
+    }
+  );
   WeightechThemes(){
     Brightness brightness = WidgetsBinding.instance.platformDispatcher.platformBrightness;
     if (brightness == Brightness.dark) {
@@ -49,9 +65,11 @@ class WeightechThemes {
   static final fluent.FluentThemeData fluentLightTheme = fluent.FluentThemeData(
     brightness: fluent.Brightness.light,
     fontFamily: 'Segoe UI',
-    activeColor: const fluent.Color(0xFF224190),
-    inactiveColor: const fluent.Color(0xFFC9C9CC),
-    scaffoldBackgroundColor: const fluent.Color(0xFFFFFFFF),
+    accentColor: blueAccent,
+    activeColor: weightechBlue,
+    inactiveColor: weightechGray,
+    cardColor: windowsLight,
+    scaffoldBackgroundColor: startupScaffoldColor,
     buttonTheme: const fluent.ButtonThemeData(
       defaultButtonStyle: fluent.ButtonStyle(
         textStyle: WidgetStatePropertyAll<TextStyle>(TextStyle(

@@ -11,6 +11,7 @@ import 'package:weightechapp/brochure.dart';
 
 class ProductManager {
   static ProductCategory? all;
+  static String? name;
   static DateTime? timestamp;
 
   ProductManager._();
@@ -20,7 +21,8 @@ class ProductManager {
       Map<String, dynamic> catalogJson = await getCatalogFromFirestore();
       all = ProductCategory.fromJson(catalogJson);
       // _restructureDatabase();
-      //timestamp = catalogJson["timestamp"];
+      // timestamp = DateTime.fromMillisecondsSinceEpoch(catalogJson["timestamp"].millisecondsSinceEpoch);
+      name = catalogJson["catalogName"];
     } catch (e) {
       rethrow;
     }
@@ -123,10 +125,11 @@ class ProductManager {
     return result;
   }
 
-  static Future<void> postCatalogToFirestore() async {
+  static Future<void> postCatalogToFirestore({String? name}) async {
     Log.logger.t("Posting catalog to Firestore");
     Map<String,dynamic> catalogJson = all!.toJson();
     catalogJson['timestamp'] = DateTime.now();
+    catalogJson['catalogName'] = name;
     try {
       await FirebaseUtils.postCatalogToFirestore(catalogJson);
     } catch (e) {

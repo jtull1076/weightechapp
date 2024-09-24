@@ -2,6 +2,7 @@ import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:weightechapp/models.dart';
 import 'package:weightechapp/fluent_routes.dart';
+import 'package:weightechapp/themes.dart';
 import 'package:weightechapp/utils.dart';
 import 'package:flutter/material.dart' hide CarouselController;
 import 'package:weightechapp/extra_widgets.dart';
@@ -344,7 +345,7 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                             IconButton(
                               icon: const Icon(Icons.arrow_back),
                               iconSize: 30,
-                              color: const Color(0xFF224190),
+                              color: WeightechThemes.weightechBlue,
                               onPressed: () => Navigator.pop(context),
                             )
                         )
@@ -357,7 +358,7 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                 Padding(
                   padding: const EdgeInsets.only(left: 25.0, right: 25.0),
                   child: Container(
-                    color: const Color(0xFF224190),
+                    color: WeightechThemes.weightechBlue,
                     height: 2.0
                   )
                 ),
@@ -371,8 +372,8 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                         child: Container(
                           alignment: Alignment.topCenter,
                           decoration: BoxDecoration(
-                            color: const Color(0xFF224190),
-                            border: Border.all(color: const Color(0xFF224190))
+                            color: WeightechThemes.weightechBlue,
+                            border: Border.all(color: WeightechThemes.weightechBlue)
                           ),
                           width: double.infinity,
                           child: 
@@ -389,8 +390,8 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                     : Container(
                         alignment: Alignment.topCenter,
                         decoration: BoxDecoration(
-                          color: const Color(0xFF224190),
-                          border: Border.all(color: const Color(0xFF224190))
+                          color: WeightechThemes.weightechBlue,
+                          border: Border.all(color: WeightechThemes.weightechBlue)
                         ),
                         width: double.infinity,
                         child: 
@@ -466,7 +467,7 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                       itemCount: widget.product.productMedia!.length,
                       itemBuilder: (BuildContext context, int itemIndex, int pageViewIndex) {
                         return FutureBuilder(
-                          future: DefaultCacheManager().getSingleFile(widget.product.productMedia![itemIndex]['downloadUrl']),
+                          future: FileUtils.cacheManager.getSingleFile(widget.product.productMedia![itemIndex]['downloadUrl']),
                           builder: ((context, snapshot) {
                             if (snapshot.hasData) {
                               if (p.extension(snapshot.data!.path) == '.mp4') {
@@ -505,7 +506,7 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                               }
                             }
                             else {
-                              return LoadingAnimationWidget.newtonCradle(color: const Color(0xFF224190), size: 50);
+                              return LoadingAnimationWidget.newtonCradle(color: WeightechThemes.weightechBlue, size: 50);
                             }
                           })
                         );
@@ -523,8 +524,8 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                               decoration: BoxDecoration(
                                   shape: BoxShape.circle,
                                   color: (Theme.of(context).brightness == Brightness.dark
-                                          ? const Color(0xFFC9C9CC)
-                                          : const Color(0xFF224190))
+                                          ? WeightechThemes.weightechGray
+                                          : WeightechThemes.weightechBlue)
                                       .withOpacity(_current == entry.key ? 1 : 0.3)),
                             );
                         }).toList(),
@@ -669,7 +670,7 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                           itemCount: widget.product.productMedia!.length,
                           itemBuilder: (BuildContext context, int itemIndex, int pageViewIndex) {
                             return FutureBuilder(
-                              future: DefaultCacheManager().getSingleFile(widget.product.productMedia![itemIndex]['downloadUrl']),
+                              future: FileUtils.cacheManager.getSingleFile(widget.product.productMedia![itemIndex]['downloadUrl']),
                               builder: ((context, snapshot) {
                                 if (snapshot.hasData) {
                                   if (p.extension(snapshot.data!.path) == '.mp4') {
@@ -713,7 +714,7 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                                   }
                                 }
                                 else {
-                                  return LoadingAnimationWidget.newtonCradle(color: const Color(0xFF224190), size: 80);
+                                  return LoadingAnimationWidget.newtonCradle(color: WeightechThemes.weightechBlue, size: 80);
                                 }
                               })
                             );
@@ -731,8 +732,8 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                                   decoration: BoxDecoration(
                                       shape: BoxShape.circle,
                                       color: (Theme.of(context).brightness == Brightness.dark
-                                              ? const Color(0xFFC9C9CC)
-                                              : const Color(0xFF224190))
+                                              ? WeightechThemes.weightechGray
+                                              : WeightechThemes.weightechBlue)
                                           .withOpacity(_current == entry.key ? 1 : 0.3)),
                                 );
                             }).toList(),
@@ -1016,7 +1017,7 @@ class _ListingPageState extends State<ListingPage> with TickerProviderStateMixin
                                     IconButton(
                                       icon: const Icon(Icons.arrow_back),
                                       iconSize: 30,
-                                      color: const Color(0xFF224190),
+                                      color: WeightechThemes.weightechBlue,
                                       onPressed: () {
                                         Navigator.of(context).pop();
                                       }
@@ -1031,7 +1032,7 @@ class _ListingPageState extends State<ListingPage> with TickerProviderStateMixin
                         Padding(
                           padding: const EdgeInsets.only(left: 25.0, right: 25.0),
                           child: Container(
-                            color: const Color(0xFF224190),
+                            color: WeightechThemes.weightechBlue,
                             height: 2.0
                           )
                         ),
@@ -1045,8 +1046,8 @@ class _ListingPageState extends State<ListingPage> with TickerProviderStateMixin
                                 child: Container(
                                   alignment: Alignment.topCenter,
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF224190),
-                                    border: Border.all(color: const Color(0xFF224190))
+                                    color: WeightechThemes.weightechBlue,
+                                    border: Border.all(color: WeightechThemes.weightechBlue)
                                   ),
                                   width: double.infinity,
                                   child: 
@@ -1063,8 +1064,8 @@ class _ListingPageState extends State<ListingPage> with TickerProviderStateMixin
                             : Container(
                                 alignment: Alignment.topCenter,
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF224190),
-                                  border: Border.all(color: const Color(0xFF224190))
+                                  color: WeightechThemes.weightechBlue,
+                                  border: Border.all(color: WeightechThemes.weightechBlue)
                                 ),
                                 width: double.infinity,
                                 child: 

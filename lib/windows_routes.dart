@@ -91,7 +91,7 @@
 //                       const Icon(Icons.signal_wifi_bad, size: 50,),
 //                       Padding(
 //                         padding: const EdgeInsets.all(20),
-//                         child: LoadingAnimationWidget.twoRotatingArc(color: const Color(0xFF224190), size: 100)
+//                         child: LoadingAnimationWidget.twoRotatingArc(color: WeightechThemes.weightechBlue, size: 100)
 //                       )
 //                     ]
 //                   ),
@@ -416,7 +416,7 @@ library;
 //       floatingActionButton: FloatingActionButton.extended(
 //         backgroundColor: const Color(0xFF7E7E80),
 //         foregroundColor: Colors.white,
-//         hoverColor: const Color(0xFF224190),
+//         hoverColor: WeightechThemes.weightechBlue,
 //         label: const Text("Save & Exit"),
 //         onPressed: () async {
 //           Log.logger.t("...Saving product catalog...");
@@ -553,7 +553,7 @@ library;
 //                                       builder: (BuildContext context, MenuController controller, Widget? child) {
 //                                         return IconButton(
 //                                           icon: const Icon(Icons.menu), 
-//                                           color: const Color(0xFF224190),
+//                                           color: WeightechThemes.weightechBlue,
 //                                           onPressed: () {
 //                                             if (controller.isOpen) {
 //                                               controller.close();
@@ -589,7 +589,7 @@ library;
 //                                       IconButton(
 //                                         icon: const Icon(Icons.arrow_back),
 //                                         iconSize: 30,
-//                                         color: const Color(0xFF224190),
+//                                         color: WeightechThemes.weightechBlue,
 //                                         onPressed: () async {
 //                                           bool confirm = await _showExitDialog(context);
 //                                           if (confirm) {
@@ -721,7 +721,7 @@ library;
 //                                                         alignment: Alignment.center,
 //                                                         duration: const Duration(milliseconds: 100),
 //                                                         transformAlignment: Alignment.center,
-//                                                         color: _hoverOnAll ? const Color(0xFF224190) : const Color(0xFF808082),
+//                                                         color: _hoverOnAll ? WeightechThemes.weightechBlue : const Color(0xFF808082),
 //                                                         width: _hoverOnAll ? 120 : 80,
 //                                                         height: _hoverOnAll ? 60 : 40,
 //                                                         child: const Icon(Icons.vertical_align_top, color: Colors.white)
@@ -1355,7 +1355,7 @@ library;
 //                                                             padding: EdgeInsets.zero,
 //                                                             icon: const Icon(Icons.remove_red_eye),
 //                                                             color: Colors.white,
-//                                                             hoverColor: const Color(0xFF224190),
+//                                                             hoverColor: WeightechThemes.weightechBlue,
 //                                                             iconSize: 18,
 //                                                             onPressed: () async {
 //                                                               await _previewMedia(context, image);
@@ -2041,7 +2041,7 @@ library;
 //             mainAxisSize: MainAxisSize.min,
 //             mainAxisAlignment: MainAxisAlignment.center,
 //             children: [
-//               LoadingAnimationWidget.hexagonDots(color: const Color(0xFF224190), size: 60),
+//               LoadingAnimationWidget.hexagonDots(color: WeightechThemes.weightechBlue, size: 60),
 //               const SizedBox(height: 50),
 //               StreamBuilder(
 //                 stream: stream.stream,
@@ -2055,7 +2055,7 @@ library;
 //                         children: [
 //                           TextSpan(
 //                             text: snapshot.data.product.name, 
-//                             style: DefaultTextStyle.of(context).style.copyWith(color: const Color(0xFF224190))
+//                             style: DefaultTextStyle.of(context).style.copyWith(color: WeightechThemes.weightechBlue)
 //                           ),
 //                           TextSpan(
 //                             text: '...',
@@ -2073,7 +2073,7 @@ library;
 //                         children: [
 //                           TextSpan(
 //                             text: snapshot.data.category.name, 
-//                             style: DefaultTextStyle.of(context).style.copyWith(color: const Color(0xFF224190))
+//                             style: DefaultTextStyle.of(context).style.copyWith(color: WeightechThemes.weightechBlue)
 //                           ),
 //                           TextSpan(
 //                             text: '...',
@@ -2116,8 +2116,8 @@ library;
 //                     Container(
 //                       alignment: Alignment.topCenter,
 //                       decoration: BoxDecoration(
-//                         color: const Color(0xFF224190),
-//                         border: Border.all(color: const Color(0xFF224190))
+//                         color: WeightechThemes.weightechBlue,
+//                         border: Border.all(color: WeightechThemes.weightechBlue)
 //                       ),
 //                       width: double.infinity,
 //                       child: 
@@ -2184,8 +2184,8 @@ library;
 //                                                     decoration: BoxDecoration(
 //                                                         shape: BoxShape.circle,
 //                                                         color: (Theme.of(context).brightness == Brightness.dark
-//                                                                 ? const Color(0xFFC9C9CC)
-//                                                                 : const Color(0xFF224190))
+//                                                                 ? WeightechThemes.weightechGray
+//                                                                 : WeightechThemes.weightechBlue)
 //                                                             .withOpacity((current ?? 0) == entry.key ? 1 : 0.3)),
 //                                                   );
 //                                                 }).toList(),

@@ -43,7 +43,7 @@ Future<void> main() async {
           sheetIsDraggable: false,
           bottomSheetDescriptionStyle: const TextStyle(color: Colors.black),
           bottomSheetTextInputStyle: const TextStyle(color: Colors.black),
-          activeFeedbackModeColor: const Color(0xFF224190),
+          activeFeedbackModeColor: WeightechThemes.weightechBlue,
           colorScheme: WeightechThemes.materialLightTheme.colorScheme,
         ),
         child: 

@@ -49,6 +49,7 @@ dependencies:
   non_uniform_border: ^1.0.0
   archive: ^3.6.1
   file_saver: ^0.2.14
+  intl: ^0.19.0
 
 dev_dependencies:
   flutter_test:

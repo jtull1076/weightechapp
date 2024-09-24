@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'package:feedback/feedback.dart';
 import 'dart:async';
+import 'package:weightechapp/themes.dart';
 
 class FullScreenWidget extends StatelessWidget {
   const FullScreenWidget(
@@ -178,7 +179,7 @@ class FullScreenPageState extends State<FullScreenPage> {
                   padding: const EdgeInsets.only(left: 30, top: 30),
                   child: IconButton(
                     icon: const Icon(Icons.arrow_back),
-                    color: const Color(0xFF224190),
+                    color: WeightechThemes.weightechBlue,
                     iconSize: 30,
                     onPressed: () {
                       setState(() {

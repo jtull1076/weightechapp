@@ -28,8 +28,10 @@ import 'package:internet_connection_checker_plus/internet_connection_checker_plu
 import 'package:updat/updat.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_fancy_tree_view/flutter_fancy_tree_view.dart';
+import 'package:meta/meta.dart';
+import 'package:intl/intl.dart';
+import 'package:window_manager/window_manager.dart';
 
 
 //MARK: OFFLINE PAGE
@@ -95,7 +97,7 @@ class _OfflinePageState extends State<OfflinePage> with TickerProviderStateMixin
                       const Icon(FluentIcons.wifi_off_20_regular, size: 50,),
                       Padding(
                         padding: const EdgeInsets.all(20),
-                        child: LoadingAnimationWidget.twoRotatingArc(color: const Color(0xFF224190), size: 100)
+                        child: LoadingAnimationWidget.twoRotatingArc(color: WeightechThemes.weightechBlue, size: 100)
                       )
                     ]
                   ),
@@ -183,7 +185,7 @@ class _StartupPageState extends State<StartupPage> with TickerProviderStateMixin
     try {
       Log.logger.t('...Clearing existing cache');
       _progressStreamController.add('...Clearing cache...');
-      await DefaultCacheManager().emptyCache();
+      await FileUtils.cacheManager.emptyCache();
 
       Log.logger.t('...Initializing Firebase...');
       _progressStreamController.add('...Initializing Firebase...');
@@ -320,11 +322,12 @@ class ControlPage extends StatefulWidget {
 }
 
 
-class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin {
+class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin, WindowListener {
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
 
   late TextEditingController _filenameController;
+  late bool _editingName;
 
   late List<CommandBarItem> _secondaryCommands;
 
@@ -352,12 +355,19 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
 
   late TreeController<EItem> _treeController;
 
+
+  // ignore: unused_field
   late ECategory _editorAll;
+
+  // ignore: unused_field
   late ECategory _cloudVersion;
 
   @override
   void initState() {
     super.initState();
+    windowManager.addListener(this);
+    windowManager.setPreventClose(true);
+
     
     _animationController = AnimationController(duration : const Duration(seconds: 4), vsync: this);
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _animationController, curve: const Interval(0.4, 0.6, curve: Curves.ease)));
@@ -367,6 +377,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
     _cloudVersion = CatalogEditor.all;
 
     _filenameController = TextEditingController(text: CatalogEditor.name);
+    _editingName = false;
 
     _treeController = TreeController<EItem>(
       // Provide the root nodes that will be used as a starting point when
@@ -430,6 +441,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
     _descriptionController.dispose();
     _modelNumberController.dispose();
     _treeController.dispose();
+    windowManager.removeListener(this);
     super.dispose();
   }
   
@@ -444,42 +456,51 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
         width: MediaQuery.of(context).size.width,
         child: 
           CommandBarCard(
-            borderColor: const Color(0xFFF3F3F3),
             borderRadius: const BorderRadius.all(Radius.zero),
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             // margin: const EdgeInsets.symmetric(horizontal: 5),
-            backgroundColor: const Color(0xFFF3F3F3),
             child: SizedBox(
               width: MediaQuery.of(context).size.width,
               height: 50,
               child: 
                 Row(
                   mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     Container(
                       alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: WeightechThemes.weightechBlue,
+                        borderRadius: BorderRadius.circular(3),
+                      ),
                       width: 100,
                       height: 40,
-                      child: TextBox(
-                        controller: _filenameController, 
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF224190),
-                          borderRadius: BorderRadius.circular(3)
-                        ),
-                        textAlign: TextAlign.center,
-                        textAlignVertical: TextAlignVertical.center,
-                        padding: const EdgeInsets.fromLTRB(10, 5, 10, 5),
-                        style: const TextStyle(color: Colors.white, fontSize: 12),
-                        onEditingComplete: () {
-                          CatalogEditor.name = _filenameController.text;
-                        },
+                      child: IntrinsicWidth(
+                        child: TapRegion(
+                          onTapOutside: (e) => setState(() => _editingName = false),
+                          child: TextBox(
+                            controller: _filenameController,
+                            decoration: const BoxDecoration(color: Colors.transparent),
+                            textAlign: TextAlign.center,
+                            padding: EdgeInsets.zero,
+                            suffix: (CatalogEditor.currentFile == null && !_editingName) ? const Text('*', style: TextStyle(color: Colors.white, fontSize: 12)) : null,
+                            textAlignVertical: TextAlignVertical.center,
+                            style: const TextStyle(color: Colors.white, fontSize: 12),
+                            onEditingComplete: () {
+                              CatalogEditor.name = _filenameController.text;
+                              _editingName = false;
+                            },
+                            onTap: () => setState(() => _editingName = true),
+                            onChanged: (s) => setState(() => _editingName = true),
+                          ),
+                        )
                       )
                     ),
                     const SizedBox(width: 10),
                     Flexible(
                       fit: FlexFit.loose,
                       child: CommandBar(
-                        overflowBehavior: CommandBarOverflowBehavior.wrap,
+                        overflowBehavior: CommandBarOverflowBehavior.scrolling,
                         primaryItems: [
                           CommandBarButton(
                             icon: const Icon(FluentIcons.cloud_arrow_up_20_regular),
@@ -496,8 +517,8 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                             label: const Text('Save As', style: TextStyle(fontSize: 12)),
                             onPressed: () async {
                               FilePickerResult? _ = 
-                                await FilePicker.platform.
-                                  saveFile(dialogTitle: 'Save As', fileName: '${_filenameController.text}.wtf', allowedExtensions: ['wtf'], type: FileType.custom)
+                                await FilePicker.platform
+                                  .saveFile(dialogTitle: 'Save As', fileName: '${_filenameController.text}.wtf', allowedExtensions: ['wtf'], type: FileType.custom)
                                   .then((result) async {
                                     if (result != null) {
                                       if (FileUtils.extension(result) != '.wtf') {
@@ -572,8 +593,17 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                           CommandBarButton(
                             icon: const Icon(FluentIcons.clock_arrow_download_20_regular),
                             label: const Text('Restore Previous', style: TextStyle(fontSize: 12)),
-                            onPressed: () {
+                            onPressed: () async {
                               // TODO: Implement this
+                              final chosenCatalog = await _showRestorationDialog(context);
+                              if (chosenCatalog != null) {
+                                Log.logger.i(
+                                  """ Catalog restored to previous version. Version info: 
+                                  Name: ${chosenCatalog['name']}
+                                  Timestamp: ${chosenCatalog['timestamp']}
+                                  """
+                                );
+                              }
                             },
                           ),
                           const CommandBarSeparator(
@@ -778,8 +808,17 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                             )
                           ]
                         ],
-                        secondaryItems: _secondaryCommands,
                       ),
+                    ),
+                    IntrinsicWidth(
+                      child: CommandBar(
+                        overflowBehavior: CommandBarOverflowBehavior.wrap,
+                        mainAxisAlignment: material.MainAxisAlignment.end,
+                        primaryItems: const [
+                          CommandBarSeparator()
+                        ],
+                        secondaryItems: _secondaryCommands,
+                      )
                     )
                   ]
                 )
@@ -832,8 +871,8 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
             ),
             if (_loadingSomething) 
                 // child: LoadingAnimationWidget.twistingDots(
-                //   leftDotColor: const Color(0xFF224190), 
-                //   rightDotColor: const Color(0xFFC9C9CC), 
+                //   leftDotColor: WeightechThemes.weightechBlue, 
+                //   rightDotColor: WeightechThemes.weightechGray, 
                 //   size: 40
                 // ),=
               _loadingWidget
@@ -1570,7 +1609,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                   else {
                     final path = _mediaPaths[itemIndex];
                     return FutureBuilder(
-                      future: DefaultCacheManager().getSingleFile(path),
+                      future: FileUtils.cacheManager.getSingleFile(path),
                       builder: ((context, snapshot) {
                         if (snapshot.hasData) {
                           if (FileUtils.isMP4(snapshot.data!.path)) {
@@ -1609,7 +1648,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                           }
                         }
                         else {
-                          return LoadingAnimationWidget.newtonCradle(color: const Color(0xFF224190), size: 50);
+                          return LoadingAnimationWidget.newtonCradle(color: WeightechThemes.weightechBlue, size: 50);
                         }
                       })
                     );
@@ -1628,8 +1667,8 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                         decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             color: (FluentTheme.of(context).brightness == Brightness.dark
-                                    ? const Color(0xFFC9C9CC)
-                                    : const Color(0xFF224190))
+                                    ? WeightechThemes.weightechGray
+                                    : WeightechThemes.weightechBlue)
                                 .withOpacity(current == entry.key ? 1 : 0.3)),
                       );
                   }).toList(),
@@ -1857,8 +1896,8 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                       height: 400,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: const Color(0xFFC9C9CC)),
-                        color: _fileDragging ? const Color(0xFFC9C9CC) : const Color(0x44C9C9CC),
+                        border: Border.all(color: WeightechThemes.weightechGray),
+                        color: _fileDragging ? WeightechThemes.weightechGray : const Color(0x44C9C9CC),
                       ),
                       padding: const EdgeInsets.all(20),
                       alignment: Alignment.center,
@@ -2306,8 +2345,8 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                     Container(
                       alignment: Alignment.topCenter,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF224190),
-                        border: Border.all(color: const Color(0xFF224190))
+                        color: WeightechThemes.weightechBlue,
+                        border: Border.all(color: WeightechThemes.weightechBlue)
                       ),
                       width: double.infinity,
                       child: 
@@ -2357,7 +2396,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                               itemCount: _mediaFiles.length,
                                               itemBuilder: (BuildContext context, int itemIndex, int pageViewIndex) {
                                                 return FutureBuilder(
-                                                  future: (FileUtils.isURL(path: _mediaPaths[itemIndex])) ? DefaultCacheManager().getSingleFile(_mediaPaths[itemIndex]) : Future.delayed(const Duration(milliseconds: 1), () async {return _mediaFiles[itemIndex];}),
+                                                  future: (FileUtils.isURL(path: _mediaPaths[itemIndex])) ? FileUtils.cacheManager.getSingleFile(_mediaPaths[itemIndex]) : Future.delayed(const Duration(milliseconds: 1), () async {return _mediaFiles[itemIndex];}),
                                                   builder: ((context, snapshot) {
                                                     if (snapshot.hasData) {
                                                       if (FileUtils.isMP4(snapshot.data!.path)) {
@@ -2396,7 +2435,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                                       }
                                                     }
                                                     else {
-                                                      return LoadingAnimationWidget.newtonCradle(color: const Color(0xFF224190), size: 50);
+                                                      return LoadingAnimationWidget.newtonCradle(color: WeightechThemes.weightechBlue, size: 50);
                                                     }
                                                   })
                                                 );
@@ -2414,8 +2453,8 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                                     decoration: BoxDecoration(
                                                         shape: BoxShape.circle,
                                                         color: (FluentTheme.of(context).brightness == Brightness.dark
-                                                                ? const Color(0xFFC9C9CC)
-                                                                : const Color(0xFF224190))
+                                                                ? WeightechThemes.weightechGray
+                                                                : WeightechThemes.weightechBlue)
                                                             .withOpacity((current ?? 0) == entry.key ? 1 : 0.3)),
                                                   );
                                                 }).toList(),
@@ -2545,5 +2584,160 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
       }
     );
   }
+  
+  Future<Map<String,dynamic>?> _showRestorationDialog(BuildContext context,) async {
+    Map<String, dynamic>? chosenCatalog;
 
+    _toggleLoading();
+    List<Map<String, dynamic>> catalogOptions = await FirebaseUtils.getLastFromFirestore(3);
+    _toggleLoading();
+    
+    if (context.mounted) {
+      chosenCatalog = await showDialog<Map<String, dynamic>>(
+        context: context,
+        builder: (BuildContext context) {
+          return StatefulBuilder(
+            builder: (context, setState) {
+              return ContentDialog(
+                title: const Text("Previous Catalog Versions"),
+                content: ListView.builder(
+                  itemCount: catalogOptions.length,
+                  shrinkWrap: true,
+                  itemBuilder: (context, index) {
+                    return ListTile(
+                      leading: Text('$index.'),
+                      title: Row(
+                        mainAxisAlignment: material.MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            (catalogOptions[index]['catalogName'] ?? 'Untitled') + '  ',
+                            style: const TextStyle(fontSize: 18)
+                          ),
+                          Text(
+                            DateFormat('MMM d, y h:mm a').format(DateTime.fromMillisecondsSinceEpoch(catalogOptions[index]['timestamp'].millisecondsSinceEpoch)),
+                            style: const TextStyle(fontStyle: FontStyle.italic)
+                          ),
+                        ]
+                      ),
+                      onPressed: () {
+                        chosenCatalog = catalogOptions[index];
+                        Navigator.of(context).pop(chosenCatalog);
+                      }
+                    );
+                  },
+                ),
+                actions: <Widget>[
+                  Button(
+                    child: const Text("Cancel"),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    }
+                  ),
+                ]
+              );
+            }
+          );
+        }
+      );
+    }
+  }
+
+  @override
+  void onWindowClose() async {
+    bool isPreventClose = await windowManager.isPreventClose();
+    TextEditingController unsavedNameController = TextEditingController(text: CatalogEditor.name);
+    Directory currentDirectory = (CatalogEditor.currentFile != null) ? CatalogEditor.currentFile!.parent : await getApplicationDocumentsDirectory();
+
+
+    if (isPreventClose && CatalogEditor.isUnsaved) {
+      await showDialog(
+        context: context,
+        builder: (_) {
+          return StatefulBuilder(
+            builder: (context, setState) {
+              return ContentDialog(
+                title: const Text('Save your changes to this file?', style: TextStyle(color: Color(0xFF224190), fontSize: 18)),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: material.CrossAxisAlignment.start,
+                  children: [
+                    const Text("File name", textAlign: TextAlign.left),
+                    TextBox(
+                      controller: unsavedNameController,
+                      suffix: const Padding(
+                        padding: EdgeInsets.only(right: 8),
+                        child: Text(".wtf")
+                      )
+                    ),
+                    const SizedBox(height: 10),
+                    const Text("Choose a location"),
+                    Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: Colors.black,
+                          width: 1,
+                        ),
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                      child: ListTile(
+                        leading: const Icon(FluentIcons.folder_20_regular),
+                        title: Text(FileUtils.filename(currentDirectory.path)),
+                        onPressed: () async {
+                          FilePickerResult? _ = 
+                            await FilePicker.platform
+                              .saveFile(dialogTitle: 'Save As', fileName: '${unsavedNameController.text}.wtf', allowedExtensions: ['wtf'], type: FileType.custom)
+                              .then((result) async {
+                                if (result != null) {
+                                  if (FileUtils.extension(result) != '.wtf') {
+                                    result += '.wtf';
+                                  }
+                                  await CatalogEditor.saveCatalogLocal(path: unsavedNameController.text);
+                                }
+                                else {
+                                  Log.logger.t("-> File save aborted/failed.");
+                                  return null;
+                                }
+                                return null;
+                              });
+                        }
+                      )
+                    )
+                  ]
+                ),
+                actions: [
+                  Button(
+                    style: const ButtonStyle(
+                      backgroundColor: WidgetStatePropertyAll<Color>(Color(0xFF224190)),
+                      foregroundColor: WidgetStatePropertyAll<Color>(Colors.white),
+                    ),
+                    child: const Text('Save'),
+                    onPressed: () async {
+                      await CatalogEditor.saveCatalogLocal(path: unsavedNameController.text);
+                      Navigator.of(context).pop();
+                    },
+                  ),
+                  Button(
+                    child: const Text("Don't Save"),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      windowManager.destroy();
+                    },
+                  ),
+                  Button(
+                    child: const Text("Cancel"),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    }
+                  )
+                ],
+              );
+            }
+          );
+        },
+      );
+    }
+    else {
+      windowManager.destroy();
+    }
+  }
 }
