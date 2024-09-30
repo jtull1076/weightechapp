@@ -22,10 +22,18 @@ class FullScreenWidget extends StatelessWidget {
   final DisposeLevel disposeLevel;
   final bool expandOnTap;
   final bool callFullscreen;
+  
 
   @override
   Widget build(BuildContext context) {
-    if (callFullscreen) _expand(context);
+    if (callFullscreen) {
+      Future.microtask(() {
+        if (context.mounted) {
+          _expand(context);
+        }
+      });
+    }
+
     return GestureDetector(
       onTap: () {
         if (expandOnTap) _expand(context);
@@ -490,6 +498,7 @@ class CustomSettingsBar extends StatefulWidget {
 }
 
 class _CustomSettingsBarState extends State<CustomSettingsBar> {
+
   @override
   Widget build(BuildContext context) {
     return Row(
@@ -503,6 +512,7 @@ class _CustomSettingsBarState extends State<CustomSettingsBar> {
                 widget.onToggleFullscreen!();
               }
             },
+            style: widget.style?.buttonStyle
           ),
           MultiTextButton(
             keysValues: const {

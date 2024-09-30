@@ -34,7 +34,7 @@ class WeightechApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: "Weightech Inc. Sales",
-      theme: WeightechThemes.lightTheme, 
+      theme: WeightechThemes.materialLightTheme, 
       home: const StartupPage()
     );
   }

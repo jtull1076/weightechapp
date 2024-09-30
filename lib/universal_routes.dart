@@ -389,7 +389,8 @@ class ProductPage extends StatefulWidget {
 
 class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin {
   late AnimationController _animationController;
-  late Animation<double> _dividerHeightAnimation;
+  late Animation<double> _blueDividerHeightAnimation;
+  late Animation<double> _grayDividerHeightAnimation;
   late Animation<double> _fadeAnimation;
   late Timer _timer;
   int _current = 0;
@@ -401,8 +402,8 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
     
     _animationController = AnimationController(duration : const Duration(seconds: 2), vsync: this);
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _animationController, curve: Interval(widget.animateDivider ? 0.3 : 0.1, widget.animateDivider ? 0.6 : 0.4, curve: Curves.ease)));
-    _dividerHeightAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _animationController, curve: const Interval(0.0, 0.6, curve: Curves.ease)));
-    
+    _blueDividerHeightAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _animationController, curve: const Interval(0.0, 0.6, curve: Curves.ease)));
+    _grayDividerHeightAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _animationController, curve: const Interval(0.2, 0.6, curve: Curves.ease)));
     _timer = Timer(const Duration(minutes: 10), () {
       if (mounted){
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const IdlePage()));
@@ -478,10 +479,47 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                   padding: const EdgeInsets.only(left: 25.0, right: 25.0),
                   child: 
                     widget.animateDivider ?
-                      SizeTransition(
-                        sizeFactor: _dividerHeightAnimation, 
-                        axis: Axis.vertical, 
-                        child: Container(
+                      Column(
+                        children: [
+                          SizeTransition(
+                            sizeFactor: _blueDividerHeightAnimation, 
+                            axis: Axis.vertical, 
+                            child: Container(
+                              alignment: Alignment.topCenter,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF224190),
+                                border: Border.all(color: const Color(0xFF224190))
+                              ),
+                              width: double.infinity,
+                              child: 
+                                Padding(
+                                  padding: const EdgeInsets.all(2.0),
+                                  child:
+                                    Text(widget.product.name, 
+                                      textAlign: TextAlign.center, 
+                                      style: const TextStyle(fontSize: 32.0, fontWeight: FontWeight.bold, color: Colors.white),
+                                    )
+                                )
+                            )
+                          ),
+                          SizeTransition(
+                            sizeFactor: _grayDividerHeightAnimation, 
+                            axis: Axis.vertical, 
+                            child: Container(
+                              alignment: Alignment.topCenter,
+                              decoration: BoxDecoration(
+                                color: WeightechThemes.weightechGray,
+                                border: Border.all(color: WeightechThemes.weightechGray)
+                              ),
+                              width: double.infinity,
+                              height: 4,
+                            )
+                          ),
+                        ]
+                      )
+                    : Column(
+                      children: [
+                        Container(
                           alignment: Alignment.topCenter,
                           decoration: BoxDecoration(
                             color: const Color(0xFF224190),
@@ -492,34 +530,27 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                             Padding(
                               padding: const EdgeInsets.all(2.0),
                               child:
-                                Text(widget.product.name, 
-                                  textAlign: TextAlign.center, 
-                                  style: const TextStyle(fontSize: 32.0, fontWeight: FontWeight.bold, color: Colors.white),
+                                FadeTransition(
+                                  opacity: _fadeAnimation,
+                                  child: 
+                                    Text(widget.product.name, 
+                                      textAlign: TextAlign.center, 
+                                      style: const TextStyle(fontSize: 32.0, fontWeight: FontWeight.bold, color: Colors.white),
+                                    )
                                 )
                             )
-                        )
-                      )
-                    : Container(
-                        alignment: Alignment.topCenter,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF224190),
-                          border: Border.all(color: const Color(0xFF224190))
                         ),
-                        width: double.infinity,
-                        child: 
-                          Padding(
-                            padding: const EdgeInsets.all(2.0),
-                            child:
-                              FadeTransition(
-                                opacity: _fadeAnimation,
-                                child: 
-                                  Text(widget.product.name, 
-                                    textAlign: TextAlign.center, 
-                                    style: const TextStyle(fontSize: 32.0, fontWeight: FontWeight.bold, color: Colors.white),
-                                  )
-                              )
-                          )
+                        Container(
+                          alignment: Alignment.topCenter,
+                          decoration: BoxDecoration(
+                            color: WeightechThemes.weightechGray,
+                            border: Border.all(color: WeightechThemes.weightechGray)
+                          ),
+                          width: double.infinity,
+                          height: 4,
                         )
+                      ]
+                    )
                 ),
               ]
             ),
@@ -831,6 +862,7 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
 
 
   Widget mediaCarousel({required List mediaList}) {
+
     return CarouselSlider.builder(
       options: CarouselOptions(
         enableInfiniteScroll: mediaList.length > 1 ? true : false, 
@@ -848,11 +880,11 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
         final media = mediaList[itemIndex];
         if (media['contentType'] == 'image') {
           return FutureBuilder(
-            future: DefaultCacheManager().getSingleFile(media['downloadUrl']),
+            future: FileUtils.cacheManager.getSingleFile(media['downloadUrl']),
             builder: ((context, snapshot) {
               if (snapshot.hasData) {
                 return ClipRRect(
-                  borderRadius: BorderRadius.circular(30),
+                  borderRadius: BorderRadius.circular(5),
                   child: FullScreenWidget(
                     disposeLevel: DisposeLevel.low,
                     child: Hero(
@@ -881,19 +913,92 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
           );
         }
         else if (media['contentType'] == 'video') {
-          late final player = Player();
-          late final controller = VideoController(player);
-          player.open(Media(media['streamUrl']));
-          return ClipRRect(
-            borderRadius: BorderRadius.circular(30),
-            child: Video(
-                  controller: controller, 
-                  // controls: (VideoState state) => MaterialVideoControls(state), // Uncomment for app usage
-                  fit: BoxFit.fitWidth, 
-                  width: double.infinity
-                )
-          );
-                          
+          if (media.containsKey('videoId')) {
+            _videoController = ApiVideoPlayerController(
+              videoOptions: VideoOptions(videoId: media['videoId'])
+            );
+            bool setFullscreen = false;
+
+            return FutureBuilder(
+              future: _videoController!.initialize(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.done) {
+                  _videoController!.play();
+                  return StatefulBuilder(
+                    builder: (context, setstate) {
+                      return ClipRRect(
+                        borderRadius: BorderRadius.circular(5),
+                        child: FullScreenWidget(
+                          disposeLevel: DisposeLevel.low,
+                          callFullscreen: setFullscreen,
+                          child: Hero(
+                            tag: "$itemIndex-hero",
+                            child: ApiVideoPlayer(
+                              controller: _videoController!,
+                              child: TimedOpacity(
+                                controller: TimedOpacityController(),
+                                child: CustomPlayerOverlay(
+                                  onToggleFullscreen: () => setstate(() => setFullscreen = true),
+                                  controller: _videoController!,
+                                  style: PlayerStyle(
+                                    controlsBarStyle: ControlsBarStyle(
+                                      mainControlButtonStyle: ButtonStyle(iconColor: WidgetStatePropertyAll<Color>(Colors.white)),
+                                      seekBackwardControlButtonStyle: ButtonStyle(iconColor: WidgetStatePropertyAll<Color>(Colors.white)),
+                                      seekForwardControlButtonStyle: ButtonStyle(iconColor: WidgetStatePropertyAll<Color>(Colors.white)),
+                                    ),
+                                    settingsBarStyle: SettingsBarStyle(
+                                      buttonStyle: ButtonStyle(
+                                        foregroundColor: WidgetStatePropertyAll<Color>(Colors.white),
+                                        iconColor: WidgetStatePropertyAll<Color>(Colors.white)
+                                      ),
+                                    ),
+                                    timeSliderStyle: TimeSliderStyle(
+                                      sliderTheme: SliderThemeData(
+                                        activeTrackColor: WeightechThemes.weightechBlue,
+                                        valueIndicatorColor: Colors.white,
+                                        thumbColor: WeightechThemes.weightechBlue,
+                                      )
+                                    )
+                                  )
+                                )
+                              )
+                            )
+                          )
+                        )
+                      );
+                    }
+                  );
+                }
+                else {
+                  return FutureBuilder(
+                    future: Future.delayed(const Duration(milliseconds: 500)),
+                    builder: ((context, snapshot) {
+                      if (snapshot.hasData) {
+                        return LoadingAnimationWidget.newtonCradle(color: const Color(0xFF224190), size: 50);
+                      }
+                      else {
+                        return const SizedBox();
+                      }
+                    })
+                  );
+                }
+              }
+            );
+          }
+          else {
+            late final player = Player();
+            late final controller = VideoController(player);
+            player.open(Media(media['streamUrl']));
+            return ClipRRect(
+              borderRadius: BorderRadius.circular(5),
+              child: Video(
+                controller: controller, 
+                // controls: (VideoState state) => MaterialVideoControls(state), // Uncomment for app usage
+                fit: BoxFit.fitWidth, 
+                width: double.infinity
+              )
+            );
+          }   
         }
         else {
           return LoadingAnimationWidget.newtonCradle(color: const Color(0xFF224190), size: 50);
@@ -921,7 +1026,8 @@ class ListingPage extends StatefulWidget {
 class _ListingPageState extends State<ListingPage> with TickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
-  late Animation<double> _dividerHeightAnimation;
+  late Animation<double> _blueDividerHeightAnimation;
+  late Animation<double> _grayDividerHeightAnimation;
   
   late final Timer _timer;
 
@@ -970,7 +1076,8 @@ class _ListingPageState extends State<ListingPage> with TickerProviderStateMixin
     
     _animationController = AnimationController(duration : const Duration(seconds: 2), vsync: this);
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _animationController, curve: const Interval(0.2, 0.5, curve: Curves.ease)));
-    _dividerHeightAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _animationController, curve: const Interval(0.0, 0.6, curve: Curves.ease)));
+    _blueDividerHeightAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _animationController, curve: const Interval(0.0, 0.6, curve: Curves.ease)));
+    _grayDividerHeightAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _animationController, curve: const Interval(0.2, 0.6, curve: Curves.ease)));
 
     _timer = Timer(const Duration(minutes: 10), () {
       if (mounted){
@@ -1103,48 +1210,78 @@ class _ListingPageState extends State<ListingPage> with TickerProviderStateMixin
                             padding: const EdgeInsets.only(left: 25.0, right: 25.0),
                             child: 
                               widget.animateDivider ?
-                                SizeTransition(
-                                  sizeFactor: _dividerHeightAnimation, 
-                                  axis: Axis.vertical, 
-                                  child: Container(
-                                    alignment: Alignment.topCenter,
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF224190),
-                                      border: Border.all(color: const Color(0xFF224190))
-                                    ),
-                                    width: double.infinity,
-                                    child: 
-                                      Padding(
-                                        padding: const EdgeInsets.all(2.0),
-                                        child:
-                                          Text(widget.category.name, 
-                                            textAlign: TextAlign.center, 
-                                            style: const TextStyle(fontSize: 32.0, fontWeight: FontWeight.bold, color: Colors.white),
+                                Column(
+                                  children: [
+                                    SizeTransition(
+                                      sizeFactor: _blueDividerHeightAnimation, 
+                                      axis: Axis.vertical, 
+                                      child: Container(
+                                        alignment: Alignment.topCenter,
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF224190),
+                                          border: Border.all(color: const Color(0xFF224190))
+                                        ),
+                                        width: double.infinity,
+                                        child: 
+                                          Padding(
+                                            padding: const EdgeInsets.all(2.0),
+                                            child:
+                                              Text(widget.category.name, 
+                                                textAlign: TextAlign.center, 
+                                                style: const TextStyle(fontSize: 32.0, fontWeight: FontWeight.bold, color: Colors.white),
+                                              )
                                           )
                                       )
-                                  )
+                                    ),
+                                    SizeTransition(
+                                      sizeFactor: _grayDividerHeightAnimation, 
+                                      axis: Axis.vertical, 
+                                      child: Container(
+                                        alignment: Alignment.topCenter,
+                                        decoration: BoxDecoration(
+                                          color: WeightechThemes.weightechGray,
+                                          border: Border.all(color: WeightechThemes.weightechGray)
+                                        ),
+                                        width: double.infinity,
+                                        height: 4,
+                                      )
+                                    ),
+                                  ]
                                 )
-                              : Container(
-                                  alignment: Alignment.topCenter,
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFF224190),
-                                    border: Border.all(color: const Color(0xFF224190))
-                                  ),
-                                  width: double.infinity,
-                                  child: 
-                                    Padding(
-                                      padding: const EdgeInsets.all(2.0),
-                                      child:
-                                        FadeTransition(
-                                          opacity: _fadeAnimation,
-                                          child: 
-                                            Text(widget.category.name, 
-                                              textAlign: TextAlign.center, 
-                                              style: const TextStyle(fontSize: 32.0, fontWeight: FontWeight.bold, color: Colors.white),
+                                : Column(
+                                  children: [
+                                    Container(
+                                      alignment: Alignment.topCenter,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF224190),
+                                        border: Border.all(color: const Color(0xFF224190))
+                                      ),
+                                      width: double.infinity,
+                                      child: 
+                                        Padding(
+                                          padding: const EdgeInsets.all(2.0),
+                                          child:
+                                            FadeTransition(
+                                              opacity: _fadeAnimation,
+                                              child: 
+                                                Text(widget.category.name, 
+                                                  textAlign: TextAlign.center, 
+                                                  style: const TextStyle(fontSize: 32.0, fontWeight: FontWeight.bold, color: Colors.white),
+                                                )
                                             )
                                         )
+                                    ),
+                                    Container(
+                                      alignment: Alignment.topCenter,
+                                      decoration: BoxDecoration(
+                                        color: WeightechThemes.weightechGray,
+                                        border: Border.all(color: WeightechThemes.weightechGray)
+                                      ),
+                                      width: double.infinity,
+                                      height: 4,
                                     )
-                                  )
+                                  ]
+                                )
                           ),
                         ]
                       ),                      

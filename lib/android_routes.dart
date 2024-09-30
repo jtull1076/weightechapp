@@ -35,7 +35,7 @@ class _StartupPageState extends State<StartupPage> with TickerProviderStateMixin
     try {
       Log.logger.t('...Clearing existing cache');
       _progressStreamController.add('...Clearing cache...');
-      await DefaultCacheManager().emptyCache();
+      await FileUtils.cacheManager.emptyCache();
 
       Log.logger.t('...Initializing Firebase...');
       _progressStreamController.add('...Initializing Firebase...');
@@ -48,7 +48,9 @@ class _StartupPageState extends State<StartupPage> with TickerProviderStateMixin
 
       Log.logger.t('...Precaching images...');
       _progressStreamController.add('...Caching images...');
-      if (mounted) await ProductManager.precacheImages(context);
+      if (mounted) {
+        await ProductManager.precacheImages(context);
+      }
 
       Log.logger.t('...App Startup...');
       _progressStreamController.add('...App Startup...');

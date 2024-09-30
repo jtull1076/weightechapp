@@ -292,14 +292,14 @@ sealed class CatalogItem {
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(10,15,10,15),
                   child: FutureBuilder(
-                    future: DefaultCacheManager().getSingleFile(imageUrl!),
+                    future: FileUtils.cacheManager.getSingleFile(imageUrl!),
                     builder: ((context, snapshot) {
                       if (snapshot.hasData) {
                         return Container (
                           padding: const EdgeInsets.only(left: 20.0, right: 20.0, top: 20, bottom: 20),
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(20),
+                            borderRadius: BorderRadius.circular(5),
                             image: DecorationImage(
                               fit: BoxFit.cover,
                               image: ResizeImage(
