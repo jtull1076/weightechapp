@@ -48,7 +48,7 @@ class _StartupPageState extends State<StartupPage> with TickerProviderStateMixin
 
       Log.logger.t('...Precaching images...');
       _progressStreamController.add('...Caching images...');
-      await ProductManager.precacheImages();
+      if (mounted) await ProductManager.precacheImages(context);
 
       Log.logger.t('...App Startup...');
       _progressStreamController.add('...App Startup...');

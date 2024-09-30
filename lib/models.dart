@@ -1,6 +1,7 @@
 import 'package:file_saver/file_saver.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart';
 import 'package:shortid/shortid.dart';
@@ -12,7 +13,6 @@ import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:weightechapp/utils.dart';
 import 'package:string_validator/string_validator.dart' show isURL;
-import 'package:flutter_archive/flutter_archive.dart';
 import 'package:http/http.dart' as http;
 
 class ProductManager {
@@ -211,21 +211,15 @@ class ProductManager {
     await traverseCatalog(catalog);
   }
 
-  static Future<void> precacheImages() async {
+  static Future<void> precacheImages(BuildContext context) async {
 
     Future<void> traverseCatalog(CatalogItem item) async {
-      item.precachePrimaryImage();
-      // switch (item) {
-      //   case ProductCategory _ : {
-      //     item.precacheImages(context);
-      //     for (var subItem in item.catalogItems) {
-      //       traverseCatalog(subItem);
-      //     }
-      //   }
-      //   case Product _ : {
-      //     item.precacheImages(context);
-      //   }
-      // }
+      item.precachePrimaryImage(context);
+      if (item is ProductCategory) {
+        for (var subItem in item.catalogItems) {
+          traverseCatalog(subItem);
+        }
+      }
     }
 
     await traverseCatalog(all!);
@@ -261,8 +255,15 @@ sealed class CatalogItem {
     }
   }
 
-  Future<void> precachePrimaryImage() async {
-    if (imageUrl != null) await DefaultCacheManager().downloadFile(imageUrl!);
+  Future<void> precachePrimaryImage(BuildContext context) async {
+    debugPrint('Caching $name image...');
+    if (imageUrl != null) {
+      await precacheImage(
+        imageProvider!, 
+        context,
+        onError : (error, stackTrace) => debugPrint(error.toString()),
+      );
+    }
   }
 
   Widget buildCard(VoidCallback onTapCallback) {
@@ -290,21 +291,38 @@ sealed class CatalogItem {
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(10,15,10,15),
-                  child: Container (
-                    padding: const EdgeInsets.only(left: 20.0, right: 20.0, top: 20, bottom: 20),
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(20),
-                      image: DecorationImage(
-                        fit: BoxFit.cover,
-                        image: ResizeImage(
-                          imageProvider!,
-                          policy: ResizeImagePolicy.fit,
-                          height: 400,
-                        )
-                      )
-                    ),
-                  )
+                  child: FutureBuilder(
+                    future: DefaultCacheManager().getSingleFile(imageUrl!),
+                    builder: ((context, snapshot) {
+                      if (snapshot.hasData) {
+                        return Container (
+                          padding: const EdgeInsets.only(left: 20.0, right: 20.0, top: 20, bottom: 20),
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(20),
+                            image: DecorationImage(
+                              fit: BoxFit.cover,
+                              image: ResizeImage(
+                                imageProvider!,
+                                policy: ResizeImagePolicy.fit,
+                                height: 400,
+                              )
+                            )
+                          ),
+                        );
+                      }
+                      else {
+                        return Center(
+                          child: LoadingAnimationWidget.discreteCircle(
+                            color: const Color(0xFF224190), 
+                            secondRingColor: const Color(0xFFC9C9CC),
+                            thirdRingColor: Colors.white,
+                            size: 30
+                          )
+                        );
+                      }
+                    })
+                  )                  
                 )
               ),
               Container(
@@ -377,12 +395,6 @@ sealed class CatalogItem {
       categoryImageRef.putFile(imageFile);
     } on FirebaseException catch (e) {
       Log.logger.t("Failed to add ${id}_0 to Firebase. Error code: ${e.code}");
-    }
-  }
-
-  void precacheImages(BuildContext context) async {
-    if (imageProvider != null) {
-      await precacheImage(imageProvider!, context, onError: (error, stackTrace) {debugPrint('Image for $name failed to load: $error');});
     }
   }
 }
@@ -626,15 +638,6 @@ class Product extends CatalogItem {
     return json;
   }
 
-  Future<Map<String,dynamic>> _mapProductMedia() async {
-    Map<String, dynamic> result = {};
-
-    for (var media in productMedia ?? []) {
-
-    }
-
-    return result;
-  }
 
   factory Product.fromJson(Map<String, dynamic> json) {
     return Product(
