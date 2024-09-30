@@ -5,7 +5,7 @@ import 'package:weightechapp/fluent_routes.dart';
 import 'package:weightechapp/themes.dart';
 import 'package:weightechapp/utils.dart';
 import 'package:flutter/material.dart' hide CarouselController;
-import 'package:weightechapp/extra_widgets.dart';
+import 'package:weightechapp/extra_material_widgets.dart';
 import 'dart:async';
 import 'dart:ui';
 import 'package:simple_rich_text/simple_rich_text.dart';
@@ -43,7 +43,7 @@ class IdlePage extends StatelessWidget {
                       constraints: const BoxConstraints(maxWidth: 500),
                       child: Hero(tag: 'main-logo', child: Image.asset('assets/weightech_logo_beta.png', fit: BoxFit.scaleDown))
                     ), 
-                    const Text('MANAGER', style: TextStyle(fontSize: 30, color: Color(0xFF224190))),
+                    const Text('MANAGER', style: TextStyle(fontSize: 30, color: WeightechThemes.weightechBlue)),
                     const Text('Press anywhere to begin.', style: TextStyle(fontSize: 18.0, fontStyle: FontStyle.normal))],
                 ),
               ),
@@ -245,7 +245,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                       },
                       child: Padding(padding: const EdgeInsets.only(top: 10.0), child: Hero(tag: 'main-logo', child: Image.asset('assets/weightech_logo_beta.png', height: 100, alignment: Alignment.center,))),
                     ),
-                    SizeTransition(sizeFactor: _dividerWidthAnimation, axis: Axis.horizontal, child: FadeTransition(opacity: _fadeAnimation, child: const Hero(tag: 'divider', child: Divider(color: Color(0xFF224190), height: 2, thickness: 2, indent: 25.0, endIndent: 25.0,)))),
+                    SizeTransition(sizeFactor: _dividerWidthAnimation, axis: Axis.horizontal, child: FadeTransition(opacity: _fadeAnimation, child: const Hero(tag: 'divider', child: Divider(color: WeightechThemes.weightechBlue, height: 2, thickness: 2, indent: 25.0, endIndent: 25.0,)))),
                     const SizedBox(height: 10),
                   ]
                 )
@@ -556,7 +556,7 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(headerKey, style: const TextStyle(color: Color(0xFF224190), fontSize: 28.0, fontWeight: FontWeight.bold), softWrap: true,),
+                        Text(headerKey, style: const TextStyle(color: WeightechThemes.weightechBlue, fontSize: 28.0, fontWeight: FontWeight.bold), softWrap: true,),
                         if (headerEntries?.isNotEmpty ?? false)
                           ListView.builder(
                             padding: const EdgeInsets.only(top: 5.0, left: 5.0),
@@ -767,7 +767,7 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(headerKey, style: const TextStyle(color: Color(0xFF224190), fontSize: 28.0, fontWeight: FontWeight.bold), softWrap: true,),
+                            Text(headerKey, style: const TextStyle(color: WeightechThemes.weightechBlue, fontSize: 28.0, fontWeight: FontWeight.bold), softWrap: true,),
                             if (headerEntries?.isNotEmpty ?? false)
                               ListView.builder(
                                 padding: const EdgeInsets.only(top: 5.0, left: 5.0),

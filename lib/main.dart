@@ -2,7 +2,8 @@ import 'package:weightechapp/themes.dart';
 import 'package:weightechapp/utils.dart';
 import 'package:weightechapp/fluent_routes.dart';
 import 'package:fluent_ui/fluent_ui.dart';
-import 'package:weightechapp/extra_widgets.dart';
+import 'package:weightechapp/extra_material_widgets.dart';
+import 'package:weightechapp/extra_fluent_widgets.dart';
 import 'dart:async';
 import 'dart:io';
 import 'package:feedback_github/feedback_github.dart';
@@ -25,10 +26,11 @@ Future<void> main() async {
   await AppInfo().init();
   await Log().init();
   Log.logger.i('Version: ${AppInfo.packageInfo.version}, Build: ${AppInfo.packageInfo.buildNumber}, SessionId: ${AppInfo.sessionId}');
+  WeightechThemes();
 
   runApp(
     FluentTheme(
-      data: FluentThemeData(),
+      data: WeightechThemes.fluentTheme,
       child: BetterFeedback(
         feedbackBuilder: (context, onSubmit, scrollController) {
           return CustomFeedbackForm(
@@ -44,7 +46,6 @@ Future<void> main() async {
           bottomSheetDescriptionStyle: const TextStyle(color: Colors.black),
           bottomSheetTextInputStyle: const TextStyle(color: Colors.black),
           activeFeedbackModeColor: WeightechThemes.weightechBlue,
-          colorScheme: WeightechThemes.materialLightTheme.colorScheme,
         ),
         child: 
           WeightechApp()

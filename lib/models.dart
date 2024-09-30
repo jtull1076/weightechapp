@@ -28,6 +28,17 @@ class ProductManager {
     }
   }
 
+
+  static Future<void> createFromMap(Map<String, dynamic> catalogJson) async {
+    try {
+      all = ProductCategory.fromJson(catalogJson);
+      name = catalogJson["catalogName"];
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+
   static void _restructureDatabase() {
     final ProductCategory root = all!;
 
@@ -171,7 +182,6 @@ sealed class CatalogItem {
   Widget buildCard(VoidCallback onTapCallback) {
     return Card(
       surfaceTintColor: Colors.white,
-      shadowColor: const Color(0xAA000000),
       margin: const EdgeInsets.only(left: 10.0, right: 10.0, bottom: 30.0, top: 30.0),
       child: Stack( 
         children: [

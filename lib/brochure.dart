@@ -2,6 +2,7 @@ import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons, TreeView;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter_fancy_tree_view/flutter_fancy_tree_view.dart';
 import 'package:weightechapp/utils.dart';
+import 'package:weightechapp/themes.dart';
 
 extension BrochureTreeMixin on BrochureItem {
   void removeFromParent(root) {
@@ -106,7 +107,7 @@ class BrochureHeader implements BrochureItem {
         controller: _controller, 
         onChanged: (String newText) => text = newText,
         style: const TextStyle(
-          color: Color(0xFF224190), 
+          color: WeightechThemes.weightechBlue, 
           fontSize: 20, 
           fontWeight: FontWeight.w700
         ),

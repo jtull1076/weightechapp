@@ -1,4 +1,5 @@
 import 'package:google_fonts/google_fonts.dart';
+import 'package:weightechapp/extra_fluent_widgets.dart';
 import 'package:weightechapp/models.dart';
 import 'package:weightechapp/themes.dart';
 import 'package:weightechapp/utils.dart';
@@ -8,7 +9,7 @@ import 'package:weightechapp/fluent_models.dart';
 import 'package:flutter/material.dart' as material hide CarouselController;
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons, TreeView, TreeViewItem;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
-import 'package:weightechapp/extra_widgets.dart';
+import 'package:weightechapp/extra_material_widgets.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:async';
 import 'dart:io';
@@ -29,7 +30,6 @@ import 'package:updat/updat.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_fancy_tree_view/flutter_fancy_tree_view.dart';
-import 'package:meta/meta.dart';
 import 'package:intl/intl.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -212,95 +212,94 @@ class _StartupPageState extends State<StartupPage> with TickerProviderStateMixin
   Widget build(BuildContext context) {
     return ScaffoldPage(
       content: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(right: 0),
-              child: Image.asset('assets/icon/wt_icon.ico', height: 200),
-            ),
-            const SizedBox(height: 10), 
-            Text(AppInfo.packageInfo.version),
-            const SizedBox(height: 10),
-            const ProgressBar(),
-            const SizedBox(height: 5),
-            Text(_startupTaskMessage),
+        child: 
             StreamBuilder(
               stream: _progressStreamController.stream,
               initialData: '',
               builder:(context, AsyncSnapshot<String> snapshot) {
-                if (snapshot.connectionState == ConnectionState.active) {
-                  if (snapshot.hasData) {
-                    return Text(snapshot.data!);
-                  } else {
-                    return const SizedBox(); // Or any loading indicator
-                  }
-                }
-                else if (snapshot.connectionState == ConnectionState.done) {
-                  return Stack(
-                    children: [
-                      if (_checkingForUpdate) const Center(child: Text("...Checking for updates...")),
-                      Center(
-                        child: UpdatWidget(
-                          currentVersion: AppInfo.packageInfo.version,
-                          getLatestVersion: () async {
-                            // Use Github latest endpoint
-                            try {
-                              final data = await http.get(
-                                Uri.parse(
-                                "https://api.github.com/repos/jtull1076/weightechapp/releases/latest"
-                                ),
-                                headers: {
-                                  'Authorization': 'Bearer ${FirebaseUtils.githubToken}'
-                                }
-                              );
-                              final latestVersion = jsonDecode(data.body)["tag_name"];
-                              final verCompare = AppInfo.versionCompare(latestVersion, AppInfo.packageInfo.version);
-                              Log.logger.i('Latest version: $latestVersion : This app version is ${(verCompare == 0) ? "up-to-date." : (verCompare == 1) ? "deprecated." : "in development."}');
-                              return latestVersion;
-                            } catch (e) {
-                              Log.logger.e("Error encounted retrieving latest version.", error: e);
-                            }
-                            return null;
-                          },
-                          getBinaryUrl: (version) async {
-                            return "https://github.com/jtull1076/weightechapp/releases/download/$version/weightechsales-windows-$version.exe";
-                          },
-                          appName: "WeighTech Inc. Sales",
-                          getChangelog: (_, __) async {
-                            final data = await http.get(
-                              Uri.parse(
-                              "https://api.github.com/repos/jtull1076/weightechapp/releases/latest"
-                              ),
-                              headers: {
-                                'Authorization': 'Bearer ${FirebaseUtils.githubToken}'
-                              }
-                            );
-                            Log.logger.t('Changelog: ${jsonDecode(data.body)["body"]}');
-                            return jsonDecode(data.body)["body"];
-                          },
-                          callback: (status) {
-                            if (status == UpdatStatus.upToDate || status == UpdatStatus.error) {
-                              WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-                                Navigator.of(context).pushReplacement(PageRouteBuilder(pageBuilder: (BuildContext context, _, __) => const ControlPage()));
-                              });
-                            }
-                            // else if (status == UpdatStatus.readyToInstall) {
-                            //   setState(() => _updateReady = true);
-                            // }
-                          }
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(right: 0),
+                      child: Image.asset('assets/icon/wt_icon.ico', height: 200),
+                    ),
+                    const SizedBox(height: 10), 
+                    (snapshot.connectionState == ConnectionState.active) 
+                    ? (snapshot.hasData) 
+                      ? Column(
+                          children: [
+                            Text(AppInfo.packageInfo.version),
+                            const SizedBox(height: 5),
+                            const ProgressBar(activeColor: WeightechThemes.weightechBlue),
+                            const SizedBox(height: 10),
+                            Text(snapshot.data!)
+                          ]
                         )
-                      ),
-                    ]
-                  );
-                }
-                else {
-                  return const Text("Other");
-                }
+                      : const ProgressBar(activeColor: WeightechThemes.weightechBlue)
+                    : (snapshot.connectionState == ConnectionState.done)
+                      ? Stack(
+                        children: [
+                          Center(
+                            child: UpdatWidget(
+                              updateChipBuilder: fluentChip,
+                              updateDialogBuilder: fluentUpdateDialog,
+                              currentVersion: AppInfo.packageInfo.version,
+                              getLatestVersion: () async {
+                                // Use Github latest endpoint
+                                try {
+                                  final data = await http.get(
+                                    Uri.parse(
+                                    "https://api.github.com/repos/jtull1076/weightechapp/releases/latest"
+                                    ),
+                                    headers: {
+                                      'Authorization': 'Bearer ${FirebaseUtils.githubToken}'
+                                    }
+                                  );
+                                  final latestVersion = jsonDecode(data.body)["tag_name"];
+                                  final verCompare = AppInfo.versionCompare(latestVersion, AppInfo.packageInfo.version);
+                                  Log.logger.i('Latest version: $latestVersion : This app version is ${(verCompare == 0) ? "up-to-date." : (verCompare == 1) ? "deprecated." : "in development."}');
+                                  return latestVersion;
+                                } catch (e) {
+                                  Log.logger.e("Error encounted retrieving latest version.", error: e);
+                                }
+                                return null;
+                              },
+                              getBinaryUrl: (version) async {
+                                return "https://github.com/jtull1076/weightechapp/releases/download/$version/weightechsales-windows-$version.exe";
+                              },
+                              appName: "WeighTech Inc. Sales",
+                              getChangelog: (_, __) async {
+                                final data = await http.get(
+                                  Uri.parse(
+                                  "https://api.github.com/repos/jtull1076/weightechapp/releases/latest"
+                                  ),
+                                  headers: {
+                                    'Authorization': 'Bearer ${FirebaseUtils.githubToken}'
+                                  }
+                                );
+                                Log.logger.t('Changelog: ${jsonDecode(data.body)["body"]}');
+                                return jsonDecode(data.body)["body"];
+                              },
+                              callback: (status) {
+                                if (status == UpdatStatus.upToDate || status == UpdatStatus.error || status == UpdatStatus.dismissed) {
+                                  WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+                                    Navigator.of(context).pushReplacement(PageRouteBuilder(pageBuilder: (BuildContext context, _, __) => const ControlPage()));
+                                  });
+                                }
+                                // else if (status == UpdatStatus.readyToInstall) {
+                                //   setState(() => _updateReady = true);
+                                // }
+                              }
+                            )
+                          ),
+                        ]
+                      )
+                    : const Text("Other")
+                  ]
+                );
               }
             )
-          ]
-        )
       )
     );
   }
@@ -323,8 +322,6 @@ class ControlPage extends StatefulWidget {
 
 
 class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin, WindowListener {
-  late AnimationController _animationController;
-  late Animation<double> _fadeAnimation;
 
   late TextEditingController _filenameController;
   late bool _editingName;
@@ -367,11 +364,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
     super.initState();
     windowManager.addListener(this);
     windowManager.setPreventClose(true);
-
     
-    _animationController = AnimationController(duration : const Duration(seconds: 4), vsync: this);
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _animationController, curve: const Interval(0.4, 0.6, curve: Curves.ease)));
-
     CatalogEditor(ProductManager.all!);
     _editorAll = CatalogEditor.all;
     _cloudVersion = CatalogEditor.all;
@@ -413,29 +406,45 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
       CommandBarButton(
         icon: const Icon(FluentIcons.info_20_regular),
         label: const Text('Info'),
-        onPressed: () {},
+        onPressed: () async {
+          _showInfoDialog(context);
+        },
       ),
       CommandBarButton(
         icon: const Icon(FluentIcons.arrow_sync_checkmark_20_regular),
         label: const Text('Check For Update'),
-        onPressed: () {},
+        onPressed: () async {
+          await _checkForUpdate(context);
+        },
       ),
+      CommandBarButton(
+        icon: const Icon(FluentIcons.bug_20_regular),
+        label: const Text('Report Bug'),
+        onPressed: () async {
+          String id = shortid.generate();
+          BetterFeedback.of(context).showAndUploadToGitHub(
+            username: 'jtull1076',
+            repository: 'weightechapp',
+            authToken:  FirebaseUtils.githubToken,
+            labels: ['feedback'],
+            assignees: ['jtull1076'],
+            imageId: id,
+          );
+        },
+      )
     ];
 
     toggleEditorItem(_focusItem);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       //Future.delayed(const Duration(seconds: 5), () =>
-      _animationController.forward().whenComplete(() {
-         setState(() => _toggleLoading());
-      });
+      setState(() => _toggleLoading());
       //);
     });
   }
   
   @override
   void dispose() {
-    _animationController.dispose();
     _dropdownController.dispose();
     _nameController.dispose();
     _descriptionController.dispose();
@@ -470,7 +479,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                     Container(
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
-                        color: WeightechThemes.weightechBlue,
+                        color: WeightechThemes.wtGray.darker,
                         borderRadius: BorderRadius.circular(3),
                       ),
                       width: 100,
@@ -483,7 +492,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                             decoration: const BoxDecoration(color: Colors.transparent),
                             textAlign: TextAlign.center,
                             padding: EdgeInsets.zero,
-                            suffix: (CatalogEditor.currentFile == null && !_editingName) ? const Text('*', style: TextStyle(color: Colors.white, fontSize: 12)) : null,
+                            suffix: (CatalogEditor.isUnsaved) ? const Text('*', style: TextStyle(color: Colors.white, fontSize: 12)) : null,
                             textAlignVertical: TextAlignVertical.center,
                             style: const TextStyle(color: Colors.white, fontSize: 12),
                             onEditingComplete: () {
@@ -502,16 +511,6 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                       child: CommandBar(
                         overflowBehavior: CommandBarOverflowBehavior.scrolling,
                         primaryItems: [
-                          CommandBarButton(
-                            icon: const Icon(FluentIcons.cloud_arrow_up_20_regular),
-                            label: const Text('Publish', style: TextStyle(fontSize: 12)),
-                            onPressed: () async {
-                              StreamController<dynamic> streamController = StreamController<dynamic>();
-                              setState(() => _toggleLoading(dynamicStream: streamController.stream));
-                              await CatalogEditor.saveCatalogToCloud(streamController: streamController);
-                              setState(() => _toggleLoading());
-                            },
-                          ),
                           CommandBarButton(
                             icon: const Icon(FluentIcons.save_edit_20_regular),
                             label: const Text('Save As', style: TextStyle(fontSize: 12)),
@@ -564,6 +563,8 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                           _treeController.rebuild();
                                           setState(() {
                                             _editorAll = CatalogEditor.all;
+                                            _selectedCategory = CatalogEditor.all;
+                                            _filenameController.text = CatalogEditor.name;
 
                                             _treeController = TreeController<EItem>(
                                               // Provide the root nodes that will be used as a starting point when
@@ -576,7 +577,6 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                               parentProvider: (EItem item) => item.getParent()
                                             );
                                           
-                                            _selectedCategory = CatalogEditor.all;
                                             _toggleLoading();
                                           });
                                         }
@@ -590,11 +590,35 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                   });
                             },
                           ),
+                          const CommandBarSeparator(
+                            thickness: 0.5,
+                            color: Colors.black,
+                          ),
+                          CommandBarButton(
+                            icon: const Icon(FluentIcons.cloud_arrow_up_20_regular),
+                            label: const Text('Publish', style: TextStyle(fontSize: 12)),
+                            onPressed: () async {
+                              StreamController<dynamic> streamController = StreamController<dynamic>();
+                              setState(() => _toggleLoading(dynamicStream: streamController.stream));
+                              CatalogEditor.name = _filenameController.text;
+                              await CatalogEditor.saveCatalogToCloud(streamController: streamController);
+                              streamController.add(
+                                const Icon(
+                                  FluentIcons.checkmark_circle_48_filled, 
+                                  color: WeightechThemes.weightechBlue, 
+                                  size: 30
+                                )
+                              );
+                              await Future.delayed(const Duration(seconds: 2))
+                                .then((value) {
+                                  setState(() => _toggleLoading());
+                                });
+                            },
+                          ),
                           CommandBarButton(
                             icon: const Icon(FluentIcons.clock_arrow_download_20_regular),
                             label: const Text('Restore Previous', style: TextStyle(fontSize: 12)),
                             onPressed: () async {
-                              // TODO: Implement this
                               final chosenCatalog = await _showRestorationDialog(context);
                               if (chosenCatalog != null) {
                                 Log.logger.i(
@@ -603,6 +627,25 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                   Timestamp: ${chosenCatalog['timestamp']}
                                   """
                                 );
+                                await ProductManager.createFromMap(chosenCatalog);
+                                CatalogEditor.createEditorCatalog(ProductManager.all!);
+                                _treeController.rebuild();
+                                setState(() {
+                                  _editorAll = CatalogEditor.all;
+
+                                  _treeController = TreeController<EItem>(
+                                    // Provide the root nodes that will be used as a starting point when
+                                    // traversing your hierarchical data.
+                                    roots: CatalogEditor.all.editorItems,
+                                    // Provide a callback for the controller to get the children of a
+                                    // given node when traversing your hierarchical data. Avoid doing
+                                    // heavy computations in this method, it should behave like a getter.
+                                    childrenProvider: (EItem item) => item.getSubItems(),
+                                    parentProvider: (EItem item) => item.getParent()
+                                  );
+                                
+                                  _selectedCategory = CatalogEditor.all;
+                                });
                               }
                             },
                           ),
@@ -637,9 +680,9 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                 return Container(
                                   constraints: const BoxConstraints(minWidth: 80),
                                   padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 5),
-                                  decoration: const BoxDecoration(
-                                    color: Color(0xFFD9D9D9),
-                                    borderRadius: BorderRadius.only(
+                                  decoration: BoxDecoration(
+                                    color: WeightechThemes.wtGray.light,
+                                    borderRadius: const BorderRadius.only(
                                       topLeft: Radius.circular(8),
                                       bottomLeft: Radius.circular(8),
                                     )
@@ -725,8 +768,8 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                   return Container(
                                     constraints: const BoxConstraints(minWidth: 80),
                                     padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 5),
-                                    decoration: const BoxDecoration(
-                                      color: Color(0xFFD9D9D9),
+                                    decoration: BoxDecoration(
+                                      color: WeightechThemes.wtGray.light,
                                     ),
                                     child: child
                                   );
@@ -745,8 +788,8 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                   return Container(
                                     constraints: const BoxConstraints(minWidth: 80),
                                     padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 5),
-                                    decoration: const BoxDecoration(
-                                      color: Color(0xFFD9D9D9),
+                                    decoration: BoxDecoration(
+                                      color: WeightechThemes.wtGray.light,
                                     ),
                                     child: child
                                   );
@@ -783,9 +826,9 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                 return Container(
                                   constraints: const BoxConstraints(minWidth: 80),
                                   padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 5),
-                                  decoration: const BoxDecoration(
-                                    color: Color(0xFFD9D9D9),
-                                    borderRadius: BorderRadius.only(
+                                  decoration: BoxDecoration(
+                                    color: WeightechThemes.wtGray.light,
+                                    borderRadius: const BorderRadius.only(
                                       topRight: Radius.circular(8),
                                       bottomRight: Radius.circular(8),
                                     )
@@ -887,6 +930,8 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
   }
 
   Widget buildItemsList({required ECategory item}) {
+    final flyoutController = FlyoutController();
+
     return AnimatedTreeView<EItem>(
       shrinkWrap: false,
       treeController: _treeController,
@@ -993,7 +1038,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
               height: 50,
               width: 250,
               child: ListTile(
-                tileColor: const WidgetStatePropertyAll<Color>(Color(0xFFD9D9D9)),
+                tileColor: WidgetStatePropertyAll<Color>(WeightechThemes.wtGray.light),
                 contentPadding: const EdgeInsets.all(0),
                 onPressed: null,
                 leading: (entry.node is ECategory) 
@@ -1012,48 +1057,117 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
               entry: entry,
               child: Container(
                 decoration: decoration,
-                child: ListTile(
-                  tileColor: (entry.node == _focusItem) 
-                    ? const WidgetStatePropertyAll<Color>(Color(0xFF696969))
-                    : entry.isExpanded ? const WidgetStatePropertyAll<Color>(Color(0xFFD9D9D9)) : null,
-                  contentPadding: const EdgeInsets.only(right: 10),
-                  onPressed: () {
-                    if (entry.node is ECategory) {
-                      if (!entry.isExpanded) {
-                        _treeController.toggleExpansion(entry.node);
+                child: GestureDetector(
+                  onSecondaryTapUp:(details) async {
+                    flyoutController.showFlyout(
+                      barrierColor: Colors.black.withOpacity(0.1),
+                      barrierDismissible: true,
+                      dismissWithEsc: true,
+                      placementMode: FlyoutPlacementMode.topCenter,
+                      position: details.globalPosition,
+                      builder: (context) {
+                        return FlyoutContent(
+                          child: SizedBox(
+                            child: IntrinsicHeight(
+                              child: CommandBar(
+                                direction: Axis.vertical,
+                                overflowBehavior: CommandBarOverflowBehavior.noWrap,
+                                primaryItems: [
+                                  if (entry.node != _focusItem)
+                                    CommandBarButton(
+                                      label: const Text("Edit"),
+                                      onPressed: () async {
+                                        toggleEditorItem(entry.node);
+                                        Flyout.of(context).close();
+                                      }
+                                    ),
+                                  CommandBarButton(
+                                    label: const Text("Delete"),
+                                    onPressed: () async {
+                                      final confirmed = await _showItemDeleteDialog(context, entry.node,);
+                                      if (confirmed) {
+                                        _focusItem!.delete();
+                                        _treeController.rebuild();
+                                        setState(() => _focusItem = null);
+                                      }
+                                      if (context.mounted) Flyout.of(context).close();
+                                    }
+                                  ),
+                                  if (entry.node is ECategory) 
+                                    ...[
+                                      CommandBarButton(
+                                        label: const Text("Add Product"),
+                                        onPressed: () async {
+                                          final newProduct = EProduct.temp();
+                                          toggleEditorItem(newProduct, newItem: true);
+                                          setState(() => _selectedCategory = entry.node as ECategory);
+                                          Flyout.of(context).close();
+                                        },
+                                      ),
+                                      CommandBarButton(
+                                        label: const Text("Add Category"),
+                                        onPressed: () async {
+                                          final newProduct = EProduct.temp();
+                                          toggleEditorItem(newProduct, newItem: true);
+                                          setState(() => _selectedCategory = entry.node as ECategory);
+                                          Flyout.of(context).close();
+                                        },
+                                      ),
+                                    ]
+                                ],
+                              )
+                            )
+                          )
+                        );
                       }
-                      else {
-                        if (entry.node != _focusItem) {
-                          toggleEditorItem(entry.node);
+                    );
+                  },
+                  child: FlyoutTarget(
+                    controller: flyoutController,
+                    child: ListTile(
+                      tileColor: (entry.node == _focusItem) 
+                        ? const WidgetStatePropertyAll<Color>(Color(0xFF696969))
+                        : entry.isExpanded ? WidgetStatePropertyAll<Color>(WeightechThemes.wtGray.light) : null,
+                      contentPadding: const EdgeInsets.only(right: 10),
+                      onPressed: () {
+                        if (entry.node is ECategory) {
+                          if (!entry.isExpanded) {
+                            _treeController.toggleExpansion(entry.node);
+                          }
+                          else {
+                            if (entry.node != _focusItem) {
+                              toggleEditorItem(entry.node);
+                            }
+                            else {
+                              _treeController.collapseCascading([entry.node]);
+                            }
+                          }
                         }
                         else {
-                          _treeController.collapseCascading([entry.node]);
+                          toggleEditorItem(entry.node);
                         }
-                      }
-                    }
-                    else {
-                      toggleEditorItem(entry.node);
-                    }
-                  },
-                  leading: (entry.node is ECategory) ?
-                    IconButton(
-                      icon: (entry.isExpanded)
-                        ? Icon(FluentIcons.list_bar_tree_20_regular, color: (entry.node == _focusItem) ? Colors.white : Colors.black)
-                        : Icon(FluentIcons.list_bar_20_regular, color: (entry.node == _focusItem) ? Colors.white : Colors.black),
-                      onPressed: () {
-                        (!entry.isExpanded) 
-                        ? _treeController.toggleExpansion(entry.node)
-                        : _treeController.collapseCascading([entry.node]);
-                      }
+                      },
+                      leading: (entry.node is ECategory) ?
+                        IconButton(
+                          icon: (entry.isExpanded)
+                            ? Icon(FluentIcons.list_bar_tree_20_regular, color: (entry.node == _focusItem) ? Colors.white : Colors.black)
+                            : Icon(FluentIcons.list_bar_20_regular, color: (entry.node == _focusItem) ? Colors.white : Colors.black),
+                          onPressed: () {
+                            (!entry.isExpanded) 
+                            ? _treeController.toggleExpansion(entry.node)
+                            : _treeController.collapseCascading([entry.node]);
+                          }
+                        )
+                        : Icon(FluentIcons.production_20_regular, color: (entry.node == _focusItem) ? Colors.white : Colors.black),
+                      title: Text(
+                        entry.node.name, 
+                        style: TextStyle(
+                          color: (entry.node == _focusItem) ? Colors.white : Colors.black,
+                          fontSize: 14
+                        )
+                      ),
                     )
-                    : Icon(FluentIcons.production_20_regular, color: (entry.node == _focusItem) ? Colors.white : Colors.black),
-                  title: Text(
-                    entry.node.name, 
-                    style: TextStyle(
-                      color: (entry.node == _focusItem) ? Colors.white : Colors.black,
-                      fontSize: 14
-                    )
-                  ),
+                  )
                 )
               )
             )
@@ -1132,7 +1246,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                 const SizedBox(height: 10),
                 Button(
                   style: const ButtonStyle(
-                    backgroundColor: WidgetStatePropertyAll<Color>(Color(0xFF224190)),
+                    backgroundColor: WidgetStatePropertyAll<Color>(WeightechThemes.weightechBlue),
                     foregroundColor: WidgetStatePropertyAll<Color>(Colors.white)
                   ),
                   child: _addingItem ? const Text("Add") : const Text("Save"),
@@ -1184,19 +1298,28 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
   Widget productNameWidget() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
-      child: TextFormBox(
-        decoration: const BoxDecoration(
-          color: Color(0xFF224190),
-          borderRadius: BorderRadius.zero,
-        ),
-        style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
-        textAlign: TextAlign.center,
-        controller: _nameController,
-        placeholder: "Product Name *",
-        placeholderStyle: const TextStyle(color: Colors.white, fontSize: 32, fontStyle: FontStyle.italic),
-        validator: (String? value) {
-          return (value == null || value == '' || value == 'All') ? "Name required (and cannot be 'All')." : null;
-        }
+      child: Column(
+        children: [
+          TextFormBox(
+            decoration: const BoxDecoration(
+              color: WeightechThemes.weightechBlue,
+              borderRadius: BorderRadius.zero,
+            ),
+            style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+            controller: _nameController,
+            placeholder: "Product Name *",
+            placeholderStyle: const TextStyle(color: Colors.white, fontSize: 32, fontStyle: FontStyle.italic),
+            validator: (String? value) {
+              return (value == null || value == '' || value == 'All') ? "Name required (and cannot be 'All')." : null;
+            }
+          ),
+          Container(
+            color: WeightechThemes.weightechGray,
+            height:  5,
+            width: double.infinity
+          )
+        ]
       )
     );
   }
@@ -1285,7 +1408,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: Colors.black),
-          color: _fileDragging ? const Color(0x44224190) : const Color(0x44C9C9CC),
+          color: _fileDragging ? WeightechThemes.wtGray.normal : WeightechThemes.wtGray.lighter,
         ),
         child: _mediaPaths.isEmpty ?
             Column(
@@ -1384,7 +1507,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                 index: index,
                 child: 
                   ListTile(
-                    tileColor: const WidgetStatePropertyAll<Color>(Color(0x55C9C9CC)),
+                    tileColor: WidgetStatePropertyAll<Color>(WeightechThemes.wtGray.light),
                     leading: Text('${index+1}.'),
                     title: Text(imageText, style: const TextStyle(fontSize: 14)),
                     trailing: Row(
@@ -1394,7 +1517,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                               builder: (context, setState) {
                                 return IconButton(
                                   icon: isDownloading ? 
-                                    LoadingAnimationWidget.bouncingBall(color: const Color(0xFFA9A9AA), size: 15) 
+                                    LoadingAnimationWidget.bouncingBall(color: WeightechThemes.loadingAnimationColor, size: 15) 
                                     : const Icon(FluentIcons.cloud_arrow_down_20_regular),
                                   onPressed: () async {
                                     setState(() => isDownloading = true);
@@ -1426,7 +1549,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                               children: [
                                 IconButton(
                                   style: ButtonStyle(
-                                    backgroundColor: (index == _primaryImageIndex) ? const WidgetStatePropertyAll<Color>(Color(0xFFC9C9CC)) : null
+                                    backgroundColor: (index == _primaryImageIndex) ? const WidgetStatePropertyAll<Color>(WeightechThemes.weightechGray) : null
                                   ),
                                   icon: Icon(
                                     (index == _primaryImageIndex) ? FluentIcons.star_20_filled : FluentIcons.star_20_regular,
@@ -1576,7 +1699,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                       late final controller = VideoController(player);
                       player.open(Media(file.path));
                       return ClipRRect(
-                        borderRadius: BorderRadius.circular(30),
+                        borderRadius: BorderRadius.circular(5),
                         child: FullScreenWidget(
                           disposeLevel: DisposeLevel.low,
                           child: Hero(
@@ -1593,7 +1716,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                     }
                     else {
                       return ClipRRect(
-                        borderRadius: BorderRadius.circular(30),
+                        borderRadius: BorderRadius.circular(5),
                         child: FullScreenWidget(
                           disposeLevel: DisposeLevel.low,
                           child: Hero(
@@ -1617,7 +1740,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                             late final controller = VideoController(player);
                             player.open(Media(snapshot.data!.path));
                             return ClipRRect(
-                              borderRadius: BorderRadius.circular(30),
+                              borderRadius: BorderRadius.circular(10),
                               child: FullScreenWidget(
                                 disposeLevel: DisposeLevel.low,
                                 child: Hero(
@@ -1634,7 +1757,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                           }
                           else {
                             return ClipRRect(
-                              borderRadius: BorderRadius.circular(30),
+                              borderRadius: BorderRadius.circular(10),
                               child: FullScreenWidget(
                                 disposeLevel: DisposeLevel.low,
                                 child: Hero(
@@ -1685,12 +1808,20 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
       padding: const EdgeInsets.symmetric(horizontal: 150, vertical: 20),
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0x44C9C9CC),
+          color: WeightechThemes.infoWidgetColor,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: const Color(0xFF898988),
-            width: 1,
-          )
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.5),
+              spreadRadius: 1,
+              blurRadius: 2,
+              offset: Offset(0, 2), // changes position of shadow
+            ),
+          ],
+          // border: Border.all(
+          //   color: const Color(0xFF898988),
+          //   width: 1,
+          // )
         ),
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -1752,7 +1883,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
             const SizedBox(height: 0),
             Button(
               style: const ButtonStyle(
-                backgroundColor: WidgetStatePropertyAll<Color>(Color(0xFF224190)),
+                backgroundColor: WidgetStatePropertyAll<Color>(WeightechThemes.weightechBlue),
                 foregroundColor: WidgetStatePropertyAll<Color>(Colors.white)
               ),
               child: _addingItem ? const Text("Add") : const Text("Save"),
@@ -1801,7 +1932,6 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
         color: Colors.white,
         surfaceTintColor: Colors.white,
         elevation: 4,
-        shadowColor: const Color(0xAA000000),
         margin: const EdgeInsets.only(left: 10.0, right: 10.0, bottom: 30.0, top: 30.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.start,
@@ -1819,7 +1949,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                         padding: const EdgeInsets.all(20),
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: BorderRadius.circular(5),
                           image: DecorationImage(
                             fit: BoxFit.cover,
                             image: ResizeImage(
@@ -1836,7 +1966,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                             child: material.Material(
                               color: Colors.transparent,
                               child: material.InkWell(
-                                borderRadius: BorderRadius.circular(20),
+                                borderRadius: BorderRadius.circular(5),
                                 hoverColor: const Color(0x55000000),
                                 onHover: (isHovering) {
                                   if (isHovering) {
@@ -1851,7 +1981,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                   _mediaPaths.clear();
                                   super.setState(() {});
                                 },
-                                child: hoverOnImageRemove ? const Icon(FluentIcons.dismiss_20_regular, size:40, color: Color(0xFFC9C9CC)) : const SizedBox()
+                                child: hoverOnImageRemove ? const Icon(FluentIcons.dismiss_20_regular, size:40, color: WeightechThemes.weightechGray) : const SizedBox()
                               )
                             )
                           );
@@ -1897,7 +2027,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(color: WeightechThemes.weightechGray),
-                        color: _fileDragging ? WeightechThemes.weightechGray : const Color(0x44C9C9CC),
+                        color: _fileDragging ? WeightechThemes.fileDropColor : WeightechThemes.wtGray.lighter,
                       ),
                       padding: const EdgeInsets.all(20),
                       alignment: Alignment.center,
@@ -1998,12 +2128,20 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
       padding: const EdgeInsets.fromLTRB(150, 20, 150, 0),
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0x44C9C9CC),
+          color: WeightechThemes.infoWidgetColor,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: const Color(0xFF898988),
-            width: 1,
-          )
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.5),
+              spreadRadius: 1,
+              blurRadius: 2,
+              offset: Offset(0, 2), // changes position of shadow
+            ),
+          ],
+          // border: Border.all(
+          //   color: const Color(0xFF898988),
+          //   width: 1,
+          // )
         ),
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -2061,11 +2199,12 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
   Future<void> toggleEditorItem(EItem? focusItem, {bool newItem = false}) async {
     StreamController<String> updateStreamController = StreamController<String>();
 
-    setState(() => _toggleLoading(textStream: updateStreamController.stream));
+    setState(() => _toggleLoading(dynamicStream: updateStreamController.stream));
     switch (focusItem) {
       case EProduct _ : {
         List<String> newImagePaths = await focusItem.getImagePaths() ?? [];
-        updateStreamController.add('Downloading product media...');
+
+        updateStreamController.add("Downloading product media...\nThis might take a moment...");
         List<File> newImageFiles = await focusItem.getImageFiles(paths: newImagePaths) ?? [];
         updateStreamController.add('Loading...');
         _mediaPaths.clear();
@@ -2106,75 +2245,130 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
   }
 
 
-  void _toggleLoading({Stream<dynamic>? dynamicStream, Stream<String>? textStream, Stream<Widget>? widgetStream}) {
-    assert(
-      !(((dynamicStream != null) && (textStream != null)) || ((textStream != null) && (widgetStream != null)) || ((dynamicStream != null) && (widgetStream != null))),
-      "_toggleLoading can only be provided with one stream!"
-    );
+  void _toggleLoading({Stream<dynamic>? dynamicStream, Widget? loadingWidget, bool? loadingSomething}) {
 
-    _loadingSomething = !_loadingSomething;
-    _ignoringPointer = !_ignoringPointer;
+    if (loadingSomething != null) {
+      _loadingSomething = loadingSomething;
+      _ignoringPointer = loadingSomething;
+    }
+    else {
+      _loadingSomething = !_loadingSomething;
+      _ignoringPointer = !_ignoringPointer;
+    }
 
-    _loadingWidget = ContentDialog(
-      title: 
-        (dynamicStream != null)
-          ? StreamBuilder(
-            stream: dynamicStream,
-            builder: (context, snapshot) {
-              if (snapshot.hasData) {
-                if (snapshot.data is String) {
-                  return Text(snapshot.data!, style: const TextStyle(fontSize: 14), textAlign: TextAlign.center);
-                }
-                else if (snapshot.data is EItem) {
-                  EItem item = snapshot.data;
-                  switch (item) {
-                    case ECategory _ : {
-                      return Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (item.imagePath != null) Image.file((File(item.imagePath!))),
-                          Text("${item.name}...")
-                        ]
-                      );
-                    }
-                    case EProduct _ : {
-                      return Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (item.mediaFiles?.isNotEmpty ?? false) Image.file((File(item.mediaPaths![0]))),
-                          Text("${item.name}...")
-                        ]
-                      );
-                    }
-                  }
-                }
-                else {
-                  return const Text('Loading...', style: TextStyle(fontSize: 14), textAlign: TextAlign.center,);
-                }
+    if (loadingWidget != null) {
+      _loadingWidget = loadingWidget;
+    }
+    else {
+      _loadingWidget = (dynamicStream != null)
+        ? StreamBuilder(
+          stream: dynamicStream,
+          builder: (context, snapshot) {
+            if (snapshot.hasData) {
+              if (snapshot.data is String) {
+                return ContentDialog(
+                  title: Center(
+                    heightFactor: 1,
+                    child: Text(snapshot.data!, style: TextStyle(fontSize: 14, color: WeightechThemes.defaultTextColor), textAlign: TextAlign.center),
+                  ),
+                  content: const Center(
+                    heightFactor: 1,
+                    child: ProgressBar(
+                      activeColor: WeightechThemes.weightechBlue,
+                    )
+                  )
+                );
+              }
+              else if (snapshot.data is EItem) {
+                final item = snapshot.data;
+                return ContentDialog(
+                  title: 
+                    Center(
+                      heightFactor: 1,
+                      child: (item is ECategory)
+                        ? Row(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            if (item.imagePath != null) Image.file((File(item.imagePath!))),
+                            Expanded(
+                              child: Text("${item.name}...", textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: WeightechThemes.defaultTextColor))
+                            )
+                          ]
+                        )
+                      : (item is EProduct)
+                        ? Row(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            if (item.mediaFiles?.isNotEmpty ?? false) 
+                              if (!FileUtils.isMP4(item.mediaPaths![0]))
+                                Image.file((File(item.mediaPaths![0]))),
+                            Expanded(
+                              child: Text("${item.name}...", textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: WeightechThemes.defaultTextColor))
+                            )
+                          ]
+                        )
+                        : Text('Loading...', style: TextStyle(fontSize: 14, color: WeightechThemes.defaultTextColor), textAlign: TextAlign.center,),
+                    ),
+                  content: const Center(
+                    heightFactor: 1,
+                    child: ProgressBar(
+                      activeColor: WeightechThemes.weightechBlue,
+                    )
+                  )
+                );
+              }
+              else if (snapshot.data is Widget) {
+                return ContentDialog(
+                  title: Center(
+                    heightFactor: 1,
+                    child: Text('Success!', style: TextStyle(fontSize: 14, color: WeightechThemes.defaultTextColor), textAlign: TextAlign.center,),
+                  ),
+                  content: Center(
+                    heightFactor: 1,
+                    child: snapshot.data
+                  )
+                );
               }
               else {
-                return const Text('Loading...', style: TextStyle(fontSize: 14), textAlign: TextAlign.center,);
+                return ContentDialog(
+                  title: Center(
+                    heightFactor: 1,
+                    child: Text('Loading...', style: TextStyle(fontSize: 14, color: WeightechThemes.defaultTextColor), textAlign: TextAlign.center,),
+                  ),
+                  content: const Center(
+                    heightFactor: 1,
+                    child: ProgressBar(
+                      activeColor: WeightechThemes.weightechBlue,
+                    )
+                  )
+                );
               }
             }
-          )
-          : (textStream != null) 
-            ? StreamBuilder(
-              stream: textStream,
-              builder: (context, snapshot) {
-                if (snapshot.hasData) {
-                  return Text(snapshot.data!, style: const TextStyle(fontSize: 14), textAlign: TextAlign.center,);
-                }
-                else {
-                  return const Text('Loading...', style: TextStyle(fontSize: 14), textAlign: TextAlign.center,);
-                }
-              }
+            else {
+              return ContentDialog(
+                title: Text('Loading...', style: TextStyle(fontSize: 14, color: WeightechThemes.defaultTextColor), textAlign: TextAlign.center,),
+                content: const Center(
+                  heightFactor: 1,
+                  child: ProgressBar(
+                    activeColor: WeightechThemes.weightechBlue,
+                  )
+                )
+              );
+            }
+          }
+        )
+        : ContentDialog(
+          title: Text('Loading...', style: TextStyle(fontSize: 14, color: WeightechThemes.defaultTextColor), textAlign: TextAlign.center,),
+          content: const Center(
+            heightFactor: 1,
+            child: ProgressBar(
+              activeColor: WeightechThemes.weightechBlue,
             )
-            : const Text('Loading...', style: TextStyle(fontSize: 14)),
-      content: const ProgressBar(),
-      style: const ContentDialogThemeData(
-        bodyPadding: EdgeInsets.symmetric(horizontal: 50),
-      )
-    );
+          )
+        );
+    }
   }
 
 
@@ -2198,7 +2392,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                         Navigator.of(context).pop(true);
                       }
                     ),
-                    Button(
+                    FilledButton(
                       child: const Text("Cancel"),
                       onPressed: () {
                         Navigator.of(context).pop(false);
@@ -2227,11 +2421,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                         Navigator.of(context).pop(true);
                       }
                     ),
-                    Button(
-                      style: const ButtonStyle(
-                        backgroundColor: WidgetStatePropertyAll<Color>(Color(0xFF224190)),
-                        foregroundColor: WidgetStatePropertyAll<Color>(Colors.white),
-                      ),
+                    FilledButton(
                       child: const Text("Cancel"),
                       onPressed: () {
                         Navigator.of(context).pop(false);
@@ -2268,7 +2458,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                         Navigator.of(context).pop(true);
                       }
                     ),
-                    Button(
+                    FilledButton(
                       child: const Text("Cancel"),
                       onPressed: () {
                         Navigator.of(context).pop(false);
@@ -2297,11 +2487,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                         Navigator.of(context).pop(true);
                       }
                     ),
-                    Button(
-                      style: const ButtonStyle(
-                        backgroundColor: WidgetStatePropertyAll<Color>(Color(0xFF224190)),
-                        foregroundColor: WidgetStatePropertyAll<Color>(Colors.white),
-                      ),
+                    FilledButton(
                       child: const Text("Cancel"),
                       onPressed: () {
                         Navigator.of(context).pop(false);
@@ -2353,16 +2539,17 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                         Padding(
                           padding: const EdgeInsets.all(1.4),
                           child:
-                            FadeTransition(
-                              opacity: _fadeAnimation,
-                              child: 
-                                Text(_nameController.text, 
-                                  textAlign: TextAlign.center, 
-                                  style: const TextStyle(fontSize: 22.4, fontWeight: FontWeight.bold, color: Colors.white),
-                                )
+                            Text(_nameController.text, 
+                              textAlign: TextAlign.center, 
+                              style: const TextStyle(fontSize: 22.4, fontWeight: FontWeight.bold, color: Colors.white),
                             )
                         )
-                      ),
+                    ),
+                    Container(
+                      color: WeightechThemes.weightechGray,
+                      height:  4,
+                      width: double.infinity
+                    ),
                     Expanded(
                       child: 
                         SingleChildScrollView(
@@ -2404,7 +2591,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                                         late final controller = VideoController(player);
                                                         player.open(Media(snapshot.data!.path));
                                                         return ClipRRect(
-                                                          borderRadius: BorderRadius.circular(30),
+                                                          borderRadius: BorderRadius.circular(10),
                                                           child: FullScreenWidget(
                                                             disposeLevel: DisposeLevel.low,
                                                             child: Hero(
@@ -2421,7 +2608,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                                       }
                                                       else {
                                                         return ClipRRect(
-                                                          borderRadius: BorderRadius.circular(30),
+                                                          borderRadius: BorderRadius.circular(10),
                                                           child: FullScreenWidget(
                                                             disposeLevel: DisposeLevel.low,
                                                             child: Hero(
@@ -2484,7 +2671,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                             return Column(
                                               crossAxisAlignment: CrossAxisAlignment.start,
                                               children: [
-                                                Text(headerKey, style: const TextStyle(color: Color(0xFF224190), fontSize: 19.6, fontWeight: FontWeight.bold), softWrap: true,),
+                                                Text(headerKey, style: const TextStyle(color: WeightechThemes.weightechBlue, fontSize: 19.6, fontWeight: FontWeight.bold), softWrap: true,),
                                                 if (headerEntries?.isNotEmpty ?? false)
                                                   ListView.builder(
                                                     padding: const EdgeInsets.only(top: 3.5, left: 3.5),
@@ -2586,61 +2773,221 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
   }
   
   Future<Map<String,dynamic>?> _showRestorationDialog(BuildContext context,) async {
-    Map<String, dynamic>? chosenCatalog;
-
     _toggleLoading();
     List<Map<String, dynamic>> catalogOptions = await FirebaseUtils.getLastFromFirestore(3);
     _toggleLoading();
     
     if (context.mounted) {
-      chosenCatalog = await showDialog<Map<String, dynamic>>(
+      return await showDialog<Map<String, dynamic>?>(
         context: context,
         builder: (BuildContext context) {
-          return StatefulBuilder(
-            builder: (context, setState) {
-              return ContentDialog(
-                title: const Text("Previous Catalog Versions"),
-                content: ListView.builder(
-                  itemCount: catalogOptions.length,
-                  shrinkWrap: true,
-                  itemBuilder: (context, index) {
-                    return ListTile(
-                      leading: Text('$index.'),
-                      title: Row(
-                        mainAxisAlignment: material.MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            (catalogOptions[index]['catalogName'] ?? 'Untitled') + '  ',
-                            style: const TextStyle(fontSize: 18)
-                          ),
-                          Text(
-                            DateFormat('MMM d, y h:mm a').format(DateTime.fromMillisecondsSinceEpoch(catalogOptions[index]['timestamp'].millisecondsSinceEpoch)),
-                            style: const TextStyle(fontStyle: FontStyle.italic)
-                          ),
-                        ]
+          return ContentDialog(
+            title: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 50),
+              alignment: Alignment.center,
+              child: const Text("Previous Catalog Versions")
+            ),
+            content: ListView.builder(
+              itemCount: catalogOptions.length,
+              shrinkWrap: true,
+              itemBuilder: (statefulContext, index) {
+                return ListTile(
+                  leading: Text('$index.'),
+                  title: Row(
+                    mainAxisAlignment: material.MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        (catalogOptions[index]['catalogName'] ?? 'Untitled') + '  ',
+                        style: const TextStyle(fontSize: 16)
                       ),
-                      onPressed: () {
-                        chosenCatalog = catalogOptions[index];
-                        Navigator.of(context).pop(chosenCatalog);
-                      }
-                    );
-                  },
-                ),
-                actions: <Widget>[
-                  Button(
-                    child: const Text("Cancel"),
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                    }
+                      Text(
+                        DateFormat('MMM d, y h:mm a').format(DateTime.fromMillisecondsSinceEpoch(catalogOptions[index]['timestamp'].millisecondsSinceEpoch)),
+                        style: const TextStyle(fontStyle: FontStyle.italic, fontSize: 14)
+                      ),
+                    ]
                   ),
-                ]
-              );
-            }
+                  onPressed: () async {
+                    final confirmed = await _showRestorationConfirmation(context, DateFormat('MMM d, y h:mm a').format(DateTime.fromMillisecondsSinceEpoch(catalogOptions[index]['timestamp'].millisecondsSinceEpoch)));
+                    if (confirmed) {
+                      if (context.mounted) {
+                        Navigator.of(context).pop(catalogOptions[index]);
+                      }
+                    }
+                    else {
+                      if (context.mounted) {
+                        Navigator.of(context).pop();
+                      }
+                    }
+                  }
+                );
+              },
+            ),
+            actions: <Widget>[
+              Button(
+                child: const Text("Cancel"),
+                onPressed: () {
+                  Navigator.of(context).pop(null);
+                }
+              ),
+            ]
           );
         }
       );
     }
+    return null;
   }
+
+
+  Future<bool> _showRestorationConfirmation(BuildContext context, String date) async {
+    bool? confirmation = false;
+
+    confirmation = await showDialog<bool?>(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return ContentDialog(
+              title: const Text("Warning!"),
+              content: Text("You are about to restore this catalog to one from $date. You will lose your unsaved progress.\n\nAre you sure?"),
+              actions: <Widget>[
+                Button(
+                  child: const Text("Restore"),
+                  onPressed: () {
+                    Navigator.of(context).pop(true);
+                  }
+                ),
+                FilledButton(
+                  child: const Text("Cancel"),
+                  onPressed: () {
+                    Navigator.of(context).pop(false);
+                  }
+                )
+              ]
+            );
+          }
+        );
+      }
+    );
+    return confirmation ?? false;
+  }
+
+
+
+  Future<void> _checkForUpdate(BuildContext context) async {
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return ContentDialog(
+          content: Center(
+            heightFactor: 1,
+            child: UpdatWidget(
+              updateChipBuilder: fluentChip,
+              updateDialogBuilder: fluentUpdateDialog,
+              currentVersion: AppInfo.packageInfo.version,
+              getLatestVersion: () async {
+                // Use Github latest endpoint
+                try {
+                  final data = await http.get(
+                    Uri.parse(
+                    "https://api.github.com/repos/jtull1076/weightechapp/releases/latest"
+                    ),
+                    headers: {
+                      'Authorization': 'Bearer ${FirebaseUtils.githubToken}'
+                    }
+                  );
+                  final latestVersion = jsonDecode(data.body)["tag_name"];
+                  final verCompare = AppInfo.versionCompare(latestVersion, AppInfo.packageInfo.version);
+                  Log.logger.i('Latest version: $latestVersion : This app version is ${(verCompare == 0) ? "up-to-date." : (verCompare == 1) ? "deprecated." : "in development."}');
+                  return latestVersion;
+                } catch (e) {
+                  Log.logger.e("Error encounted retrieving latest version.", error: e);
+                }
+                return null;
+              },
+              getBinaryUrl: (version) async {
+                return "https://github.com/jtull1076/weightechapp/releases/download/$version/weightechsales-windows-$version.exe";
+              },
+              appName: "WeighTech Inc. Sales",
+              getChangelog: (_, __) async {
+                final data = await http.get(
+                  Uri.parse(
+                  "https://api.github.com/repos/jtull1076/weightechapp/releases/latest"
+                  ),
+                  headers: {
+                    'Authorization': 'Bearer ${FirebaseUtils.githubToken}'
+                  }
+                );
+                Log.logger.t('Changelog: ${jsonDecode(data.body)["body"]}');
+                return jsonDecode(data.body)["body"];
+              },
+              callback: (status) async {
+                if (status == UpdatStatus.upToDate || status == UpdatStatus.dismissed) {
+                  await Future.delayed(const Duration(seconds: 1)).then((value) => Navigator.of(context).pop());
+                }
+              }
+            )
+          )
+        );
+      }
+    );
+  }
+
+
+  Future<void> _showInfoDialog(BuildContext context) async {
+    await showDialog(
+      context: context,
+      builder: (_) {
+        return ContentDialog(
+          title: Center(child: Image.asset('assets/skullanimation_v2.gif', height: 120)),
+          content: Container(
+            alignment: Alignment.center,
+            height: 150,
+            width: double.infinity,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Image.asset('assets/icon/wt_icon.ico', height: 100),
+                const SizedBox(width: 30),
+                Flexible(
+                  fit: FlexFit.loose,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(AppInfo.packageInfo.appName, style: FluentTheme.of(context).typography.title),
+                      ),
+                      const SizedBox(height: 5),
+                      Text("App Version: ${AppInfo.packageInfo.version}", style: FluentTheme.of(context).typography.bodyLarge?.copyWith(fontSize: 16)),
+                      const SizedBox(height: 8),
+                      Button(
+                        child: const Text("View Licenses"),
+                        onPressed: () => material.showLicensePage(
+                          context: context, 
+                          applicationName: AppInfo.packageInfo.appName, 
+                          applicationVersion: AppInfo.packageInfo.version, 
+                          applicationIcon: Image.asset('assets/icon/wt_icon.ico', height: 200)
+                        ),
+                      ),
+                    ]
+                  )
+                )
+              ]
+            )
+          ),
+          actions: <Widget>[
+            Button(
+              child: const Text("Close"),
+              onPressed: () => Navigator.of(context).pop()
+            )
+          ],
+        );
+      }
+    );
+  }
+
 
   @override
   void onWindowClose() async {
@@ -2656,7 +3003,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
           return StatefulBuilder(
             builder: (context, setState) {
               return ContentDialog(
-                title: const Text('Save your changes to this file?', style: TextStyle(color: Color(0xFF224190), fontSize: 18)),
+                title: const Text('Save your changes to this file?'),
                 content: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: material.CrossAxisAlignment.start,
@@ -2705,11 +3052,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                   ]
                 ),
                 actions: [
-                  Button(
-                    style: const ButtonStyle(
-                      backgroundColor: WidgetStatePropertyAll<Color>(Color(0xFF224190)),
-                      foregroundColor: WidgetStatePropertyAll<Color>(Colors.white),
-                    ),
+                  FilledButton(
                     child: const Text('Save'),
                     onPressed: () async {
                       await CatalogEditor.saveCatalogLocal(path: unsavedNameController.text);

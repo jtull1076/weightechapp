@@ -42,7 +42,7 @@ class CatalogEditor {
   ///
   /// If internet is available, it retrieves the published catalog version.
   CatalogEditor(ProductCategory catalog) {
-    name = 'Untitled 1';
+    name = ProductManager.name ?? 'Untitled';
     isLocal = false;
     isUnsaved = false;
     createEditorCatalog(catalog);
@@ -121,6 +121,8 @@ class CatalogEditor {
       await updateImages(streamController);
       Log.logger.t("Product images updated.");
       ProductManager.all = all.category;
+      ProductManager.name = CatalogEditor.name;
+      final refer = CatalogEditor.name;
       streamController?.add("Updating catalog...");
       await ProductManager.postCatalogToFirestore(name: name);
       Log.logger.t("Catalog update completed.");
@@ -323,7 +325,7 @@ class CatalogEditor {
 
   /// Uploads a locally saved catalog from the specified [path].
   ///
-  /// The catalog is expected to be a ZIP file containing the JSON representation 
+  /// The catalog is expected to be a WTF (zip-encoded) file containing the JSON representation 
   /// of the catalog and its associated media files. The ZIP file is extracted, 
   /// and the catalog is deserialized into an [ECategory] object, which is then set 
   /// as the current catalog for editing.
@@ -333,7 +335,7 @@ class CatalogEditor {
   ///
   /// Throws an exception if there is an error during the upload or extraction process.
   ///
-  /// - [path] : The path of the ZIP file to be uploaded.
+  /// - [path] : The path of the WTF (zip) file to be uploaded.
   /// - [onComplete] : A callback function that is called when the upload process completes.
   static Future<void> uploadCatalogLocal({required String path, VoidCallback? onComplete}) async {
     

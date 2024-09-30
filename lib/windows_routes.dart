@@ -487,7 +487,7 @@ library;
 //                                           },
 //                                           child: const Row(
 //                                             children: [
-//                                               Icon(Icons.feedback_outlined, color: Color(0xFF224190)),
+//                                               Icon(Icons.feedback_outlined, color: WeightechThemes.weightechBlue),
 //                                               SizedBox(width: 10),
 //                                               Text("Feedback")
 //                                             ]
@@ -543,7 +543,7 @@ library;
 //                                           ),
 //                                           child: const Row(
 //                                             children: [
-//                                               Icon(Icons.info_outline, color: Color(0xFF224190)),
+//                                               Icon(Icons.info_outline, color: WeightechThemes.weightechBlue),
 //                                               SizedBox(width: 10),
 //                                               Text("About")
 //                                             ]
@@ -617,11 +617,11 @@ library;
 //                         opacity: _fadeAnimation, 
 //                         child: Column(
 //                           children: [
-//                             const Divider(color: Color(0xFF224190), height: 2, thickness: 2, indent: 0, endIndent: 0,),
+//                             const Divider(color: WeightechThemes.weightechBlue, height: 2, thickness: 2, indent: 0, endIndent: 0,),
 //                             Container(
 //                               alignment: Alignment.topCenter,
 //                               decoration: const BoxDecoration(
-//                                 color: Color(0xFF224190),
+//                                 color: WeightechThemes.weightechBlue,
 //                               ),
 //                               width: double.infinity,
 //                               child: const Text("Catalog Editor", 
@@ -669,9 +669,9 @@ library;
 //                                 decoration: const BoxDecoration(
 //                                   color: Color(0x99C9C9CC),
 //                                   border: Border(
-//                                     right: BorderSide(color: Color(0xFF224190), width: 2.0),
-//                                     left: BorderSide(color: Color(0xFF224190), width: 2.0),
-//                                     bottom: BorderSide(color: Color(0xFF224190), width: 2.0),
+//                                     right: BorderSide(color: WeightechThemes.weightechBlue, width: 2.0),
+//                                     left: BorderSide(color: WeightechThemes.weightechBlue, width: 2.0),
+//                                     bottom: BorderSide(color: WeightechThemes.weightechBlue, width: 2.0),
 //                                   )
 //                                 ),
 //                                 height: MediaQuery.of(context).size.height - 158,
@@ -1493,7 +1493,7 @@ library;
 //                                                   child: 
 //                                                   ElevatedButton(
 //                                                     style: const ButtonStyle(
-//                                                       backgroundColor: MaterialStatePropertyAll<Color>(Color(0xFFC9C9CC)),
+//                                                       backgroundColor: MaterialStatePropertyAll<Color>(WeightechThemes.weightechGray),
 //                                                       foregroundColor: MaterialStatePropertyAll<Color>(Colors.black),
 //                                                       visualDensity: VisualDensity(horizontal: -4),
 //                                                     ),
@@ -1511,7 +1511,7 @@ library;
 //                                                   child: 
 //                                                     ElevatedButton(
 //                                                       style: const ButtonStyle(
-//                                                         backgroundColor: MaterialStatePropertyAll<Color>(Color(0xFFC9C9CC)),
+//                                                         backgroundColor: MaterialStatePropertyAll<Color>(WeightechThemes.weightechGray),
 //                                                         foregroundColor: MaterialStatePropertyAll<Color>(Colors.black),
 //                                                       ),
 //                                                       onPressed: () {
@@ -1528,7 +1528,7 @@ library;
 //                                                   child:
 //                                                     ElevatedButton(
 //                                                       style: const ButtonStyle(
-//                                                         backgroundColor: MaterialStatePropertyAll<Color>(Color(0xFFC9C9CC)),
+//                                                         backgroundColor: MaterialStatePropertyAll<Color>(WeightechThemes.weightechGray),
 //                                                         foregroundColor: MaterialStatePropertyAll<Color>(Colors.black),
 //                                                       ),
 //                                                       onPressed: () {
@@ -1568,7 +1568,7 @@ library;
 //                 const SizedBox(height: 10),
 //                 ElevatedButton(
 //                   style: const ButtonStyle(
-//                     backgroundColor: WidgetStatePropertyAll<Color>(Color(0xFF224190)),
+//                     backgroundColor: WidgetStatePropertyAll<Color>(WeightechThemes.weightechBlue),
 //                     foregroundColor: WidgetStatePropertyAll<Color>(Colors.white)
 //                   ),
 //                   child: _addingItem ? const Text("Add") : const Text("Save"),
@@ -1846,7 +1846,7 @@ library;
 //                                                                         _mediaPaths.clear();
 //                                                                         super.setState(() {});
 //                                                                       },
-//                                                                       child: hoverOnImageRemove ? const Icon(Icons.clear, size:40, color: Color(0xFFC9C9CC)) : const SizedBox()
+//                                                                       child: hoverOnImageRemove ? const Icon(Icons.clear, size:40, color: WeightechThemes.weightechGray) : const SizedBox()
 //                                                                     )
 //                                                                   )
 //                                                               );
@@ -1938,7 +1938,7 @@ library;
 //                 const SizedBox(height: 20),
 //                 ElevatedButton(
 //                   style: const ButtonStyle(
-//                     backgroundColor: WidgetStatePropertyAll<Color>(Color(0xFF224190)),
+//                     backgroundColor: WidgetStatePropertyAll<Color>(WeightechThemes.weightechBlue),
 //                     foregroundColor: WidgetStatePropertyAll<Color>(Colors.white)
 //                   ),
 //                   child: _addingItem ? const Text("Add") : const Text("Save"),
@@ -2215,7 +2215,7 @@ library;
 //                                             return Column(
 //                                               crossAxisAlignment: CrossAxisAlignment.start,
 //                                               children: [
-//                                                 Text(headerKey, style: const TextStyle(color: Color(0xFF224190), fontSize: 19.6, fontWeight: FontWeight.bold), softWrap: true,),
+//                                                 Text(headerKey, style: const TextStyle(color: WeightechThemes.weightechBlue, fontSize: 19.6, fontWeight: FontWeight.bold), softWrap: true,),
 //                                                 if (headerEntries?.isNotEmpty ?? false)
 //                                                   ListView.builder(
 //                                                     padding: const EdgeInsets.only(top: 3.5, left: 3.5),
