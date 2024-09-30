@@ -19,7 +19,6 @@ Future<void> main() async {
   await AppInfo().init();
   await Log().init();
   Log.logger.i('Version: ${AppInfo.packageInfo.version}, Build: ${AppInfo.packageInfo.buildNumber}, SessionId: ${AppInfo.sessionId}');
-  Log.logger.i('Version: ${AppInfo.packageInfo.version}, Build: ${AppInfo.packageInfo.buildNumber}, SessionId: ${AppInfo.sessionId}');
 
   runApp(
     WeightechApp()
@@ -34,7 +33,7 @@ class WeightechApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: "Weightech Inc. Sales",
-      theme: WeightechThemes.lightTheme, 
+      theme: WeightechThemes.materialLightTheme, 
       home: const StartupPage()
     );
   }

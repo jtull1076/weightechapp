@@ -7,13 +7,12 @@ environment:
   sdk: '>=3.3.0 <4.0.0'
 
 dependencies:
-  carousel_slider: ^4.2.1
-  firebase_core: ^2.26.0
-  firebase_database: ^10.5.2
-  firebase_storage: ^11.6.8
+  carousel_slider: ^5.0.0
+  firebase_core: ^3.6.0
+  firebase_database: ^11.1.4
+  firebase_storage: ^12.3.2
   flutter:
     sdk: flutter
-  flutter_launcher_icons: ^0.13.1
   google_fonts: ^6.2.1 
   path_provider: ^2.1.2
   provider: ^6.1.2
@@ -32,20 +31,20 @@ dependencies:
   media_kit_video: ^1.2.4
   media_kit_libs_video: ^1.0.4
   internet_connection_checker_plus: ^2.3.0
-  cloud_firestore: ^4.17.5
-  firebase_auth: ^4.20.0
+  cloud_firestore: ^5.4.3
+  firebase_auth: ^5.3.1
   retry: ^3.1.2
   loading_animation_widget: ^1.2.1
   wakelock_plus: ^1.2.5
   flutter_archive: ^6.0.3
-  upgrader: ^10.3.0
+  upgrader: ^11.2.0
   apivideo_player: ^1.2.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^3.0.0
-  flutter_launcher_icons: ^0.13.1
+  flutter_lints: ^5.0.0
+  flutter_launcher_icons: 0.13.1
 
 flutter:
   uses-material-design: true
