@@ -431,7 +431,6 @@ Widget buildBrochureTree({List<BrochureItem>? brochure}) {
         // node is visible in its new vicinity when the tree gets rebuilt.
         // _treeController.setExpansionState(details.targetNode as EItem, true);
 
-        // TODO: implement your tree reorder logic
         final targetNode = details.targetNode as BrochureItem;
         final draggedNode = details.draggedNode as BrochureItem;
         final targetParent = targetNode.getParent(brochure!);

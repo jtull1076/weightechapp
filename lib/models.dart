@@ -8,9 +8,11 @@ import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:weightechapp/utils.dart';
 import 'package:weightechapp/brochure.dart';
+import 'package:weightechapp/fluent_models.dart';
 
 class ProductManager {
   static ProductCategory? all;
+  static String? id;
   static String? name;
   static DateTime? timestamp;
 
@@ -23,6 +25,8 @@ class ProductManager {
       // _restructureDatabase();
       // timestamp = DateTime.fromMillisecondsSinceEpoch(catalogJson["timestamp"].millisecondsSinceEpoch);
       name = catalogJson["catalogName"];
+      catalogJson['versionId'] = id;
+      
     } catch (e) {
       rethrow;
     }
@@ -36,6 +40,34 @@ class ProductManager {
     } catch (e) {
       rethrow;
     }
+  }
+
+
+  static Future<void> createFromECategory(ECategory eCatalog) async {
+
+    ProductCategory traverseCategory(eCategory) {
+      List<CatalogItem> catalogItems = [];
+
+      for (var item in eCategory.editorItems) {
+        switch (item) {
+          case ECategory _ : {
+            ProductCategory newItem = traverseCategory(item);
+            catalogItems.add(newItem);
+          }
+          case EProduct _ : {
+            catalogItems.add(
+              item.product
+            );
+          }
+        }
+      }
+
+      eCategory.category.catalogItems = catalogItems;
+      return eCategory.category;
+    }
+
+    all = traverseCategory(eCatalog);
+    Log.logger.i('ProductManager updated from upload file!');
   }
 
 
@@ -136,10 +168,11 @@ class ProductManager {
     return result;
   }
 
-  static Future<void> postCatalogToFirestore({String? name}) async {
+  static Future<void> postCatalogToFirestore({String? name, String? id}) async {
     Log.logger.t("Posting catalog to Firestore");
     Map<String,dynamic> catalogJson = all!.toJson();
     catalogJson['timestamp'] = DateTime.now();
+    catalogJson['versionId'] = id;
     catalogJson['catalogName'] = name;
     try {
       await FirebaseUtils.postCatalogToFirestore(catalogJson);

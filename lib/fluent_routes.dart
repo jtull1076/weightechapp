@@ -32,6 +32,8 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_fancy_tree_view/flutter_fancy_tree_view.dart';
 import 'package:intl/intl.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:keymap/keymap.dart';
+import 'package:flutter/services.dart';
 
 
 //MARK: OFFLINE PAGE
@@ -161,16 +163,12 @@ class StartupPage extends StatefulWidget {
 class _StartupPageState extends State<StartupPage> with TickerProviderStateMixin {
   late String _startupTaskMessage;
   late StreamController<String> _progressStreamController;
-  late bool _updateReady;
-  late bool _checkingForUpdate;
 
   @override
   void initState() {
     super.initState();
     _startupTaskMessage = '';
     _progressStreamController = StreamController<String>();
-    _updateReady = false;
-    _checkingForUpdate = false;
     _runStartupTasks();
   }
 
@@ -324,7 +322,6 @@ class ControlPage extends StatefulWidget {
 class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin, WindowListener {
 
   late TextEditingController _filenameController;
-  late bool _editingName;
 
   late List<CommandBarItem> _secondaryCommands;
 
@@ -370,7 +367,6 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
     _cloudVersion = CatalogEditor.all;
 
     _filenameController = TextEditingController(text: CatalogEditor.name);
-    _editingName = false;
 
     _treeController = TreeController<EItem>(
       // Provide the root nodes that will be used as a starting point when
@@ -397,7 +393,6 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
     _ignoringPointer = true;
 
     _secondaryCommands = [
-      // TODO : implement this
       CommandBarButton(
         icon: const Icon(FluentIcons.settings_20_regular),
         label: const Text('Settings'),
@@ -457,469 +452,597 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
 
   @override
   Widget build(BuildContext context) {
-    return ScaffoldPage(
-      padding: EdgeInsets.zero,
-      header: Container(
-        alignment: Alignment.topCenter,
-        height: 50,
-        width: MediaQuery.of(context).size.width,
-        child: 
-          CommandBarCard(
-            borderRadius: const BorderRadius.all(Radius.zero),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            // margin: const EdgeInsets.symmetric(horizontal: 5),
-            child: SizedBox(
-              width: MediaQuery.of(context).size.width,
-              height: 50,
-              child: 
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Container(
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: WeightechThemes.wtGray.darker,
-                        borderRadius: BorderRadius.circular(3),
-                      ),
-                      width: 100,
-                      height: 40,
-                      child: IntrinsicWidth(
-                        child: TapRegion(
-                          onTapOutside: (e) => setState(() => _editingName = false),
-                          child: TextBox(
-                            controller: _filenameController,
-                            decoration: const BoxDecoration(color: Colors.transparent),
-                            textAlign: TextAlign.center,
-                            padding: EdgeInsets.zero,
-                            suffix: (CatalogEditor.isUnsaved) ? const Text('*', style: TextStyle(color: Colors.white, fontSize: 12)) : null,
-                            textAlignVertical: TextAlignVertical.center,
-                            style: const TextStyle(color: Colors.white, fontSize: 12),
-                            onEditingComplete: () {
-                              CatalogEditor.name = _filenameController.text;
-                              _editingName = false;
-                            },
-                            onTap: () => setState(() => _editingName = true),
-                            onChanged: (s) => setState(() => _editingName = true),
-                          ),
-                        )
-                      )
-                    ),
-                    const SizedBox(width: 10),
-                    Flexible(
-                      fit: FlexFit.loose,
-                      child: CommandBar(
-                        overflowBehavior: CommandBarOverflowBehavior.scrolling,
-                        primaryItems: [
-                          CommandBarButton(
-                            icon: const Icon(FluentIcons.save_edit_20_regular),
-                            label: const Text('Save As', style: TextStyle(fontSize: 12)),
-                            onPressed: () async {
-                              FilePickerResult? _ = 
-                                await FilePicker.platform
-                                  .saveFile(dialogTitle: 'Save As', fileName: '${_filenameController.text}.wtf', allowedExtensions: ['wtf'], type: FileType.custom)
-                                  .then((result) async {
-                                    if (result != null) {
-                                      if (FileUtils.extension(result) != '.wtf') {
-                                        result += '.wtf';
-                                      }
-                                      await CatalogEditor.saveCatalogLocal(path: result);
-                                      setState(() => _filenameController.text = FileUtils.filename(CatalogEditor.currentFile!.path));
-                                    }
-                                    else {
-                                      Log.logger.t("-> File save aborted/failed.");
-                                      return null;
-                                    }
-                                    return null;
-                                  });
-                            },
-                          ),
-                          if (CatalogEditor.isLocal)
-                            CommandBarButton(
-                              icon: const Icon(FluentIcons.save_20_regular),
-                              label: const Text('Save', style: TextStyle(fontSize: 12)),
-                              onPressed: () async {
-                                if (CatalogEditor.currentFile != null) {
-                                    await CatalogEditor.saveCatalogLocal(path: CatalogEditor.currentFile!.path);
-                                }
-                              }
-                            ),
-                          CommandBarButton(
-                            icon: const Icon(FluentIcons.folder_open_20_regular),
-                            label: const Text('Open', style: TextStyle(fontSize: 12)),
-                            onPressed: () async {
-                              FilePickerResult? _ =
-                                await FilePicker.platform.
-                                  pickFiles(dialogTitle: "Open", type: FileType.custom, allowedExtensions: ['wtf'])
-                                  .then((result) async {
-                                    if (result != null) {
-                                      setState(() {
-                                        _toggleLoading();
-                                        _focusItem = null;
-                                      });
-                                      await CatalogEditor.uploadCatalogLocal(
-                                        path: result.paths.first!,
-                                        onComplete: () {
-                                          _treeController.rebuild();
-                                          setState(() {
-                                            _editorAll = CatalogEditor.all;
-                                            _selectedCategory = CatalogEditor.all;
-                                            _filenameController.text = CatalogEditor.name;
-
-                                            _treeController = TreeController<EItem>(
-                                              // Provide the root nodes that will be used as a starting point when
-                                              // traversing your hierarchical data.
-                                              roots: CatalogEditor.all.editorItems,
-                                              // Provide a callback for the controller to get the children of a
-                                              // given node when traversing your hierarchical data. Avoid doing
-                                              // heavy computations in this method, it should behave like a getter.
-                                              childrenProvider: (EItem item) => item.getSubItems(),
-                                              parentProvider: (EItem item) => item.getParent()
-                                            );
-                                          
-                                            _toggleLoading();
-                                          });
-                                        }
-                                      );
-                                      
-                                    }
-                                    else {
-                                      Log.logger.t("-> File open aborted/failed.");
-                                    }
-                                    return null;
-                                  });
-                            },
-                          ),
-                          const CommandBarSeparator(
-                            thickness: 0.5,
-                            color: Colors.black,
-                          ),
-                          CommandBarButton(
-                            icon: const Icon(FluentIcons.cloud_arrow_up_20_regular),
-                            label: const Text('Publish', style: TextStyle(fontSize: 12)),
-                            onPressed: () async {
-                              StreamController<dynamic> streamController = StreamController<dynamic>();
-                              setState(() => _toggleLoading(dynamicStream: streamController.stream));
-                              CatalogEditor.name = _filenameController.text;
-                              await CatalogEditor.saveCatalogToCloud(streamController: streamController);
-                              streamController.add(
-                                const Icon(
-                                  FluentIcons.checkmark_circle_48_filled, 
-                                  color: WeightechThemes.weightechBlue, 
-                                  size: 30
-                                )
-                              );
-                              await Future.delayed(const Duration(seconds: 2))
-                                .then((value) {
-                                  setState(() => _toggleLoading());
-                                });
-                            },
-                          ),
-                          CommandBarButton(
-                            icon: const Icon(FluentIcons.clock_arrow_download_20_regular),
-                            label: const Text('Restore Previous', style: TextStyle(fontSize: 12)),
-                            onPressed: () async {
-                              final chosenCatalog = await _showRestorationDialog(context);
-                              if (chosenCatalog != null) {
-                                Log.logger.i(
-                                  """ Catalog restored to previous version. Version info: 
-                                  Name: ${chosenCatalog['name']}
-                                  Timestamp: ${chosenCatalog['timestamp']}
-                                  """
-                                );
-                                await ProductManager.createFromMap(chosenCatalog);
-                                CatalogEditor.createEditorCatalog(ProductManager.all!);
-                                _treeController.rebuild();
-                                setState(() {
-                                  _editorAll = CatalogEditor.all;
-
-                                  _treeController = TreeController<EItem>(
-                                    // Provide the root nodes that will be used as a starting point when
-                                    // traversing your hierarchical data.
-                                    roots: CatalogEditor.all.editorItems,
-                                    // Provide a callback for the controller to get the children of a
-                                    // given node when traversing your hierarchical data. Avoid doing
-                                    // heavy computations in this method, it should behave like a getter.
-                                    childrenProvider: (EItem item) => item.getSubItems(),
-                                    parentProvider: (EItem item) => item.getParent()
-                                  );
-                                
-                                  _selectedCategory = CatalogEditor.all;
-                                });
-                              }
-                            },
-                          ),
-                          const CommandBarSeparator(
-                            thickness: 0.5,
-                            color: Colors.black,
-                          ),
-                          CommandBarButton(
-                            icon: const Icon(FluentIcons.production_20_regular),
-                            label: const Text('New Product', style: TextStyle(fontSize: 12)),
-                            onPressed: () {
-                              final newProduct = EProduct.temp();
-                              toggleEditorItem(newProduct, newItem: true);
-                            },
-                          ),
-                          CommandBarButton(
-                            icon: const Icon(FluentIcons.list_bar_20_regular),
-                            label: const Text('New Category', style: TextStyle(fontSize: 12)),
-                            onPressed: () {
-                              final newCategory = ECategory.temp();
-                              toggleEditorItem(newCategory, newItem: true);
-                            },
-                          ),
-                          if (_focusItem != null) ... [
-                            const CommandBarSeparator(
-                              thickness: 0.5,
-                              color: Colors.black,
-                            ),
-                            const CommandBarSeparator(),
-                            CommandBarBuilderItem(
-                              builder: (context, displayMode, child) {
-                                return Container(
-                                  constraints: const BoxConstraints(minWidth: 80),
-                                  padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 5),
-                                  decoration: BoxDecoration(
-                                    color: WeightechThemes.wtGray.light,
-                                    borderRadius: const BorderRadius.only(
-                                      topLeft: Radius.circular(8),
-                                      bottomLeft: Radius.circular(8),
-                                    )
-                                  ),
-                                  child: child
-                                );
-                              }, 
-                              wrappedItem: CommandBarButton(
-                                icon: const Icon(FluentIcons.document_save_20_regular, color: Colors.black),
-                                label: const Text('Save', style: TextStyle(fontSize: 12, color: Colors.black)),
-                                onPressed: () {
-                                  if (_focusItem is EProduct) {
-                                    if (_formKey.currentState!.validate()) {
-                                      if (_addingItem) {
-                                        Product newProduct = Product(
-                                          name: _nameController.text,
-                                          modelNumber: _modelNumberController.text,
-                                          description: _descriptionController.text,
-                                          brochure: mapListToBrochure(_brochure)
-                                        );
-                                        EProduct newEProduct = EProduct(product: newProduct,);
-                                        
-                                        newEProduct.save(
-                                          parent: _selectedCategory,
-                                          mediaPaths: List.from(_mediaPaths),
-                                          mediaFiles: List.from(_mediaFiles)
-                                        );
-                                      }
-                                      else {
-                                        final product = _focusItem as EProduct;
-                                        product.save(
-                                          name: _nameController.text,
-                                          parent: _selectedCategory,
-                                          modelNumber: _modelNumberController.text,
-                                          description: _descriptionController.text,
-                                          brochure: mapListToBrochure(_brochure),
-                                          mediaPaths: List.from(_mediaPaths),
-                                          mediaFiles: List.from(_mediaFiles),
-                                          primaryImageIndex: _primaryImageIndex,
-                                        );                       
-                                      }
-                                      setState(() {
-                                        _treeController.rebuild();
-                                        _addingItem = false;
-                                        _focusItem = null;
-                                      });
-                                    }
-                                  }
-                                  else if (_focusItem is ECategory) {
-                                    if (_addingItem) {
-                                      ProductCategory newCategory = ProductCategory(
-                                        name: _nameController.text,
-                                      );
-                                      ECategory newECategory = ECategory(category: newCategory, editorItems: []);
-                                      
-                                      newECategory.save(
-                                        parent: _selectedCategory,
-                                        imagePath: (_mediaPaths.isEmpty) ? null : _mediaPaths.first,
-                                        imageFile: (_mediaFiles.isEmpty) ? null : _mediaFiles.first
-                                      );
-                                    }
-                                    else {
-                                      final category = _focusItem as ECategory;
-                                      category.save(
-                                        name: _nameController.text,
-                                        parent: _selectedCategory,
-                                        imagePath: (_mediaPaths.isEmpty) ? null : _mediaPaths.first,
-                                        imageFile: (_mediaFiles.isEmpty) ? null : _mediaFiles.first,
-                                      );
-                                    }
-                                    setState(() {
-                                      _treeController.rebuild();
-                                      _addingItem = false;
-                                      _focusItem = null;
-                                    });
-                                  }
-                                }
-                              )
-                            ),
-                            if (_focusItem is EProduct) 
-                              CommandBarBuilderItem(
-                                builder: (context, displayMode, child) {
-                                  return Container(
-                                    constraints: const BoxConstraints(minWidth: 80),
-                                    padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 5),
-                                    decoration: BoxDecoration(
-                                      color: WeightechThemes.wtGray.light,
-                                    ),
-                                    child: child
-                                  );
-                                }, 
-                                wrappedItem: CommandBarButton(
-                                  icon: const Icon(FluentIcons.eye_20_regular, color: Colors.black),
-                                  label: const Text('Preview', style: TextStyle(fontSize: 12, color: Colors.black)),
-                                  onPressed: () {
-                                    _showPreviewDialog(context);
-                                  },
-                                )
-                              ),
-                            if (!_addingItem && (CatalogEditor.publishedCatalog != null))
-                              CommandBarBuilderItem(
-                                builder: (context, displayMode, child) {
-                                  return Container(
-                                    constraints: const BoxConstraints(minWidth: 80),
-                                    padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 5),
-                                    decoration: BoxDecoration(
-                                      color: WeightechThemes.wtGray.light,
-                                    ),
-                                    child: child
-                                  );
-                                }, 
-                                wrappedItem: CommandBarButton(
-                                  icon: const Icon(FluentIcons.arrow_counterclockwise_20_regular, color: Colors.black),
-                                  label: const Text('Revert', style: TextStyle(fontSize: 12, color: Colors.black)),
-                                  onPressed: () async {
-                                    final confirmed = await _showItemRevertDialog(context, _focusItem!, currentName: _nameController.text);
-                                    if (confirmed) {
-                                      setState(() => _toggleLoading());
-
-                                      final item = _focusItem!;
-
-                                      Log.logger.i('Reverting ${item.name} (ID: ${item.id}) to its published version...');
-
-                                      final id = item.id;
-                                      setState(() => _focusItem = null);
-
-                                      await item.revertToPublished();
-
-                                      Log.logger.i('-> Done');
-
-                                      _treeController.rebuild();
-                                      final newVersion = EItem.getItemById(root: CatalogEditor.all, id: id);
-                                      setState(() => _toggleLoading());
-                                      toggleEditorItem(newVersion);
-                                    }
-                                  },
-                                )
-                              ),
-                            CommandBarBuilderItem(
-                              builder: (context, displayMode, child) {
-                                return Container(
-                                  constraints: const BoxConstraints(minWidth: 80),
-                                  padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 5),
-                                  decoration: BoxDecoration(
-                                    color: WeightechThemes.wtGray.light,
-                                    borderRadius: const BorderRadius.only(
-                                      topRight: Radius.circular(8),
-                                      bottomRight: Radius.circular(8),
-                                    )
-                                  ),
-                                  child: child
-                                );
-                              }, 
-                              wrappedItem: CommandBarButton(
-                                icon: const Icon(FluentIcons.delete_20_regular, color: Colors.black),
-                                label: const Text('Delete', style: TextStyle(fontSize: 12, color: Colors.black)),
-                                onPressed: () async {
-                                  final confirmed = await _showItemDeleteDialog(context, _focusItem!, currentName: _nameController.text);
-                                  if (confirmed) {
-                                    _focusItem!.delete();
-                                    _treeController.rebuild();
-                                    setState(() => _focusItem = null);
-                                  }
-                                },
-                              )
-                            )
-                          ]
-                        ],
-                      ),
-                    ),
-                    IntrinsicWidth(
-                      child: CommandBar(
-                        overflowBehavior: CommandBarOverflowBehavior.wrap,
-                        mainAxisAlignment: material.MainAxisAlignment.end,
-                        primaryItems: const [
-                          CommandBarSeparator()
-                        ],
-                        secondaryItems: _secondaryCommands,
-                      )
-                    )
-                  ]
-                )
+    return CallbackShortcuts(
+      bindings: <ShortcutActivator, VoidCallback>{
+        const SingleActivator(
+          LogicalKeyboardKey.keyS,
+          control: true,
+        ) : () {
+            if (_focusItem is EProduct) {
+              if (_formKey.currentState!.validate()) {
+                if (_addingItem) {
+                  Product newProduct = Product(
+                    name: _nameController.text,
+                    modelNumber: _modelNumberController.text,
+                    description: _descriptionController.text,
+                    brochure: mapListToBrochure(_brochure)
+                  );
+                  EProduct newEProduct = EProduct(product: newProduct,);
+                  
+                  newEProduct.save(
+                    parent: _selectedCategory,
+                    mediaPaths: List.from(_mediaPaths),
+                    mediaFiles: List.from(_mediaFiles)
+                  );
+                }
+                else {
+                  final product = _focusItem as EProduct;
+                  product.save(
+                    name: _nameController.text,
+                    parent: _selectedCategory,
+                    modelNumber: _modelNumberController.text,
+                    description: _descriptionController.text,
+                    brochure: mapListToBrochure(_brochure),
+                    mediaPaths: List.from(_mediaPaths),
+                    mediaFiles: List.from(_mediaFiles),
+                    primaryImageIndex: _primaryImageIndex,
+                  );                       
+                }
+                setState(() {
+                  _treeController.rebuild();
+                  if (_addingItem) {
+                    _focusItem = null;
+                  }
+                  _addingItem = false;
+                });
+              }
+            }
+            else if (_focusItem is ECategory) {
+              if (_addingItem) {
+                ProductCategory newCategory = ProductCategory(
+                  name: _nameController.text,
+                );
+                ECategory newECategory = ECategory(category: newCategory, editorItems: []);
                 
-            )
-          )
-      ),
-      content: IgnorePointer(
-        ignoring: _ignoringPointer,
-        child: Stack(
-          children: [
-            Container(
-              decoration: const BoxDecoration(
-                border: Border(
-                  top: BorderSide(
-                    width: 1,
-                    color: Color(0x19000000)
-                  )
-                )
-              ),
-              child: 
-                Row(
-                  children: [
-                    Flexible(
-                      flex: 1,
-                      child: Container(
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFF3F3F3),
-                          border: Border.symmetric(
-                            vertical: BorderSide(
-                              color: Color(0x19000000)
-                            ),
+                newECategory.save(
+                  parent: _selectedCategory,
+                  imagePath: (_mediaPaths.isEmpty) ? null : _mediaPaths.first,
+                  imageFile: (_mediaFiles.isEmpty) ? null : _mediaFiles.first
+                );
+              }
+              else {
+                final category = _focusItem as ECategory;
+                category.save(
+                  name: _nameController.text,
+                  parent: _selectedCategory,
+                  imagePath: (_mediaPaths.isEmpty) ? null : _mediaPaths.first,
+                  imageFile: (_mediaFiles.isEmpty) ? null : _mediaFiles.first,
+                );
+              }
+              setState(() {
+                _treeController.rebuild();
+                if (_addingItem) {
+                  _focusItem = null;
+                }
+                _addingItem = false;
+              });
+            }
+          },
+        const SingleActivator(
+          LogicalKeyboardKey.keyS,
+          control: true,
+          alt: true
+        ) : () async {
+          if (CatalogEditor.isLocal && CatalogEditor.currentFile != null) {
+            await handleSaveCatalogLocal(path: CatalogEditor.currentFile!.path);
+          }
+          else {
+            FilePickerResult? _ = 
+              await FilePicker.platform
+                .saveFile(dialogTitle: 'Save As', fileName: '${_filenameController.text}.wtf', allowedExtensions: ['wtf'], type: FileType.custom)
+                .then((result) async {
+                  if (result != null) {
+                    if (FileUtils.extension(result) != '.wtf') {
+                      result += '.wtf';
+                    }
+                    await handleSaveCatalogLocal(path: result);
+                    setState(() {
+                      _filenameController.text = FileUtils.filename(CatalogEditor.currentFile!.path);
+                    });
+                  }
+                  else {
+                    Log.logger.t("-> File save aborted/failed.");
+                    return null;
+                  }
+                  return null;
+                });
+          }
+        },
+      },
+      child: FocusScope(
+        autofocus: true,
+        child: ScaffoldPage(
+          padding: EdgeInsets.zero,
+          header: Container(
+            alignment: Alignment.topCenter,
+            height: 50,
+            width: MediaQuery.of(context).size.width,
+            child: 
+              CommandBarCard(
+                borderRadius: const BorderRadius.all(Radius.zero),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                // margin: const EdgeInsets.symmetric(horizontal: 5),
+                child: SizedBox(
+                  width: MediaQuery.of(context).size.width,
+                  height: 50,
+                  child: 
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Container(
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: WeightechThemes.wtGray.darker,
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                          width: 100,
+                          height: 40,
+                          child: IntrinsicWidth(
+                            child: TapRegion(
+                              child: TextBox(
+                                controller: _filenameController,
+                                decoration: const BoxDecoration(color: Colors.transparent),
+                                textAlign: TextAlign.center,
+                                padding: EdgeInsets.zero,
+                                suffix: (CatalogEditor.isUnsaved) ? const Text('*', style: TextStyle(color: Colors.white, fontSize: 12)) : null,
+                                textAlignVertical: TextAlignVertical.center,
+                                style: const TextStyle(color: Colors.white, fontSize: 12),
+                                onEditingComplete: () {
+                                  CatalogEditor.name = _filenameController.text;
+                                },
+                              ),
+                            )
                           )
                         ),
-                        child: catalogBuilder(item: CatalogEditor.all)
-                      ),
-                    ),
-                    Flexible(
-                      flex: 3,
-                      child: (_focusItem != null) ?
-                        (_focusItem is ECategory) ? 
-                          categoryEditor(category: _focusItem as ECategory)
-                          : productEditor(product: _focusItem as EProduct)
-                        : const Center(
-                            child: Text("Select a catalog item on the left side to begin.")
+                        const SizedBox(width: 10),
+                        Flexible(
+                          fit: FlexFit.loose,
+                          child: CommandBar(
+                            overflowBehavior: CommandBarOverflowBehavior.scrolling,
+                            primaryItems: [
+                              CommandBarButton(
+                                icon: const Icon(FluentIcons.save_edit_20_regular),
+                                label: const Text('Save As', style: TextStyle(fontSize: 12)),
+                                onPressed: () async {
+                                  FilePickerResult? _ = 
+                                    await FilePicker.platform
+                                      .saveFile(dialogTitle: 'Save As', fileName: '${_filenameController.text}.wtf', allowedExtensions: ['wtf'], type: FileType.custom)
+                                      .then((result) async {
+                                        if (result != null) {
+                                          if (FileUtils.extension(result) != '.wtf') {
+                                            result += '.wtf';
+                                          }
+                                          await handleSaveCatalogLocal(path: result);
+                                          setState(() {
+                                            _filenameController.text = FileUtils.filename(CatalogEditor.currentFile!.path);
+                                          });
+                                        }
+                                        else {
+                                          Log.logger.t("-> File save aborted/failed.");
+                                          return null;
+                                        }
+                                        return null;
+                                      });
+                                },
+                              ),
+                              if (CatalogEditor.isLocal)
+                                CommandBarButton(
+                                  icon: const Icon(FluentIcons.save_20_regular),
+                                  label: const Text('Save', style: TextStyle(fontSize: 12)),
+                                  onPressed: () async {
+                                    if (CatalogEditor.currentFile != null) {
+                                      await handleSaveCatalogLocal(path: CatalogEditor.currentFile!.path);
+                                    }
+                                  }
+                                ),
+                              CommandBarButton(
+                                icon: const Icon(FluentIcons.folder_open_20_regular),
+                                label: const Text('Open', style: TextStyle(fontSize: 12)),
+                                onPressed: () async {
+
+                                  FilePickerResult? _ =
+                                    await FilePicker.platform.
+                                      pickFiles(dialogTitle: "Open", type: FileType.custom, allowedExtensions: ['wtf'])
+                                      .then((result) async {
+
+                                        if (result != null) {
+                                          StreamController streamController = StreamController();
+                                          setState(() {
+                                            _toggleLoading(dynamicStream: streamController.stream,);
+                                            _focusItem = null;
+                                          });
+                                          await CatalogEditor.uploadCatalogLocal(
+                                            path: result.paths.first!,
+                                            stream: streamController,
+                                            onComplete: () async {
+                                              _treeController.rebuild();
+                                              streamController.add(
+                                                const Icon(
+                                                  FluentIcons.checkmark_circle_48_filled, 
+                                                  color: WeightechThemes.weightechBlue, 
+                                                  size: 30
+                                                )
+                                              );
+                                              await Future.delayed(const Duration(seconds: 2))
+                                                .then((value) {
+                                                  setState(() {
+                                                    _editorAll = CatalogEditor.all;
+                                                    _selectedCategory = CatalogEditor.all;
+                                                    _filenameController.text = CatalogEditor.name;
+
+                                                    _treeController = TreeController<EItem>(
+                                                      // Provide the root nodes that will be used as a starting point when
+                                                      // traversing your hierarchical data.
+                                                      roots: CatalogEditor.all.editorItems,
+                                                      // Provide a callback for the controller to get the children of a
+                                                      // given node when traversing your hierarchical data. Avoid doing
+                                                      // heavy computations in this method, it should behave like a getter.
+                                                      childrenProvider: (EItem item) => item.getSubItems(),
+                                                      parentProvider: (EItem item) => item.getParent()
+                                                    );
+                                                    
+
+                                                    _toggleLoading();
+                                                  });
+                                                });
+                                            }
+                                          );
+                                          
+                                        }
+                                        else {
+                                          Log.logger.t("-> File open aborted/failed.");
+                                        }
+                                        return null;
+                                      });
+                                },
+                              ),
+                              const CommandBarSeparator(
+                                thickness: 0.5,
+                                color: Colors.black,
+                              ),
+                              CommandBarButton(
+                                icon: const Icon(FluentIcons.cloud_arrow_up_20_regular),
+                                label: const Text('Publish', style: TextStyle(fontSize: 12)),
+                                onPressed: () async {
+                                  final confirmed = await _showPublishConfirmDialog(context);
+
+                                  if (confirmed) {
+                                    StreamController<dynamic> streamController = StreamController<dynamic>();
+                                    setState(() => _toggleLoading(dynamicStream: streamController.stream));
+                                    CatalogEditor.name = _filenameController.text;
+                                    await CatalogEditor.saveCatalogToCloud(streamController: streamController);
+                                    streamController.add(
+                                      const Icon(
+                                        FluentIcons.checkmark_circle_48_filled, 
+                                        color: WeightechThemes.weightechBlue, 
+                                        size: 30
+                                      )
+                                    );
+                                    await Future.delayed(const Duration(seconds: 2))
+                                      .then((value) {
+                                        setState(() => _toggleLoading());
+                                      });
+                                  }
+                                },
+                              ),
+                              CommandBarButton(
+                                icon: const Icon(FluentIcons.clock_arrow_download_20_regular),
+                                label: const Text('Restore Previous', style: TextStyle(fontSize: 12)),
+                                onPressed: () async {
+                                  final chosenCatalog = await _showRestorationDialog(context);
+                                  if (chosenCatalog != null) {
+                                    Log.logger.i(
+                                      """ Catalog restored to previous version. Version info: 
+                                      Name: ${chosenCatalog['name']}
+                                      Timestamp: ${chosenCatalog['timestamp']}
+                                      """
+                                    );
+                                    await ProductManager.createFromMap(chosenCatalog);
+                                    CatalogEditor.createEditorCatalog(ProductManager.all!);
+                                    _treeController.rebuild();
+                                    setState(() {
+                                      _editorAll = CatalogEditor.all;
+
+                                      _treeController = TreeController<EItem>(
+                                        // Provide the root nodes that will be used as a starting point when
+                                        // traversing your hierarchical data.
+                                        roots: CatalogEditor.all.editorItems,
+                                        // Provide a callback for the controller to get the children of a
+                                        // given node when traversing your hierarchical data. Avoid doing
+                                        // heavy computations in this method, it should behave like a getter.
+                                        childrenProvider: (EItem item) => item.getSubItems(),
+                                        parentProvider: (EItem item) => item.getParent()
+                                      );
+                                    
+                                      _selectedCategory = CatalogEditor.all;
+                                    });
+                                  }
+                                },
+                              ),
+                              const CommandBarSeparator(
+                                thickness: 0.5,
+                                color: Colors.black,
+                              ),
+                              CommandBarButton(
+                                icon: const Icon(FluentIcons.production_20_regular),
+                                label: const Text('New Product', style: TextStyle(fontSize: 12)),
+                                onPressed: () {
+                                  final newProduct = EProduct.temp();
+                                  toggleEditorItem(newProduct, newItem: true);
+                                },
+                              ),
+                              CommandBarButton(
+                                icon: const Icon(FluentIcons.list_bar_20_regular),
+                                label: const Text('New Category', style: TextStyle(fontSize: 12)),
+                                onPressed: () {
+                                  final newCategory = ECategory.temp();
+                                  toggleEditorItem(newCategory, newItem: true);
+                                },
+                              ),
+                              if (_focusItem != null) ... [
+                                const CommandBarSeparator(
+                                  thickness: 0.5,
+                                  color: Colors.black,
+                                ),
+                                const CommandBarSeparator(),
+                                CommandBarBuilderItem(
+                                  builder: (context, displayMode, child) {
+                                    return Container(
+                                      constraints: const BoxConstraints(minWidth: 80),
+                                      padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 5),
+                                      decoration: BoxDecoration(
+                                        color: WeightechThemes.wtGray.light,
+                                        borderRadius: const BorderRadius.only(
+                                          topLeft: Radius.circular(8),
+                                          bottomLeft: Radius.circular(8),
+                                        )
+                                      ),
+                                      child: child
+                                    );
+                                  }, 
+                                  wrappedItem: CommandBarButton(
+                                    icon: const Icon(FluentIcons.document_save_20_regular, color: Colors.black),
+                                    label: const Text('Save', style: TextStyle(fontSize: 12, color: Colors.black)),
+                                    onPressed: () {
+                                      if (_focusItem is EProduct) {
+                                        if (_formKey.currentState!.validate()) {
+                                          if (_addingItem) {
+                                            Product newProduct = Product(
+                                              name: _nameController.text,
+                                              modelNumber: _modelNumberController.text,
+                                              description: _descriptionController.text,
+                                              brochure: mapListToBrochure(_brochure)
+                                            );
+                                            EProduct newEProduct = EProduct(product: newProduct,);
+                                            
+                                            newEProduct.save(
+                                              parent: _selectedCategory,
+                                              mediaPaths: List.from(_mediaPaths),
+                                              mediaFiles: List.from(_mediaFiles)
+                                            );
+                                          }
+                                          else {
+                                            final product = _focusItem as EProduct;
+                                            product.save(
+                                              name: _nameController.text,
+                                              parent: _selectedCategory,
+                                              modelNumber: _modelNumberController.text,
+                                              description: _descriptionController.text,
+                                              brochure: mapListToBrochure(_brochure),
+                                              mediaPaths: List.from(_mediaPaths),
+                                              mediaFiles: List.from(_mediaFiles),
+                                              primaryImageIndex: _primaryImageIndex,
+                                            );                       
+                                          }
+                                          setState(() {
+                                            _treeController.rebuild();
+                                            _addingItem = false;
+                                            _focusItem = null;
+                                          });
+                                        }
+                                      }
+                                      else if (_focusItem is ECategory) {
+                                        if (_addingItem) {
+                                          ProductCategory newCategory = ProductCategory(
+                                            name: _nameController.text,
+                                          );
+                                          ECategory newECategory = ECategory(category: newCategory, editorItems: []);
+                                          
+                                          newECategory.save(
+                                            parent: _selectedCategory,
+                                            imagePath: (_mediaPaths.isEmpty) ? null : _mediaPaths.first,
+                                            imageFile: (_mediaFiles.isEmpty) ? null : _mediaFiles.first
+                                          );
+                                        }
+                                        else {
+                                          final category = _focusItem as ECategory;
+                                          category.save(
+                                            name: _nameController.text,
+                                            parent: _selectedCategory,
+                                            imagePath: (_mediaPaths.isEmpty) ? null : _mediaPaths.first,
+                                            imageFile: (_mediaFiles.isEmpty) ? null : _mediaFiles.first,
+                                          );
+                                        }
+                                        setState(() {
+                                          _treeController.rebuild();
+                                          _addingItem = false;
+                                          _focusItem = null;
+                                        });
+                                      }
+                                    }
+                                  )
+                                ),
+                                if (_focusItem is EProduct) 
+                                  CommandBarBuilderItem(
+                                    builder: (context, displayMode, child) {
+                                      return Container(
+                                        constraints: const BoxConstraints(minWidth: 80),
+                                        padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 5),
+                                        decoration: BoxDecoration(
+                                          color: WeightechThemes.wtGray.light,
+                                        ),
+                                        child: child
+                                      );
+                                    }, 
+                                    wrappedItem: CommandBarButton(
+                                      icon: const Icon(FluentIcons.eye_20_regular, color: Colors.black),
+                                      label: const Text('Preview', style: TextStyle(fontSize: 12, color: Colors.black)),
+                                      onPressed: () {
+                                        _showPreviewDialog(context);
+                                      },
+                                    )
+                                  ),
+                                if (!_addingItem && (CatalogEditor.publishedCatalog != null))
+                                  CommandBarBuilderItem(
+                                    builder: (context, displayMode, child) {
+                                      return Container(
+                                        constraints: const BoxConstraints(minWidth: 80),
+                                        padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 5),
+                                        decoration: BoxDecoration(
+                                          color: WeightechThemes.wtGray.light,
+                                        ),
+                                        child: child
+                                      );
+                                    }, 
+                                    wrappedItem: CommandBarButton(
+                                      icon: const Icon(FluentIcons.arrow_counterclockwise_20_regular, color: Colors.black),
+                                      label: const Text('Revert', style: TextStyle(fontSize: 12, color: Colors.black)),
+                                      onPressed: () async {
+                                        final confirmed = await _showItemRevertDialog(context, _focusItem!, currentName: _nameController.text);
+                                        if (confirmed) {
+                                          setState(() => _toggleLoading());
+
+                                          final item = _focusItem!;
+
+                                          Log.logger.i('Reverting ${item.name} (ID: ${item.id}) to its published version...');
+
+                                          final id = item.id;
+                                          setState(() => _focusItem = null);
+
+                                          await item.revertToPublished();
+
+                                          Log.logger.i('-> Done');
+
+                                          _treeController.rebuild();
+                                          final newVersion = EItem.getItemById(root: CatalogEditor.all, id: id);
+                                          setState(() => _toggleLoading());
+                                          toggleEditorItem(newVersion);
+                                        }
+                                      },
+                                    )
+                                  ),
+                                CommandBarBuilderItem(
+                                  builder: (context, displayMode, child) {
+                                    return Container(
+                                      constraints: const BoxConstraints(minWidth: 80),
+                                      padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 5),
+                                      decoration: BoxDecoration(
+                                        color: WeightechThemes.wtGray.light,
+                                        borderRadius: const BorderRadius.only(
+                                          topRight: Radius.circular(8),
+                                          bottomRight: Radius.circular(8),
+                                        )
+                                      ),
+                                      child: child
+                                    );
+                                  }, 
+                                  wrappedItem: CommandBarButton(
+                                    icon: const Icon(FluentIcons.delete_20_regular, color: Colors.black),
+                                    label: const Text('Delete', style: TextStyle(fontSize: 12, color: Colors.black)),
+                                    onPressed: () async {
+                                      final confirmed = await _showItemDeleteDialog(context, _focusItem!, currentName: _nameController.text);
+                                      if (confirmed) {
+                                        _focusItem!.delete();
+                                        _treeController.rebuild();
+                                        setState(() => _focusItem = null);
+                                      }
+                                    },
+                                  )
+                                )
+                              ]
+                            ],
+                          ),
+                        ),
+                        IntrinsicWidth(
+                          child: CommandBar(
+                            overflowBehavior: CommandBarOverflowBehavior.wrap,
+                            mainAxisAlignment: material.MainAxisAlignment.end,
+                            primaryItems: const [
+                              CommandBarSeparator()
+                            ],
+                            secondaryItems: _secondaryCommands,
                           )
+                        )
+                      ]
                     )
-                  ]
+                    
+                )
+              )
+          ),
+          content: IgnorePointer(
+            ignoring: _ignoringPointer,
+            child: Stack(
+              children: [
+                Container(
+                  decoration: const BoxDecoration(
+                    border: Border(
+                      top: BorderSide(
+                        width: 1,
+                        color: Color(0x19000000)
+                      )
+                    )
+                  ),
+                  child: 
+                    Row(
+                      children: [
+                        Flexible(
+                          flex: 1,
+                          child: Container(
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFF3F3F3),
+                              border: Border.symmetric(
+                                vertical: BorderSide(
+                                  color: Color(0x19000000)
+                                ),
+                              )
+                            ),
+                            child: catalogBuilder(item: CatalogEditor.all)
+                          ),
+                        ),
+                        Flexible(
+                          flex: 3,
+                          child: (_focusItem != null) ?
+                            (_focusItem is ECategory) ? 
+                              categoryEditor(category: _focusItem as ECategory)
+                              : productEditor(product: _focusItem as EProduct)
+                            : const Center(
+                                child: Text("Select a catalog item on the left side to begin.")
+                              )
+                        )
+                      ]
+                    ),
                 ),
-            ),
-            if (_loadingSomething) 
-                // child: LoadingAnimationWidget.twistingDots(
-                //   leftDotColor: WeightechThemes.weightechBlue, 
-                //   rightDotColor: WeightechThemes.weightechGray, 
-                //   size: 40
-                // ),=
-              _loadingWidget
-          ]
+                if (_loadingSomething) 
+                    // child: LoadingAnimationWidget.twistingDots(
+                    //   leftDotColor: WeightechThemes.weightechBlue, 
+                    //   rightDotColor: WeightechThemes.weightechGray, 
+                    //   size: 40
+                    // ),=
+                  _loadingWidget
+              ]
+            )
+          )
         )
       )
     );
@@ -944,7 +1067,6 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
           // node is visible in its new vicinity when the tree gets rebuilt.
           // _treeController.setExpansionState(details.targetNode as EItem, true);
 
-          // TODO: implement your tree reorder logic
           final targetNode = details.targetNode as EItem;
           final draggedNode = details.draggedNode as EItem;
           final targetParent = targetNode.getParent();
@@ -1237,57 +1359,6 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                     ),
                 ),
                 const SizedBox(height: 20),
-                Button(
-                  child: const Text("Preview"),
-                  onPressed: () {
-                    // _showPreviewDialog(context);
-                  },
-                ),
-                const SizedBox(height: 10),
-                Button(
-                  style: const ButtonStyle(
-                    backgroundColor: WidgetStatePropertyAll<Color>(WeightechThemes.weightechBlue),
-                    foregroundColor: WidgetStatePropertyAll<Color>(Colors.white)
-                  ),
-                  child: _addingItem ? const Text("Add") : const Text("Save"),
-                  onPressed: () {
-                    if (_formKey.currentState!.validate()) {
-                      if (_addingItem) {
-                        Product newProduct = Product(
-                          name: _nameController.text,
-                          modelNumber: _modelNumberController.text,
-                          description: _descriptionController.text,
-                          brochure: mapListToBrochure(_brochure)
-                        );
-                        EProduct newEProduct = EProduct(product: newProduct,);
-                        
-                        newEProduct.save(
-                          parent: _selectedCategory,
-                          mediaPaths: List.from(_mediaPaths),
-                          mediaFiles: List.from(_mediaFiles)
-                        );
-                      }
-                      else if (product != null) {
-                        product.save(
-                          name: _nameController.text,
-                          parent: _selectedCategory,
-                          modelNumber: _modelNumberController.text,
-                          description: _descriptionController.text,
-                          brochure: mapListToBrochure(_brochure),
-                          mediaPaths: List.from(_mediaPaths),
-                          mediaFiles: List.from(_mediaFiles),
-                          primaryImageIndex: _primaryImageIndex,
-                        );                       
-                      }
-                      setState(() {
-                        _treeController.rebuild();
-                        _addingItem = false;
-                        _focusItem = null;
-                      });
-                    }
-                  }
-                ),
-                const SizedBox(height: 20),
               ]
             )
           )
@@ -1405,6 +1476,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
         duration: const Duration(milliseconds: 250),
         width: 400,
         height: 250,
+        padding: const EdgeInsets.only(top: 1),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: Colors.black),
@@ -1537,9 +1609,18 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                               child: IconButton(
                               icon: const Icon(FluentIcons.desktop_20_regular),
                               onPressed: () async {
-                                final dir = FileUtils.dirname(_mediaPaths[index]);
-                                final uri = Uri.parse(dir);
-                                launchUrl(uri);
+                                try {
+                                  final dir = FileUtils.dirname(_mediaPaths[index]);
+                                  final uri = Uri.parse(dir);
+                                  launchUrl(uri);
+                                } on PlatformException {
+                                  final downloadDir = await getDownloadsDirectory();
+                                  final newFile = File('${downloadDir!.path}/${FileUtils.filenameWithExtension(_mediaPaths[index])}');
+                                  final bytes = _mediaFiles[index].readAsBytesSync();
+                                  newFile.writeAsBytes(bytes);
+                                } catch (e) {
+                                  throw();
+                                }
                               }
                             ),
                           ),
@@ -1815,7 +1896,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
               color: Colors.grey.withOpacity(0.5),
               spreadRadius: 1,
               blurRadius: 2,
-              offset: Offset(0, 2), // changes position of shadow
+              offset: const Offset(0, 2), // changes position of shadow
             ),
           ],
           // border: Border.all(
@@ -1879,41 +1960,6 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
               constraints: const BoxConstraints(minHeight: 300),
               child: 
                 buildCategoryEditorCard()
-            ),
-            const SizedBox(height: 0),
-            Button(
-              style: const ButtonStyle(
-                backgroundColor: WidgetStatePropertyAll<Color>(WeightechThemes.weightechBlue),
-                foregroundColor: WidgetStatePropertyAll<Color>(Colors.white)
-              ),
-              child: _addingItem ? const Text("Add") : const Text("Save"),
-              onPressed: () {
-                if (_addingItem) {
-                  ProductCategory newCategory = ProductCategory(
-                    name: _nameController.text,
-                  );
-                  ECategory newECategory = ECategory(category: newCategory, editorItems: []);
-                  
-                  newECategory.save(
-                    parent: _selectedCategory,
-                    imagePath: (_mediaPaths.isEmpty) ? null : _mediaPaths.first,
-                    imageFile: (_mediaFiles.isEmpty) ? null : _mediaFiles.first
-                  );
-                }
-                else if (category != null) {
-                  category.save(
-                    name: _nameController.text,
-                    parent: _selectedCategory,
-                    imagePath: (_mediaPaths.isEmpty) ? null : _mediaPaths.first,
-                    imageFile: (_mediaFiles.isEmpty) ? null : _mediaFiles.first,
-                  );
-                }
-                setState(() {
-                  _treeController.rebuild();
-                  _addingItem = false;
-                  _focusItem = null;
-                });
-              }
             ),
             const SizedBox(height: 20),
           ]
@@ -2135,7 +2181,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
               color: Colors.grey.withOpacity(0.5),
               spreadRadius: 1,
               blurRadius: 2,
-              offset: Offset(0, 2), // changes position of shadow
+              offset: const Offset(0, 2), // changes position of shadow
             ),
           ],
           // border: Border.all(
@@ -2212,6 +2258,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
         _focusItem = focusItem;
         _mediaPaths = List.from(newImagePaths);
         _mediaFiles = List.from(newImageFiles);
+        _primaryImageIndex = focusItem.primaryImageIndex;
         _nameController.text = focusItem.product.name;
         _modelNumberController.text = focusItem.product.modelNumber ?? '';
         updateStreamController.add('Mapping brochure...');
@@ -2282,15 +2329,20 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
               else if (snapshot.data is EItem) {
                 final item = snapshot.data;
                 return ContentDialog(
-                  title: 
-                    Center(
+                  title: SizedBox(
+                    height: 100,
+                    child: Center(
                       heightFactor: 1,
                       child: (item is ECategory)
                         ? Row(
                           mainAxisSize: MainAxisSize.min,
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            if (item.imagePath != null) Image.file((File(item.imagePath!))),
+                            if (item.imagePath != null)
+                              ... [
+                                Image.file((File(item.imagePath!))),
+                                const SizedBox(width: 10),
+                              ],
                             Expanded(
                               child: Text("${item.name}...", textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: WeightechThemes.defaultTextColor))
                             )
@@ -2303,7 +2355,10 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                           children: [
                             if (item.mediaFiles?.isNotEmpty ?? false) 
                               if (!FileUtils.isMP4(item.mediaPaths![0]))
-                                Image.file((File(item.mediaPaths![0]))),
+                                ... [
+                                  Image.file((File(item.mediaPaths![0]))),
+                                  const SizedBox(width: 10),
+                                ],
                             Expanded(
                               child: Text("${item.name}...", textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: WeightechThemes.defaultTextColor))
                             )
@@ -2311,6 +2366,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                         )
                         : Text('Loading...', style: TextStyle(fontSize: 14, color: WeightechThemes.defaultTextColor), textAlign: TextAlign.center,),
                     ),
+                  ),
                   content: const Center(
                     heightFactor: 1,
                     child: ProgressBar(
@@ -2837,6 +2893,40 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
     return null;
   }
 
+  
+  Future<bool> _showPublishConfirmDialog(BuildContext context) async {
+    bool? confirmation = false;
+
+    confirmation = await showDialog<bool?>(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return ContentDialog(
+              title: const Text("Warning!"),
+              content: const Text("You are about to publish this version of the catalog. The third-newest version will be unrecoverable.\n\nAre you sure?"),
+              actions: <Widget>[
+                Button(
+                  child: const Text("Publish"),
+                  onPressed: () {
+                    Navigator.of(context).pop(true);
+                  }
+                ),
+                FilledButton(
+                  child: const Text("Cancel"),
+                  onPressed: () {
+                    Navigator.of(context).pop(false);
+                  }
+                )
+              ]
+            );
+          }
+        );
+      }
+    );
+    return confirmation ?? false;
+  }
+
 
   Future<bool> _showRestorationConfirmation(BuildContext context, String date) async {
     bool? confirmation = false;
@@ -2922,7 +3012,12 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
               },
               callback: (status) async {
                 if (status == UpdatStatus.upToDate || status == UpdatStatus.dismissed) {
-                  await Future.delayed(const Duration(seconds: 1)).then((value) => Navigator.of(context).pop());
+                  await Future.delayed(const Duration(seconds: 1))
+                    .then((value) {
+                      if (context.mounted) {
+                        Navigator.of(context).pop();
+                      }
+                    });
                 }
               }
             )
@@ -2989,12 +3084,27 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
   }
 
 
+  Future<void> handleSaveCatalogLocal({required String path}) async {
+
+    final streamController = StreamController();
+    setState(() => _toggleLoading(dynamicStream: streamController.stream, loadingSomething: true));
+    await CatalogEditor.saveCatalogLocal(path: path, streamController: streamController);
+    streamController.close();
+    setState(() => _toggleLoading());
+
+  }
+
+
   @override
   void onWindowClose() async {
     bool isPreventClose = await windowManager.isPreventClose();
     TextEditingController unsavedNameController = TextEditingController(text: CatalogEditor.name);
     Directory currentDirectory = (CatalogEditor.currentFile != null) ? CatalogEditor.currentFile!.parent : await getApplicationDocumentsDirectory();
 
+
+    if (CatalogEditor.temporaryDirectory != null) {
+      CatalogEditor.temporaryDirectory!.deleteSync();
+    }
 
     if (isPreventClose && CatalogEditor.isUnsaved) {
       await showDialog(
@@ -3038,7 +3148,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                   if (FileUtils.extension(result) != '.wtf') {
                                     result += '.wtf';
                                   }
-                                  await CatalogEditor.saveCatalogLocal(path: unsavedNameController.text);
+                                  await handleSaveCatalogLocal(path: unsavedNameController.text);
                                 }
                                 else {
                                   Log.logger.t("-> File save aborted/failed.");
@@ -3055,8 +3165,10 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                   FilledButton(
                     child: const Text('Save'),
                     onPressed: () async {
-                      await CatalogEditor.saveCatalogLocal(path: unsavedNameController.text);
-                      Navigator.of(context).pop();
+                      await handleSaveCatalogLocal(path: unsavedNameController.text);
+                      if (context.mounted) {
+                        Navigator.of(context).pop();
+                      }
                     },
                   ),
                   Button(

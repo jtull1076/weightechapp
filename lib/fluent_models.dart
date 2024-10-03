@@ -9,7 +9,8 @@ import 'package:weightechapp/utils.dart';
 import 'package:weightechapp/models.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons, TreeView, TreeViewItem;
 import 'package:archive/archive_io.dart';
-
+import 'package:shortid/shortid.dart';
+import 'dart:isolate';
 
 
 /// The [CatalogEditor] class manages editing operations for catalogs, including 
@@ -37,6 +38,9 @@ class CatalogEditor {
 
   /// The file where the current catalog is stored locally.
   static File? currentFile;
+
+  /// The temporary directory created when editing local catalog version.
+  static Directory? temporaryDirectory;
 
   /// Constructs a [CatalogEditor] instance using a given [catalog] of type [ProductCategory].
   ///
@@ -118,14 +122,14 @@ class CatalogEditor {
   /// the operation.
   static Future<void> saveCatalogToCloud({StreamController? streamController}) async {
     try {
-      await updateImages(streamController);
-      Log.logger.t("Product images updated.");
+      String newId = shortid.generate();
+      await updateImages(newId, streamController);
+      final testAll = all.category;
       ProductManager.all = all.category;
       ProductManager.name = CatalogEditor.name;
-      final refer = CatalogEditor.name;
       streamController?.add("Updating catalog...");
-      await ProductManager.postCatalogToFirestore(name: name);
-      Log.logger.t("Catalog update completed.");
+      await ProductManager.postCatalogToFirestore(name: name, id: newId);
+      Log.logger.i("Catalog update completed. (Name: $name, ID: $newId)");
     } catch (e) {
       rethrow;
     }
@@ -136,8 +140,10 @@ class CatalogEditor {
   /// storage.
   ///
   /// An optional [stream] can be provided to report progress.
-  static Future<void> updateImages(StreamController? stream) async {
-    final storageRef = FirebaseUtils.storage.ref().child("devImages3");
+  static Future<void> updateImages(String newId, StreamController? stream,) async {
+    final storageRef = FirebaseUtils.storage.ref().child(AppSettings.nextStorageRef);
+    final newStorageRef = FirebaseUtils.storage.ref().child("${AppSettings.nextStorageRef}/$newId");
+
 
     Future<void> traverseItems(ECategory category) async {
       if (category.imageFile != null) {
@@ -147,8 +153,8 @@ class CatalogEditor {
         final SettableMetadata metadata = SettableMetadata(contentType: 'images/${path_handler.extension(category.imageFile!.path)}');
 
         try {
-          await storageRef.child(refName).putFile(category.imageFile!, metadata).then((value) async {
-            await storageRef.child(refName).getDownloadURL().then((value) {
+          await newStorageRef.child(refName).putFile(category.imageFile!, metadata).then((value) async {
+            await newStorageRef.child(refName).getDownloadURL().then((value) {
               category.category.imageUrl = value;
               Log.logger.t("Category image url updated.");
             });
@@ -160,10 +166,10 @@ class CatalogEditor {
       for (var item in category.editorItems) {
         switch (item) {
           case ECategory _: {
-            if (item.branchHasChanges) await traverseItems(item);
+            await traverseItems(item);
           }
           case EProduct _: {
-            if (item.hasChanges) {
+            if (true) {
               if (item.mediaPaths != null) {
                 stream?.add(item);
                 
@@ -183,8 +189,10 @@ class CatalogEditor {
                     }
                     
                     try {
-                      await storageRef.child("$baseRefName.$extension").putFile(imageFile, SettableMetadata(contentType: 'images/$extension')).then((value) async {
-                        final imageUrl = await storageRef.child("$baseRefName.$extension").getDownloadURL();
+                      await newStorageRef.child("$baseRefName.$extension").putFile(imageFile, SettableMetadata(contentType: 'images/$extension'))
+                      .then((value) async {
+                        final imageUrl = await newStorageRef.child("$baseRefName.$extension").getDownloadURL();
+                        item.product.imageUrl = imageUrl;
                         item.product.productMedia!.insert(0, 
                         {
                           'name': baseRefName,
@@ -207,9 +215,9 @@ class CatalogEditor {
                         }
                         if (extension == 'jpeg' || extension == 'png') {
                             try {
-                              await storageRef.child("$baseRefName.$extension").putFile(imageFile, SettableMetadata(contentType: 'images/$extension'))
+                              await newStorageRef.child("$baseRefName.$extension").putFile(imageFile, SettableMetadata(contentType: 'images/$extension'))
                               .then((value) async {
-                                final imageUrl = await storageRef.child("$baseRefName.$extension").getDownloadURL();
+                                final imageUrl = await newStorageRef.child("$baseRefName.$extension").getDownloadURL();
                                 item.product.productMedia!.add( 
                                 {
                                   'name': baseRefName,
@@ -224,9 +232,9 @@ class CatalogEditor {
                             }
                         }
                         else if (extension == 'mp4') {
-                          await storageRef.child("$baseRefName.$extension").putFile(imageFile, SettableMetadata(contentType: 'video/mp4'))
+                          await newStorageRef.child("$baseRefName.$extension").putFile(imageFile, SettableMetadata(contentType: 'video/mp4'))
                           .then((value) async {
-                            final videoUrl = await storageRef.child("$baseRefName.$extension").getDownloadURL();
+                            final videoUrl = await newStorageRef.child("$baseRefName.$extension").getDownloadURL();
                             final videoResponse = await ApiVideoService.createVideo(title: '$baseRefName.$extension', source: videoUrl);
                             final videoData = {
                               'downloadUrl' : videoUrl,
@@ -260,8 +268,11 @@ class CatalogEditor {
       }
     }
 
+    Log.logger.t('all identity before: ${identityHashCode(all)}');
     await traverseItems(all);
-    Log.logger.t("Images updated.");
+    Log.logger.t('all identity after: ${identityHashCode(all)}');
+    final testAll = all;
+    Log.logger.t("-> Images updated.");
   }
 
 
@@ -270,27 +281,46 @@ class CatalogEditor {
   ///
   /// This method uses temporary directories to store backup images before 
   /// packaging..
-  static Future<void> saveCatalogLocal({required String path}) async {
+  static Future<void> saveCatalogLocal({required String path, StreamController? streamController}) async {
 
     Log.logger.i("Attempting to save");
     Log.logger.t("Save file path: $path");
 
+    streamController?.add('Attempting save at $path');
+
     File saveFile = File(path);
     Directory directory = saveFile.parent;
 
-    Directory tempDirectory = directory.createTempSync();
-
     String name = FileUtils.filename(path);
+
+    streamController?.add('Creating temporary directories...');
+    Log.logger.t('Creating temporary directories...');
+
+    Directory tempDirectory = Directory('${directory.path}/$name');
+    tempDirectory.createSync();
     
+    streamController?.add('Creating JSON file...');
+    Log.logger.t('Creating JSON file...');
+
     File jsonFile = await File('${tempDirectory.path}/$name.json').create();
     
     ECategory copyOfAll = ECategory.fromJson(all.toJson());
     
     try {
+
+      streamController?.add('Archiving images...');
+      Log.logger.t('Archiving images...');
+
       List<ArchiveFile> archiveImages = await _storeBackupImages(catalog: copyOfAll, directory: tempDirectory, name: name);
+
+      streamController?.add('Creating JSON data...');
+      Log.logger.t('Creating JSON data...');
+
       jsonFile.writeAsStringSync(jsonEncode(copyOfAll.toJson()), mode: FileMode.write);
       final bytes = jsonFile.readAsBytesSync();
 
+      streamController?.add('Archiving JSON data...');
+      Log.logger.t('Archiving JSON data...');
 
       final ArchiveFile jsonArchive = ArchiveFile(FileUtils.filenameWithExtension(jsonFile.path), bytes.length, bytes);
 
@@ -301,86 +331,36 @@ class CatalogEditor {
         archive.addFile(file);
       }
       
-      final encoder = ZipEncoder();
-      final encodedArchive = encoder.encode(archive);
+      streamController?.add('Encoding data...');
+      Log.logger.t('Encoding data...');
 
-      if (encodedArchive == null) {
-        Log.logger.w("Failed to create save!");
-      }
-      else {
-        saveFile.writeAsBytesSync(encodedArchive); 
-      }
+      // Encode the archive as a BZip2 compressed Tar file.
+      List<int> tarBz2 = await Isolate.run(() {
+        List<int>? tarData = TarEncoder().encode(archive);
+        return BZip2Encoder().encode(tarData);
+      });
+
+      streamController?.add('Writing to file...');
+      Log.logger.t('Writing to file...');
+
+      saveFile.writeAsBytesSync(tarBz2); 
+
+      streamController?.add('Cleaning up...');
+      Log.logger.t('Cleaning up...');
 
       tempDirectory.deleteSync(recursive: true);
 
       currentFile = saveFile;
       isLocal = true;
+
+      Log.logger.i('Saved successfully!');
+      streamController?.add('Saved successfully!');
       
     } catch (e, stackTrace) {
+      streamController?.add('Failed to create save!');
+      Log.logger.w("Failed to create save!");
       Log.logger.e(e, stackTrace: stackTrace);
       rethrow;
-    }
-  }
-
-
-  /// Uploads a locally saved catalog from the specified [path].
-  ///
-  /// The catalog is expected to be a WTF (zip-encoded) file containing the JSON representation 
-  /// of the catalog and its associated media files. The ZIP file is extracted, 
-  /// and the catalog is deserialized into an [ECategory] object, which is then set 
-  /// as the current catalog for editing.
-  ///
-  /// If provided, the optional [onComplete] callback will be invoked after 
-  /// the catalog is successfully uploaded and processed.
-  ///
-  /// Throws an exception if there is an error during the upload or extraction process.
-  ///
-  /// - [path] : The path of the WTF (zip) file to be uploaded.
-  /// - [onComplete] : A callback function that is called when the upload process completes.
-  static Future<void> uploadCatalogLocal({required String path, VoidCallback? onComplete}) async {
-    
-    File uploadFile = File(path);
-    Directory uploadDirectory = uploadFile.parent;
-
-    String name = FileUtils.filenameWithExtension(uploadFile.path);
-    Directory tempDirectory = await uploadDirectory.createTemp('~$name');
-
-
-    try {
-      // Read the Zip file from disk.
-      List<int> bytes = uploadFile.readAsBytesSync();
-
-      final Archive archive = ZipDecoder().decodeBytes(bytes);
-      
-      for (final ArchiveFile file in archive) {
-        final String filename = file.name;
-        if (file.isFile) {
-          final data = file.content as List<int>;
-          File('${tempDirectory.path}/$filename')
-            ..createSync(recursive: true)
-            ..writeAsBytesSync(data);
-          try {
-            final json = jsonDecode(utf8.decode(data));
-            final newAll = ECategory.fromJson(json);
-            all = newAll;
-            Log.logger.i("Save file retrieved and decoded: $name");
-            // Log.logger.t("Here's the json:");
-            // Log.logger.t((const JsonEncoder.withIndent(' ')).convert(json));
-            CatalogEditor.name = name;
-            currentFile = uploadFile;
-            isLocal = true;
-            if (onComplete != null) onComplete();
-          } catch (e) {
-            // caught error
-          }
-        }
-        else {// it should be a directory
-            Directory('${tempDirectory.path}/$filename').create(recursive: true);
-        }
-      }
-      // return catalog;
-    } catch (e) {
-      throw();
     }
   }
 
@@ -390,7 +370,7 @@ class CatalogEditor {
   ///
   /// Returns a list of [ArchiveFile]s representing the media files.
   static Future<List<ArchiveFile>> _storeBackupImages({required ECategory catalog, required Directory directory, required String name}) async {
-    Directory imageDirectory = await Directory('${directory.path}/$name/images').create(recursive: true);
+    Directory imageDirectory = await Directory('${directory.path}/images').create(recursive: true);
     final List<FileSystemEntity> entities = await imageDirectory.list().toList();
 
     final archiveList = <ArchiveFile>[];
@@ -409,13 +389,13 @@ class CatalogEditor {
 
               if (FileUtils.isURL(path: item.imagePath!)) {
                   newFile = await FirebaseUtils.downloadFromFirebaseStorage(url: item.imagePath!, directory: imageDirectory, suffix: '_saved');
-                  newPath = newFile.path;
+                  newPath = 'images/${FileUtils.filenameWithExtension(newFile.path)}';
                   item.imagePath =  newPath;
 
                 }
                 else {
-                  newPath = '${imageDirectory.path}/${FileUtils.filenameWithExtension(item.imagePath!)}';
-                  newFile = item.imageFile!.copySync(newPath);
+                  newPath = 'images/${FileUtils.filenameWithExtension(item.imagePath!)}';
+                  newFile = item.imageFile!.copySync('${imageDirectory.path}/${FileUtils.filenameWithExtension(item.imagePath!)}');
                   item.imagePath = newPath;
                 }
 
@@ -445,7 +425,7 @@ class CatalogEditor {
                 else {
                   newPath = '${imageDirectory.path}/${FileUtils.filenameWithExtension(item.mediaPaths![i])}';
                   newFile = item.mediaFiles![i].copySync(newPath);
-                  item.mediaPaths![i] = newPath;
+                  item.mediaPaths![i] = 'images/${FileUtils.filenameWithExtension(item.mediaPaths![i])}';
                 }
 
                 final bytes = newFile.readAsBytesSync();
@@ -462,6 +442,101 @@ class CatalogEditor {
     await traverseCatalog(catalog);
 
     return archiveList;
+  }
+
+
+
+  /// Uploads a locally saved catalog from the specified [path].
+  ///
+  /// The catalog is expected to be a WTF (zip-encoded) file containing the JSON representation 
+  /// of the catalog and its associated media files. The ZIP file is extracted, 
+  /// and the catalog is deserialized into an [ECategory] object, which is then set 
+  /// as the current catalog for editing.
+  ///
+  /// If provided, the optional [onComplete] callback will be invoked after 
+  /// the catalog is successfully uploaded and processed.
+  ///
+  /// Throws an exception if there is an error during the upload or extraction process.
+  ///
+  /// - [path] : The path of the WTF (zip) file to be uploaded.
+  /// - [onComplete] : A callback function that is called when the upload process completes.
+  static Future<void> uploadCatalogLocal({
+    required String path, 
+    VoidCallback? onComplete, 
+    StreamController? stream
+  }) async {
+
+    Log.logger.i('Uploading local file...');
+    
+    File uploadFile = File(path);
+    Directory uploadDirectory = uploadFile.parent;
+
+    String name = FileUtils.filename(uploadFile.path);
+    stream?.add('Creating temporary directories...');
+    Directory tempDirectory = (await getTemporaryDirectory()).createTempSync('.~$name');
+    // Directory tempDirectory = Directory('${uploadDirectory.path}/$name')..createSync();
+    Directory imageDirectory = Directory('${tempDirectory.path}/images')..createSync();
+
+
+    void mapImagesToNewAll(ProductCategory newCategory, ECategory newCatalog) {
+
+    }
+
+
+    try {
+      // Read the Zip file from disk.
+      List<int> bytes = uploadFile.readAsBytesSync();
+
+      stream?.add('Decoding .wtf file...');
+      Log.logger.t('Decoding .wtf file...');
+      final Archive archive = await Isolate.run(() {
+        return TarDecoder().decodeBytes(BZip2Decoder().decodeBytes(bytes));
+      });
+      
+      stream?.add('Unpacking data...');
+      Log.logger.t('Unpacking data...');
+      for (final ArchiveFile file in archive) {
+        final String filename = file.name;
+        if (file.isFile) {
+          final data = file.content as List<int>;
+          final newFile = File('${tempDirectory.path}/$filename')
+            ..createSync(recursive: true)
+            ..writeAsBytesSync(data);
+          if (filename.endsWith('.json')) {
+            try {
+              final json = jsonDecode(utf8.decode(data));
+              ECategory newAll = ECategory.fromJson(json);
+              ProductManager.createFromECategory(newAll);
+              newAll.category = ProductManager.all!;
+              all = newAll;
+              Log.logger.i("Save file retrieved and decoded: $name");
+              // Log.logger.t("Here's the json:");
+              // Log.logger.t((const JsonEncoder.withIndent(' ')).convert(json));
+              CatalogEditor.name = name;
+              currentFile = uploadFile;
+              isLocal = true;
+              temporaryDirectory = tempDirectory;
+              Directory.current = temporaryDirectory;
+              if (onComplete != null) onComplete();
+              Log.logger.i('Catalog upload complete.');
+            } catch (e) {
+              // caught error
+              
+            }
+          }
+          else {
+            newFile.renameSync('${imageDirectory.path}/$filename');
+          }
+        }
+        else {// it should be a directory
+            Directory('${tempDirectory.path}/$filename').create(recursive: true);
+        }
+      }
+      // return catalog;
+      
+    } catch (e) {
+      throw();
+    }
   }
 }
 
@@ -683,7 +758,7 @@ sealed class EItem {
 /// Represents a category in the catalog, extending [EItem].
 class ECategory extends EItem {
   /// The underlying [ProductCategory] that this category represents.
-  final ProductCategory category;
+  ProductCategory category;
 
   /// A list of editor items (subcategories or products) within this category.
   List<EItem> editorItems;

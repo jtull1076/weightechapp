@@ -2,7 +2,6 @@ import 'package:weightechapp/themes.dart';
 import 'package:weightechapp/utils.dart';
 import 'package:weightechapp/fluent_routes.dart';
 import 'package:fluent_ui/fluent_ui.dart';
-import 'package:weightechapp/extra_material_widgets.dart';
 import 'package:weightechapp/extra_fluent_widgets.dart';
 import 'dart:async';
 import 'dart:io';
@@ -24,6 +23,7 @@ Future<void> main() async {
   }
 
   await AppInfo().init();
+  await AppSettings().init();
   await Log().init();
   Log.logger.i('Version: ${AppInfo.packageInfo.version}, Build: ${AppInfo.packageInfo.buildNumber}, SessionId: ${AppInfo.sessionId}');
   WeightechThemes();

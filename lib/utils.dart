@@ -18,6 +18,8 @@ import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:string_validator/string_validator.dart' as validator;
 import 'package:path/path.dart' as p;
 import 'package:internet_connection_checker_plus/internet_connection_checker_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 
 
 /// A class to manage application information and session data.
@@ -73,6 +75,55 @@ class AppInfo {
     } else {
       return 0;
     }
+  }
+}
+
+/// Class that manages the application settings such as dark mode and storage reference.
+class AppSettings {
+  /// Indicates if the app is in dark mode. Default is `false`.
+  static bool? isDarkMode;
+
+  /// Holds the reference to the next storage location.
+  static late String nextStorageRef;
+
+  AppSettings();
+
+  /// Initializes the settings by loading them from shared preferences.
+  /// 
+  /// This method retrieves the saved values for dark mode and storage reference, 
+  /// setting default values if none are found.
+  Future<void> init() async {
+    final SharedPreferencesAsync prefs = SharedPreferencesAsync();
+    isDarkMode = await prefs.getBool('isDarkMode');
+    nextStorageRef = await prefs.getString('nextStorageRef') ?? 'newDevImages';
+  }
+
+  /// Saves the current settings to shared preferences.
+  /// 
+  /// This persists the dark mode state and storage reference, 
+  /// allowing them to be restored when the app is reopened.
+  Future<void> saveSettings() async {
+    final SharedPreferencesAsync prefs = SharedPreferencesAsync();
+    if (isDarkMode != null) {
+      await prefs.setBool('isDarkMode', isDarkMode!);
+    }
+    else {
+      await prefs.remove('isDarkMode');
+    }
+    if (nextStorageRef != null) {
+      await prefs.setString('nextStorageRef', nextStorageRef!);
+    }
+  }
+
+  Future<void> updateStorageRef() async {
+    final SharedPreferencesAsync prefs = SharedPreferencesAsync();
+
+    const storageRefs = ['newDevImages','newDevImages2','newDevImages3'];
+
+    final currentRef = await prefs.getString(nextStorageRef!);
+    int currentIndex = storageRefs.indexOf(currentRef!);
+    final int nextIndex = (currentIndex + 1) % storageRefs.length;
+    await prefs.setString('nextStorageRef', storageRefs[nextIndex]);
   }
 }
 
@@ -302,7 +353,7 @@ class FirebaseUtils {
     });
   }
 
-  /// Uploads a catalog to Firestore by adding a document to the `devCatalog` collection.
+  /// Uploads a catalog to Firestore by adding a document to the `catalog` collection.
   ///
   /// - [json]: The JSON map containing catalog data to be uploaded.
   ///
@@ -314,7 +365,7 @@ class FirebaseUtils {
       });
   }
 
-  /// Retrieves the most recent catalog document from the `devCatalog` collection in Firestore.
+  /// Retrieves the most recent catalog document from the `catalog` collection in Firestore.
   ///
   /// The query retrieves the latest document ordered by the `timestamp` field.
   ///
@@ -340,7 +391,7 @@ class FirebaseUtils {
   }
 
 
-  /// Retrieves the most recent [number] of catalog documents from the `devCatalog` collection in Firestore.
+  /// Retrieves the most recent [number] of catalog documents from the `catalog` collection in Firestore.
   ///
   /// The query retrieves the latest documents ordered by the `timestamp` field.
   ///
@@ -364,6 +415,50 @@ class FirebaseUtils {
       maxAttempts: 2,
     );
   }
+
+
+  static Future<void> removeStorageReference(String refName) async {
+    var imagesRef = storage.ref().child(refName);
+    imagesRef.delete();
+    Log.logger.i('Firebase Reference $refName deleted.');
+  }
+
+
+  static Future<void> deleteLastFromStorage(int number) async {
+    try {
+      List<Map<String, dynamic>> catalogsToKeep = await getLastFromFirestore(number);
+
+      Set<String> versionIds = catalogsToKeep
+        .where((entry) => entry.containsKey('versionId'))
+        .map((entry) => entry['versionId'] as String)
+        .toSet();
+
+      var imagesRef = storage.ref().child('newDevImages');
+      ListResult result = await imagesRef.listAll();
+
+      for (var folderRef in result.prefixes) {
+        String folderName = folderRef.name;
+
+        // If the folder name (versionId) is NOT in the set of retrieved versionIds, delete the folder's contents
+        if (!versionIds.contains(folderName)) {
+          ListResult folderContents = await folderRef.listAll();
+
+          // Delete each file in the folder
+          for (var fileRef in folderContents.items) {
+            await fileRef.delete();
+          }
+
+          Log.logger.i("Deleted all files in folder 'images/$folderName' (not in versionIds)");
+        } else {
+          Log.logger.i("Skipped folder 'images/$folderName' (matches versionId)");
+        }
+      }
+    }
+    catch (e) {
+      Log.logger.e("Error deleting storage files: $e");
+    }
+  }
+
 
 
   /// Downloads a file from Firebase Storage and saves it locally.

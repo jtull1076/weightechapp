@@ -1,6 +1,4 @@
 import 'dart:ui';
-
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart' as material;
 import 'package:fluent_ui/fluent_ui.dart' as fluent;
 import 'package:google_fonts/google_fonts.dart';
@@ -59,7 +57,7 @@ class WeightechThemes {
       materialTheme = materialLightTheme;
       fluentTheme = fluentLightTheme;
       defaultTextColor = fluent.Colors.black;
-      infoWidgetColor = wtGray.light;
+      infoWidgetColor = wtGray.lighter;
       loadingAnimationColor = wtBlue.normal;
       fileDropColor = const Color(0x44224190);
       dialogTitleStyle = const TextStyle(color: WeightechThemes.weightechBlue, fontSize: 18);

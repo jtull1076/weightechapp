@@ -4,7 +4,6 @@ import 'package:weightechapp/themes.dart';
 import 'package:updat/updat.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 /// A form that prompts the user for the type of feedback they want to give,
 /// free form text feedback, and a sentiment rating.
