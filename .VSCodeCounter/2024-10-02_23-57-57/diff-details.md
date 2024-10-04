@@ -1,6 +1,6 @@
 # Diff Details
 
-Date : 2024-10-01 20:31:48
+Date : 2024-10-02 23:57:57
 
 Directory c:\\Users\\jerem\\OneDrive\\Documents\\Projects\\WeightechKiosk\\WeightechFlutter\\weightechapp
 

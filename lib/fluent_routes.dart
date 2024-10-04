@@ -586,8 +586,9 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                             color: WeightechThemes.wtGray.darker,
                             borderRadius: BorderRadius.circular(3),
                           ),
-                          width: 100,
+                          width: 120,
                           height: 40,
+                          // padding: const EdgeInsets.fromLTRB(10,0,10,0),
                           child: IntrinsicWidth(
                             child: TapRegion(
                               child: TextBox(
@@ -606,12 +607,13 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                           )
                         ),
                         const SizedBox(width: 10),
-                        Flexible(
-                          fit: FlexFit.loose,
+                        IntrinsicWidth(
+                          key: const Key('file_commands'),
                           child: CommandBar(
-                            overflowBehavior: CommandBarOverflowBehavior.scrolling,
+                            overflowBehavior: CommandBarOverflowBehavior.clip,
                             primaryItems: [
                               CommandBarButton(
+                                key: const Key('save_catalog'),
                                 icon: const Icon(FluentIcons.save_edit_20_regular),
                                 label: const Text('Save As', style: TextStyle(fontSize: 12)),
                                 onPressed: () async {
@@ -707,10 +709,40 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                       });
                                 },
                               ),
+                              CommandBarButton(
+                                icon: const Icon(FluentIcons.save_sync_20_regular),
+                                label: const Text('Create\nBackup', style: TextStyle(fontSize: 11, height: 1)),
+                                onPressed: () async {
+                                  FilePickerResult? _ = 
+                                    await FilePicker.platform
+                                      .saveFile(dialogTitle: 'Save Backup As', fileName: '${_filenameController.text}.wtf', allowedExtensions: ['wtf'], type: FileType.custom)
+                                      .then((result) async {
+                                        if (result != null) {
+                                          if (FileUtils.extension(result) != '.wtf') {
+                                            result += '.wtf';
+                                          }
+                                          await handleSaveCatalogLocal(path: result, isBackup: true);
+                                        }
+                                        else {
+                                          Log.logger.t("-> File save aborted/failed.");
+                                          return null;
+                                        }
+                                        return null;
+                                      });
+                                },
+                              ),
                               const CommandBarSeparator(
                                 thickness: 0.5,
                                 color: Colors.black,
                               ),
+                            ],
+                          )
+                        ),
+                        Flexible(
+                          fit: FlexFit.loose,
+                          child: CommandBar(
+                            overflowBehavior: CommandBarOverflowBehavior.scrolling,
+                            primaryItems: [
                               CommandBarButton(
                                 icon: const Icon(FluentIcons.cloud_arrow_up_20_regular),
                                 label: const Text('Publish', style: TextStyle(fontSize: 12)),
@@ -921,7 +953,8 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                       onPressed: () async {
                                         final confirmed = await _showItemRevertDialog(context, _focusItem!, currentName: _nameController.text);
                                         if (confirmed) {
-                                          setState(() => _toggleLoading());
+                                          StreamController streamController = StreamController();
+                                          setState(() => _toggleLoading(dynamicStream: streamController.stream, showProgressBar: false));
 
                                           final item = _focusItem!;
 
@@ -930,7 +963,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                           final id = item.id;
                                           setState(() => _focusItem = null);
 
-                                          await item.revertToPublished();
+                                          await item.revertToPublished(streamController: streamController);
 
                                           Log.logger.i('-> Done');
 
@@ -1056,6 +1089,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
     final flyoutController = FlyoutController();
 
     return AnimatedTreeView<EItem>(
+      key: const Key('treeview'),
       shrinkWrap: false,
       treeController: _treeController,
       nodeBuilder: (BuildContext context, TreeEntry<EItem> entry) {
@@ -2292,7 +2326,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
   }
 
 
-  void _toggleLoading({Stream<dynamic>? dynamicStream, Widget? loadingWidget, bool? loadingSomething}) {
+  void _toggleLoading({Stream<dynamic>? dynamicStream, Widget? loadingWidget, bool? loadingSomething, bool showProgressBar = true}) {
 
     if (loadingSomething != null) {
       _loadingSomething = loadingSomething;
@@ -2367,11 +2401,13 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                         : Text('Loading...', style: TextStyle(fontSize: 14, color: WeightechThemes.defaultTextColor), textAlign: TextAlign.center,),
                     ),
                   ),
-                  content: const Center(
+                  content: Center(
                     heightFactor: 1,
-                    child: ProgressBar(
-                      activeColor: WeightechThemes.weightechBlue,
-                    )
+                    child: showProgressBar 
+                      ? const ProgressBar(
+                        activeColor: WeightechThemes.weightechBlue,
+                      ) 
+                      : const SizedBox()
                   )
                 );
               }
@@ -2904,7 +2940,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
           builder: (context, setState) {
             return ContentDialog(
               title: const Text("Warning!"),
-              content: const Text("You are about to publish this version of the catalog. The third-newest version will be unrecoverable.\n\nAre you sure?"),
+              content: const Text("You are about to publish this version of the catalog.\n\nAre you sure?"),
               actions: <Widget>[
                 Button(
                   child: const Text("Publish"),
@@ -3084,11 +3120,11 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
   }
 
 
-  Future<void> handleSaveCatalogLocal({required String path}) async {
+  Future<void> handleSaveCatalogLocal({required String path, bool isBackup = false}) async {
 
     final streamController = StreamController();
     setState(() => _toggleLoading(dynamicStream: streamController.stream, loadingSomething: true));
-    await CatalogEditor.saveCatalogLocal(path: path, streamController: streamController);
+    await CatalogEditor.saveCatalogLocal(path: path, streamController: streamController, isBackup: isBackup);
     streamController.close();
     setState(() => _toggleLoading());
 
@@ -3107,6 +3143,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
     }
 
     if (isPreventClose && CatalogEditor.isUnsaved) {
+      Log.logger.i('Checking for save before quitting...');
       await showDialog(
         context: context,
         builder: (_) {
@@ -3169,13 +3206,14 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                       if (context.mounted) {
                         Navigator.of(context).pop();
                       }
+                      windowManager.destroy().then((_) => exit(0));
                     },
                   ),
                   Button(
                     child: const Text("Don't Save"),
                     onPressed: () {
                       Navigator.of(context).pop();
-                      windowManager.destroy();
+                      windowManager.destroy().then((_) => exit(0));
                     },
                   ),
                   Button(
@@ -3192,7 +3230,8 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
       );
     }
     else {
-      windowManager.destroy();
+      Log.logger.i('Application closed.');
+      windowManager.destroy().then((_) => exit(0));
     }
   }
 }

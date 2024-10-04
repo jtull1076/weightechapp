@@ -1,12 +1,12 @@
-Date : 2024-10-01 20:31:48
+Date : 2024-10-03 00:02:52
 Directory : c:\Users\jerem\OneDrive\Documents\Projects\WeightechKiosk\WeightechFlutter\weightechapp
-Total : 67 files,  8987 codes, 3234 comments, 1086 blanks, all 13307 lines
+Total : 67 files,  9063 codes, 3234 comments, 1103 blanks, all 13400 lines
 
 Languages
 +------------+------------+------------+------------+------------+------------+
 | language   | files      | code       | comment    | blank      | total      |
 +------------+------------+------------+------------+------------+------------+
-| Dart       |         13 |      7,202 |      3,015 |        805 |     11,022 |
+| Dart       |         13 |      7,278 |      3,015 |        822 |     11,115 |
 | C++        |         16 |        606 |        127 |        188 |        921 |
 | XML        |         10 |        469 |         53 |         12 |        534 |
 | JSON       |          8 |        315 |          0 |          4 |        319 |
@@ -24,7 +24,7 @@ Directories
 +------------------------------------------------------------------------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
 | path                                                                                                                                                             | files      | code       | comment    | blank      | total      |
 +------------------------------------------------------------------------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
-| .                                                                                                                                                                |         67 |      8,987 |      3,234 |      1,086 |     13,307 |
+| .                                                                                                                                                                |         67 |      9,063 |      3,234 |      1,103 |     13,400 |
 | . (Files)                                                                                                                                                        |          4 |         78 |          0 |          9 |         87 |
 | android                                                                                                                                                          |         14 |        227 |         67 |         37 |        331 |
 | android (Files)                                                                                                                                                  |          3 |         49 |          2 |         10 |         61 |
@@ -55,7 +55,7 @@ Directories
 | ios\Runner\Assets.xcassets\AppIcon.appiconset                                                                                                                    |          1 |        122 |          0 |          1 |        123 |
 | ios\Runner\Assets.xcassets\LaunchImage.imageset                                                                                                                  |          2 |         26 |          0 |          3 |         29 |
 | ios\Runner\Base.lproj                                                                                                                                            |          2 |         61 |          2 |          2 |         65 |
-| lib                                                                                                                                                              |         14 |      7,225 |      3,015 |        805 |     11,045 |
+| lib                                                                                                                                                              |         14 |      7,301 |      3,015 |        822 |     11,138 |
 | linux                                                                                                                                                            |          6 |        156 |         33 |         50 |        239 |
 | linux (Files)                                                                                                                                                    |          3 |         94 |         24 |         33 |        151 |
 | linux\flutter                                                                                                                                                    |          3 |         62 |          9 |         17 |         88 |
@@ -110,13 +110,13 @@ Files
 | c:\Users\jerem\OneDrive\Documents\Projects\WeightechKiosk\WeightechFlutter\weightechapp\lib\extra_fluent_widgets.dart                                            | Dart       |        290 |         19 |         19 |        328 |
 | c:\Users\jerem\OneDrive\Documents\Projects\WeightechKiosk\WeightechFlutter\weightechapp\lib\extra_material_widgets.dart                                          | Dart       |        397 |          0 |         44 |        441 |
 | c:\Users\jerem\OneDrive\Documents\Projects\WeightechKiosk\WeightechFlutter\weightechapp\lib\firebase_options.dart                                                | Dart       |         73 |         12 |          7 |         92 |
-| c:\Users\jerem\OneDrive\Documents\Projects\WeightechKiosk\WeightechFlutter\weightechapp\lib\fluent_models.dart                                                   | Dart       |        941 |        249 |        212 |      1,402 |
-| c:\Users\jerem\OneDrive\Documents\Projects\WeightechKiosk\WeightechFlutter\weightechapp\lib\fluent_routes.dart                                                   | Dart       |      2,938 |         76 |        159 |      3,173 |
-| c:\Users\jerem\OneDrive\Documents\Projects\WeightechKiosk\WeightechFlutter\weightechapp\lib\main.dart                                                            | Dart       |         57 |          4 |         10 |         71 |
-| c:\Users\jerem\OneDrive\Documents\Projects\WeightechKiosk\WeightechFlutter\weightechapp\lib\models.dart                                                          | Dart       |        430 |         26 |         62 |        518 |
+| c:\Users\jerem\OneDrive\Documents\Projects\WeightechKiosk\WeightechFlutter\weightechapp\lib\fluent_models.dart                                                   | Dart       |        956 |        249 |        212 |      1,417 |
+| c:\Users\jerem\OneDrive\Documents\Projects\WeightechKiosk\WeightechFlutter\weightechapp\lib\fluent_routes.dart                                                   | Dart       |      2,960 |         76 |        163 |      3,199 |
+| c:\Users\jerem\OneDrive\Documents\Projects\WeightechKiosk\WeightechFlutter\weightechapp\lib\main.dart                                                            | Dart       |         58 |          4 |         10 |         72 |
+| c:\Users\jerem\OneDrive\Documents\Projects\WeightechKiosk\WeightechFlutter\weightechapp\lib\models.dart                                                          | Dart       |        455 |         26 |         69 |        550 |
 | c:\Users\jerem\OneDrive\Documents\Projects\WeightechKiosk\WeightechFlutter\weightechapp\lib\themes.dart                                                          | Dart       |        169 |          2 |          6 |        177 |
 | c:\Users\jerem\OneDrive\Documents\Projects\WeightechKiosk\WeightechFlutter\weightechapp\lib\universal_routes.dart                                                | Dart       |      1,018 |         20 |         62 |      1,100 |
-| c:\Users\jerem\OneDrive\Documents\Projects\WeightechKiosk\WeightechFlutter\weightechapp\lib\utils.dart                                                           | Dart       |        377 |        186 |         86 |        649 |
+| c:\Users\jerem\OneDrive\Documents\Projects\WeightechKiosk\WeightechFlutter\weightechapp\lib\utils.dart                                                           | Dart       |        390 |        186 |         92 |        668 |
 | c:\Users\jerem\OneDrive\Documents\Projects\WeightechKiosk\WeightechFlutter\weightechapp\lib\windows_routes.dart                                                  | Dart       |          1 |      2,405 |         98 |      2,504 |
 | c:\Users\jerem\OneDrive\Documents\Projects\WeightechKiosk\WeightechFlutter\weightechapp\linux\flutter\generated_plugin_registrant.cc                             | C++        |         31 |          4 |          5 |         40 |
 | c:\Users\jerem\OneDrive\Documents\Projects\WeightechKiosk\WeightechFlutter\weightechapp\linux\flutter\generated_plugin_registrant.h                              | C++        |          5 |          5 |          6 |         16 |
@@ -145,5 +145,5 @@ Files
 | c:\Users\jerem\OneDrive\Documents\Projects\WeightechKiosk\WeightechFlutter\weightechapp\windows\runner\utils.h                                                   | C++        |          8 |          6 |          6 |         20 |
 | c:\Users\jerem\OneDrive\Documents\Projects\WeightechKiosk\WeightechFlutter\weightechapp\windows\runner\win32_window.cpp                                          | C++        |        210 |         24 |         55 |        289 |
 | c:\Users\jerem\OneDrive\Documents\Projects\WeightechKiosk\WeightechFlutter\weightechapp\windows\runner\win32_window.h                                            | C++        |         48 |         31 |         24 |        103 |
-| Total                                                                                                                                                            |            |      8,987 |      3,234 |      1,086 |     13,307 |
+| Total                                                                                                                                                            |            |      9,063 |      3,234 |      1,103 |     13,400 |
 +------------------------------------------------------------------------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+

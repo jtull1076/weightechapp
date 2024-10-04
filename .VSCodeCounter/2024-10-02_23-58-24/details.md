@@ -1,10 +1,10 @@
 # Details
 
-Date : 2024-10-01 20:31:48
+Date : 2024-10-02 23:58:24
 
 Directory c:\\Users\\jerem\\OneDrive\\Documents\\Projects\\WeightechKiosk\\WeightechFlutter\\weightechapp
 
-Total : 67 files,  8987 codes, 3234 comments, 1086 blanks, all 13307 lines
+Total : 67 files,  9063 codes, 3234 comments, 1103 blanks, all 13400 lines
 
 [Summary](results.md) / Details / [Diff Summary](diff.md) / [Diff Details](diff-details.md)
 
@@ -43,13 +43,13 @@ Total : 67 files,  8987 codes, 3234 comments, 1086 blanks, all 13307 lines
 | [lib/extra_fluent_widgets.dart](/lib/extra_fluent_widgets.dart) | Dart | 290 | 19 | 19 | 328 |
 | [lib/extra_material_widgets.dart](/lib/extra_material_widgets.dart) | Dart | 397 | 0 | 44 | 441 |
 | [lib/firebase_options.dart](/lib/firebase_options.dart) | Dart | 73 | 12 | 7 | 92 |
-| [lib/fluent_models.dart](/lib/fluent_models.dart) | Dart | 941 | 249 | 212 | 1,402 |
-| [lib/fluent_routes.dart](/lib/fluent_routes.dart) | Dart | 2,938 | 76 | 159 | 3,173 |
-| [lib/main.dart](/lib/main.dart) | Dart | 57 | 4 | 10 | 71 |
-| [lib/models.dart](/lib/models.dart) | Dart | 430 | 26 | 62 | 518 |
+| [lib/fluent_models.dart](/lib/fluent_models.dart) | Dart | 956 | 249 | 212 | 1,417 |
+| [lib/fluent_routes.dart](/lib/fluent_routes.dart) | Dart | 2,960 | 76 | 163 | 3,199 |
+| [lib/main.dart](/lib/main.dart) | Dart | 58 | 4 | 10 | 72 |
+| [lib/models.dart](/lib/models.dart) | Dart | 455 | 26 | 69 | 550 |
 | [lib/themes.dart](/lib/themes.dart) | Dart | 169 | 2 | 6 | 177 |
 | [lib/universal_routes.dart](/lib/universal_routes.dart) | Dart | 1,018 | 20 | 62 | 1,100 |
-| [lib/utils.dart](/lib/utils.dart) | Dart | 377 | 186 | 86 | 649 |
+| [lib/utils.dart](/lib/utils.dart) | Dart | 390 | 186 | 92 | 668 |
 | [lib/windows_routes.dart](/lib/windows_routes.dart) | Dart | 1 | 2,405 | 98 | 2,504 |
 | [linux/flutter/generated_plugin_registrant.cc](/linux/flutter/generated_plugin_registrant.cc) | C++ | 31 | 4 | 5 | 40 |
 | [linux/flutter/generated_plugin_registrant.h](/linux/flutter/generated_plugin_registrant.h) | C++ | 5 | 5 | 6 | 16 |

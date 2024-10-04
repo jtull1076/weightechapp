@@ -141,8 +141,8 @@ class CatalogEditor {
   ///
   /// An optional [stream] can be provided to report progress.
   static Future<void> updateImages(String newId, StreamController? stream,) async {
-    final storageRef = FirebaseUtils.storage.ref().child(AppSettings.nextStorageRef);
-    final newStorageRef = FirebaseUtils.storage.ref().child("${AppSettings.nextStorageRef}/$newId");
+    final storageRef = FirebaseUtils.storage.ref().child(AppSettings.storageRef);
+    // final newStorageRef = FirebaseUtils.storage.ref().child("${AppSettings.nextStorageRef}/$newId");
 
 
     Future<void> traverseItems(ECategory category) async {
@@ -153,8 +153,8 @@ class CatalogEditor {
         final SettableMetadata metadata = SettableMetadata(contentType: 'images/${path_handler.extension(category.imageFile!.path)}');
 
         try {
-          await newStorageRef.child(refName).putFile(category.imageFile!, metadata).then((value) async {
-            await newStorageRef.child(refName).getDownloadURL().then((value) {
+          await storageRef.child(refName).putFile(category.imageFile!, metadata).then((value) async {
+            await storageRef.child(refName).getDownloadURL().then((value) {
               category.category.imageUrl = value;
               Log.logger.t("Category image url updated.");
             });
@@ -169,7 +169,7 @@ class CatalogEditor {
             await traverseItems(item);
           }
           case EProduct _: {
-            if (true) {
+            if (item.hasChanges) {
               if (item.mediaPaths != null) {
                 stream?.add(item);
                 
@@ -189,9 +189,9 @@ class CatalogEditor {
                     }
                     
                     try {
-                      await newStorageRef.child("$baseRefName.$extension").putFile(imageFile, SettableMetadata(contentType: 'images/$extension'))
+                      await storageRef.child("$baseRefName.$extension").putFile(imageFile, SettableMetadata(contentType: 'images/$extension'))
                       .then((value) async {
-                        final imageUrl = await newStorageRef.child("$baseRefName.$extension").getDownloadURL();
+                        final imageUrl = await storageRef.child("$baseRefName.$extension").getDownloadURL();
                         item.product.imageUrl = imageUrl;
                         item.product.productMedia!.insert(0, 
                         {
@@ -215,9 +215,9 @@ class CatalogEditor {
                         }
                         if (extension == 'jpeg' || extension == 'png') {
                             try {
-                              await newStorageRef.child("$baseRefName.$extension").putFile(imageFile, SettableMetadata(contentType: 'images/$extension'))
+                              await storageRef.child("$baseRefName.$extension").putFile(imageFile, SettableMetadata(contentType: 'images/$extension'))
                               .then((value) async {
-                                final imageUrl = await newStorageRef.child("$baseRefName.$extension").getDownloadURL();
+                                final imageUrl = await storageRef.child("$baseRefName.$extension").getDownloadURL();
                                 item.product.productMedia!.add( 
                                 {
                                   'name': baseRefName,
@@ -232,9 +232,9 @@ class CatalogEditor {
                             }
                         }
                         else if (extension == 'mp4') {
-                          await newStorageRef.child("$baseRefName.$extension").putFile(imageFile, SettableMetadata(contentType: 'video/mp4'))
+                          await storageRef.child("$baseRefName.$extension").putFile(imageFile, SettableMetadata(contentType: 'video/mp4'))
                           .then((value) async {
-                            final videoUrl = await newStorageRef.child("$baseRefName.$extension").getDownloadURL();
+                            final videoUrl = await storageRef.child("$baseRefName.$extension").getDownloadURL();
                             final videoResponse = await ApiVideoService.createVideo(title: '$baseRefName.$extension', source: videoUrl);
                             final videoData = {
                               'downloadUrl' : videoUrl,
@@ -268,10 +268,8 @@ class CatalogEditor {
       }
     }
 
-    Log.logger.t('all identity before: ${identityHashCode(all)}');
+
     await traverseItems(all);
-    Log.logger.t('all identity after: ${identityHashCode(all)}');
-    final testAll = all;
     Log.logger.t("-> Images updated.");
   }
 
@@ -281,7 +279,7 @@ class CatalogEditor {
   ///
   /// This method uses temporary directories to store backup images before 
   /// packaging..
-  static Future<void> saveCatalogLocal({required String path, StreamController? streamController}) async {
+  static Future<void> saveCatalogLocal({required String path, StreamController? streamController, bool isBackup = false}) async {
 
     Log.logger.i("Attempting to save");
     Log.logger.t("Save file path: $path");
@@ -311,7 +309,7 @@ class CatalogEditor {
       streamController?.add('Archiving images...');
       Log.logger.t('Archiving images...');
 
-      List<ArchiveFile> archiveImages = await _storeBackupImages(catalog: copyOfAll, directory: tempDirectory, name: name);
+      List<ArchiveFile> archiveImages = await _storeBackupImages(catalog: copyOfAll, directory: tempDirectory, name: name, backupOverride: isBackup);
 
       streamController?.add('Creating JSON data...');
       Log.logger.t('Creating JSON data...');
@@ -369,7 +367,7 @@ class CatalogEditor {
   /// into a specified [directory] and creating archive files from them.
   ///
   /// Returns a list of [ArchiveFile]s representing the media files.
-  static Future<List<ArchiveFile>> _storeBackupImages({required ECategory catalog, required Directory directory, required String name}) async {
+  static Future<List<ArchiveFile>> _storeBackupImages({required ECategory catalog, required Directory directory, required String name, bool backupOverride = false}) async {
     Directory imageDirectory = await Directory('${directory.path}/images').create(recursive: true);
     final List<FileSystemEntity> entities = await imageDirectory.list().toList();
 
@@ -382,6 +380,11 @@ class CatalogEditor {
     Future<void> traverseCatalog(EItem item) async {
       switch (item) {
         case ECategory _ : {
+          if (backupOverride) {
+            await item.setImagePaths();
+            await item.setImageFiles();
+          }
+
           if (item.imageFile != null) {
             try {
               late String newPath;
@@ -411,6 +414,11 @@ class CatalogEditor {
           }
         }
         case EProduct _ : {
+          if (backupOverride) {
+            await item.setImagePaths();
+            await item.setImageFiles();
+          }
+
           if (item.mediaFiles?.isNotEmpty ?? false) {
             for (int i = 0; i < item.mediaFiles!.length; i++) {
               try {
@@ -751,7 +759,7 @@ sealed class EItem {
   /// Reverts the item to its published state.
   ///
   /// This method can be overridden by subclasses to provide specific functionality.
-  Future<void> revertToPublished() async {}
+  Future<void> revertToPublished({StreamController? streamController}) async {}
 }
 
 
@@ -888,17 +896,7 @@ class ECategory extends EItem {
   /// If the category has an image provider and a valid image URL, it sets the [imagePath].
   /// Otherwise, it sets the [imagePath] to an empty string.
   Future<void> setImagePaths() async {
-    if (imagePath != null) {
-      return;
-    }
-    else if (category.imageProvider != null) {
-      if (category.imageUrl != null) {
-        imagePath = category.imageUrl;
-      }
-    }
-    else {
-      imagePath = '';
-    }
+    getImagePaths().then((value) => imagePath = value);
   }
 
 
@@ -955,30 +953,7 @@ class ECategory extends EItem {
   /// If the [imagePath] is a valid URL, it attempts to download the image and sets the [imageFile].
   /// If the [imagePath] is not empty, it creates a File instance from the path.
   Future<void> setImageFiles() async {
-    if (imageFile != null) {
-      return;
-    }
-    else {
-      final basePath = await getTemporaryDirectory();
-      if (imagePath == null) {
-        return;
-      }
-      else if (isURL(imagePath)) {
-        try {
-          final imageRef = FirebaseUtils.storage.refFromURL(imagePath!);
-          final file = File('${basePath.path}/${imageRef.name}');
-
-          await imageRef.writeToFile(file);
-          imageFile = file;
-        } catch (e) {
-          Log.logger.e("Failed to download image from $imagePath");
-
-        }
-      }
-      else if (imagePath != '') {
-        imageFile = File(imagePath!);
-      }
-    }
+    getImageFiles().then((value) => imageFile = value);
   }
 
 
@@ -1076,7 +1051,7 @@ class ECategory extends EItem {
   /// the current category's attributes (name, image path, and image file) to match the 
   /// published version. It calls the superclass method to handle any additional revert logic.
   @override
-  Future<void> revertToPublished() async {
+  Future<void> revertToPublished({StreamController? streamController}) async {
     super.revertToPublished();
 
     final publishedVersion = EItem.getItemById(root: CatalogEditor.publishedCatalog, id: id) as ECategory?;
@@ -1088,6 +1063,12 @@ class ECategory extends EItem {
         imagePath: newPath,
         imageFile: newFile,
       );
+      streamController?.add('Item found and reverted!');
+      await Future.delayed(const Duration(seconds: 2));
+    }
+    else {
+      streamController?.add('Item not found in database.');
+      await Future.delayed(const Duration(seconds: 2));
     }
   }
 }
@@ -1194,17 +1175,7 @@ class EProduct extends EItem {
   /// This method initializes [mediaPaths] with download URLs from the 
   /// product's media if [mediaPaths] is not already set.
   Future<void> setImagePaths() async {
-    if (mediaPaths != null) {
-      return;
-    }
-    else {
-      mediaPaths = [];
-      if (product.productMedia?.isNotEmpty ?? false) {
-        for (var media in product.productMedia!) {
-          mediaPaths!.add(media['downloadUrl']);
-        }
-      }
-    }
+    getImagePaths().then((value) => mediaPaths = value);
   }
 
 
@@ -1271,49 +1242,14 @@ class EProduct extends EItem {
   /// This method initializes [mediaFiles] with files corresponding to the
   /// URLs or local paths in [mediaPaths]. 
   Future<void> setImageFiles() async {
-    if (mediaFiles != null) {
-      return;
-    }
-    else {
-      final basePath = await getTemporaryDirectory();
-      mediaFiles = [];
-      List<String> tempCopy = [];
-      for (var path in mediaPaths!) {
-        if (isURL(path)) {
-          try {
-            final cacheFile = await FileUtils.cacheManager.getSingleFile(path);
-            mediaFiles!.add(cacheFile);
-            tempCopy.add(path);
-          } catch (e) {
-            try {
-              final file = await FirebaseUtils.downloadFromFirebaseStorage(url: path, directory: basePath, returnFile: true);
-
-              mediaFiles!.add(file);
-              tempCopy.add(path);
-            } catch (e) {
-              try {
-                final idx = mediaPaths!.indexOf(path);
-                final file = await ApiVideoService.downloadVideo(path, '${basePath.path}/${id}_$idx');
-                mediaFiles!.add(file);
-                tempCopy.add(path);
-              } catch (e) {
-                Log.logger.w("Failed to download image from $path. Removing from media paths...");
-              }
-            }
-          }
-        }
-        else {
-          mediaFiles!.add(File(path));
-        }
-      }
-    }
+    getImageFiles().then((value) => mediaFiles = value);
   }
 
   /// Reverts the current product to its published version.
   ///
   /// If no published version is found, the current product remains unchanged.
   @override
-  Future<void> revertToPublished() async {
+  Future<void> revertToPublished({StreamController? streamController}) async {
     super.revertToPublished();
 
     final publishedVersion = EItem.getItemById(root: CatalogEditor.publishedCatalog, id: id) as EProduct?;
@@ -1328,6 +1264,12 @@ class EProduct extends EItem {
         mediaPaths: newPaths,
         mediaFiles: newFiles,
       );
+      streamController?.add('Item found and reverted!');
+      await Future.delayed(const Duration(seconds: 1));
+    }
+    else {
+      streamController?.add('Item not found in database.');
+      await Future.delayed(const Duration(seconds: 1));
     }
   }
 

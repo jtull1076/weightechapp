@@ -84,7 +84,10 @@ class AppSettings {
   static bool? isDarkMode;
 
   /// Holds the reference to the next storage location.
-  static late String nextStorageRef;
+  static late String storageRef;
+
+  /// Indicates if this is the first time the app is launched
+  static bool? isFirstLaunch;
 
   AppSettings();
 
@@ -94,8 +97,9 @@ class AppSettings {
   /// setting default values if none are found.
   Future<void> init() async {
     final SharedPreferencesAsync prefs = SharedPreferencesAsync();
+    storageRef = await prefs.getString('storageRef') ?? 'newDevImages';
     isDarkMode = await prefs.getBool('isDarkMode');
-    nextStorageRef = await prefs.getString('nextStorageRef') ?? 'newDevImages';
+    isFirstLaunch = await prefs.getBool('isFirstLaunch') ?? true;
   }
 
   /// Saves the current settings to shared preferences.
@@ -110,21 +114,8 @@ class AppSettings {
     else {
       await prefs.remove('isDarkMode');
     }
-    if (nextStorageRef != null) {
-      await prefs.setString('nextStorageRef', nextStorageRef!);
-    }
   }
-
-  Future<void> updateStorageRef() async {
-    final SharedPreferencesAsync prefs = SharedPreferencesAsync();
-
-    const storageRefs = ['newDevImages','newDevImages2','newDevImages3'];
-
-    final currentRef = await prefs.getString(nextStorageRef!);
-    int currentIndex = storageRefs.indexOf(currentRef!);
-    final int nextIndex = (currentIndex + 1) % storageRefs.length;
-    await prefs.setString('nextStorageRef', storageRefs[nextIndex]);
-  }
+  
 }
 
 /// A class that manages logging for the application.
@@ -359,7 +350,7 @@ class FirebaseUtils {
   ///
   /// Logs the document ID of the uploaded catalog on success.
   static Future<void> postCatalogToFirestore(Map<String, dynamic> json) async {
-    await database.collection("devCatalog").add(json)
+    await database.collection("catalog").add(json)
       .then((DocumentReference doc) {
         Log.logger.i('Firestore DocumentSnapshot added with ID: ${doc.id}');
       });
@@ -373,7 +364,7 @@ class FirebaseUtils {
   /// - Retries the operation up to two times in case of failure.
   static Future<Map<String, dynamic>> getCatalogFromFirestore() async {
     return await retry(
-      () => database.collection("devCatalog").orderBy("timestamp", descending: true).limit(1).get()
+      () => database.collection("catalog").orderBy("timestamp", descending: true).limit(1).get()
         .timeout(const Duration(seconds: 5))
         .then((event) {
           if (event.docs.isEmpty) {
@@ -399,7 +390,7 @@ class FirebaseUtils {
   /// - Retries the operation up to two times in case of failure.
   static Future<List<Map<String, dynamic>>> getLastFromFirestore(int number) async {
     return await retry(
-      () => database.collection("devCatalog").orderBy("timestamp", descending: true).limit(number).get()
+      () => database.collection("catalog").orderBy("timestamp", descending: true).limit(number).get()
         .timeout(const Duration(seconds: 5))
         .then((event) {
           if (event.docs.isEmpty) {
@@ -615,7 +606,7 @@ class ApiVideoService {
   ///
   /// Logs the response from each delete operation.
   static Future<void> deleteExistingForId(String itemId) async {
-    Log.logger.t("Deleting existing videos for $itemId");
+    Log.logger.t("Deleting existing videos for $itemId (if they exist).");
     
     final response = await http.get(
       Uri.parse(apiUrl),

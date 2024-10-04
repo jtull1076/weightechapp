@@ -1,17 +1,17 @@
 # Summary
 
-Date : 2024-10-01 20:31:48
+Date : 2024-10-03 00:03:33
 
 Directory c:\\Users\\jerem\\OneDrive\\Documents\\Projects\\WeightechKiosk\\WeightechFlutter\\weightechapp
 
-Total : 67 files,  8987 codes, 3234 comments, 1086 blanks, all 13307 lines
+Total : 67 files,  9063 codes, 3234 comments, 1103 blanks, all 13400 lines
 
 Summary / [Details](details.md) / [Diff Summary](diff.md) / [Diff Details](diff-details.md)
 
 ## Languages
 | language | files | code | comment | blank | total |
 | :--- | ---: | ---: | ---: | ---: | ---: |
-| Dart | 13 | 7,202 | 3,015 | 805 | 11,022 |
+| Dart | 13 | 7,278 | 3,015 | 822 | 11,115 |
 | C++ | 16 | 606 | 127 | 188 | 921 |
 | XML | 10 | 469 | 53 | 12 | 534 |
 | JSON | 8 | 315 | 0 | 4 | 319 |
@@ -27,7 +27,7 @@ Summary / [Details](details.md) / [Diff Summary](diff.md) / [Diff Details](diff-
 ## Directories
 | path | files | code | comment | blank | total |
 | :--- | ---: | ---: | ---: | ---: | ---: |
-| . | 67 | 8,987 | 3,234 | 1,086 | 13,307 |
+| . | 67 | 9,063 | 3,234 | 1,103 | 13,400 |
 | . (Files) | 4 | 78 | 0 | 9 | 87 |
 | android | 14 | 227 | 67 | 37 | 331 |
 | android (Files) | 3 | 49 | 2 | 10 | 61 |
@@ -58,7 +58,7 @@ Summary / [Details](details.md) / [Diff Summary](diff.md) / [Diff Details](diff-
 | ios\\Runner\\Assets.xcassets\\AppIcon.appiconset | 1 | 122 | 0 | 1 | 123 |
 | ios\\Runner\\Assets.xcassets\\LaunchImage.imageset | 2 | 26 | 0 | 3 | 29 |
 | ios\\Runner\\Base.lproj | 2 | 61 | 2 | 2 | 65 |
-| lib | 14 | 7,225 | 3,015 | 805 | 11,045 |
+| lib | 14 | 7,301 | 3,015 | 822 | 11,138 |
 | linux | 6 | 156 | 33 | 50 | 239 |
 | linux (Files) | 3 | 94 | 24 | 33 | 151 |
 | linux\\flutter | 3 | 62 | 9 | 17 | 88 |
