@@ -220,7 +220,7 @@ class _StartupPageState extends State<StartupPage> with TickerProviderStateMixin
                   children: [
                     Padding(
                       padding: const EdgeInsets.only(right: 0),
-                      child: Image.asset('assets/icon/wt_icon.ico', height: 200),
+                      child: Image.asset('assets/weightech_logo_beta.png', height: 200),
                     ),
                     const SizedBox(height: 10), 
                     (snapshot.connectionState == ConnectionState.active) 
@@ -580,23 +580,33 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                       mainAxisSize: MainAxisSize.min,
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
+                        (FluentTheme.of(context) == WeightechThemes.fluentLightTheme) ? Image.asset('assets/w_logo.png') : SizedBox(),
+                        const SizedBox(width: 10),
                         Container(
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
                             color: WeightechThemes.wtGray.darker,
                             borderRadius: BorderRadius.circular(3),
                           ),
-                          width: 120,
+                          width: 140,
                           height: 40,
                           // padding: const EdgeInsets.fromLTRB(10,0,10,0),
                           child: IntrinsicWidth(
                             child: TapRegion(
                               child: TextBox(
                                 controller: _filenameController,
-                                decoration: const BoxDecoration(color: Colors.transparent),
+                                decoration: BoxDecoration(
+                                  color: Colors.transparent,
+                                  border: Border.all(color: Colors.transparent, width: 0),
+                                ),
                                 textAlign: TextAlign.center,
                                 padding: EdgeInsets.zero,
-                                suffix: (CatalogEditor.isUnsaved) ? const Text('*', style: TextStyle(color: Colors.white, fontSize: 12)) : null,
+                                suffix: Row(
+                                  children: [
+                                    (!CatalogEditor.isLocal) ? const Icon(FluentIcons.cloud_20_regular, color: Colors.white) : const SizedBox(),
+                                    (CatalogEditor.isUnsaved) ? const Text('*', style: TextStyle(color: Colors.white, fontSize: 12)) : const SizedBox(),
+                                  ]
+                                ),
                                 textAlignVertical: TextAlignVertical.center,
                                 style: const TextStyle(color: Colors.white, fontSize: 12),
                                 onEditingComplete: () {
@@ -607,10 +617,10 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                           )
                         ),
                         const SizedBox(width: 10),
-                        IntrinsicWidth(
-                          key: const Key('file_commands'),
+                        Flexible(
+                          fit: FlexFit.loose,
                           child: CommandBar(
-                            overflowBehavior: CommandBarOverflowBehavior.clip,
+                            overflowBehavior: CommandBarOverflowBehavior.scrolling,
                             primaryItems: [
                               CommandBarButton(
                                 key: const Key('save_catalog'),
@@ -711,7 +721,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                               ),
                               CommandBarButton(
                                 icon: const Icon(FluentIcons.save_sync_20_regular),
-                                label: const Text('Create\nBackup', style: TextStyle(fontSize: 11, height: 1)),
+                                label: const Text('Backup', style: TextStyle(fontSize: 11, height: 1.1)),
                                 onPressed: () async {
                                   FilePickerResult? _ = 
                                     await FilePicker.platform
@@ -735,14 +745,6 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                                 thickness: 0.5,
                                 color: Colors.black,
                               ),
-                            ],
-                          )
-                        ),
-                        Flexible(
-                          fit: FlexFit.loose,
-                          child: CommandBar(
-                            overflowBehavior: CommandBarOverflowBehavior.scrolling,
-                            primaryItems: [
                               CommandBarButton(
                                 icon: const Icon(FluentIcons.cloud_arrow_up_20_regular),
                                 label: const Text('Publish', style: TextStyle(fontSize: 12)),
@@ -770,7 +772,7 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
                               ),
                               CommandBarButton(
                                 icon: const Icon(FluentIcons.clock_arrow_download_20_regular),
-                                label: const Text('Restore Previous', style: TextStyle(fontSize: 12)),
+                                label: const Text('Restore', style: TextStyle(fontSize: 12)),
                                 onPressed: () async {
                                   final chosenCatalog = await _showRestorationDialog(context);
                                   if (chosenCatalog != null) {
@@ -3136,10 +3138,12 @@ class _ControlPageState extends State<ControlPage> with TickerProviderStateMixin
     bool isPreventClose = await windowManager.isPreventClose();
     TextEditingController unsavedNameController = TextEditingController(text: CatalogEditor.name);
     Directory currentDirectory = (CatalogEditor.currentFile != null) ? CatalogEditor.currentFile!.parent : await getApplicationDocumentsDirectory();
+    Directory? tempDirectory = CatalogEditor.temporaryDirectory;
 
 
     if (CatalogEditor.temporaryDirectory != null) {
-      CatalogEditor.temporaryDirectory!.deleteSync();
+      Directory.current = await getApplicationDocumentsDirectory();
+      CatalogEditor.temporaryDirectory!.deleteSync(recursive: true);
     }
 
     if (isPreventClose && CatalogEditor.isUnsaved) {

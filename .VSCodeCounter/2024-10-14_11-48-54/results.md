@@ -1,24 +1,24 @@
 # Summary
 
-Date : 2024-10-02 23:57:39
+Date : 2024-10-14 11:48:54
 
 Directory c:\\Users\\jerem\\OneDrive\\Documents\\Projects\\WeightechKiosk\\WeightechFlutter\\weightechapp
 
-Total : 67 files,  9063 codes, 3234 comments, 1103 blanks, all 13400 lines
+Total : 73 files,  9507 codes, 3237 comments, 1179 blanks, all 13923 lines
 
 Summary / [Details](details.md) / [Diff Summary](diff.md) / [Diff Details](diff-details.md)
 
 ## Languages
 | language | files | code | comment | blank | total |
 | :--- | ---: | ---: | ---: | ---: | ---: |
-| Dart | 13 | 7,278 | 3,015 | 822 | 11,115 |
+| Dart | 13 | 7,303 | 3,018 | 821 | 11,142 |
 | C++ | 16 | 606 | 127 | 188 | 921 |
+| CMake | 7 | 476 | 0 | 89 | 565 |
 | XML | 10 | 469 | 53 | 12 | 534 |
-| JSON | 8 | 315 | 0 | 4 | 319 |
+| JSON | 9 | 316 | 0 | 4 | 320 |
 | Groovy | 3 | 111 | 7 | 22 | 140 |
 | Swift | 6 | 86 | 7 | 20 | 113 |
 | YAML | 3 | 76 | 0 | 7 | 83 |
-| CMake | 2 | 58 | 0 | 12 | 70 |
 | HTML | 1 | 38 | 16 | 6 | 60 |
 | Java | 1 | 13 | 9 | 4 | 26 |
 | Properties | 2 | 8 | 0 | 2 | 10 |
@@ -27,7 +27,7 @@ Summary / [Details](details.md) / [Diff Summary](diff.md) / [Diff Details](diff-
 ## Directories
 | path | files | code | comment | blank | total |
 | :--- | ---: | ---: | ---: | ---: | ---: |
-| . | 67 | 9,063 | 3,234 | 1,103 | 13,400 |
+| . | 73 | 9,507 | 3,237 | 1,179 | 13,923 |
 | . (Files) | 4 | 78 | 0 | 9 | 87 |
 | android | 14 | 227 | 67 | 37 | 331 |
 | android (Files) | 3 | 49 | 2 | 10 | 61 |
@@ -58,10 +58,10 @@ Summary / [Details](details.md) / [Diff Summary](diff.md) / [Diff Details](diff-
 | ios\\Runner\\Assets.xcassets\\AppIcon.appiconset | 1 | 122 | 0 | 1 | 123 |
 | ios\\Runner\\Assets.xcassets\\LaunchImage.imageset | 2 | 26 | 0 | 3 | 29 |
 | ios\\Runner\\Base.lproj | 2 | 61 | 2 | 2 | 65 |
-| lib | 14 | 7,301 | 3,015 | 822 | 11,138 |
-| linux | 6 | 156 | 33 | 50 | 239 |
-| linux (Files) | 3 | 94 | 24 | 33 | 151 |
-| linux\\flutter | 3 | 62 | 9 | 17 | 88 |
+| lib | 14 | 7,326 | 3,018 | 821 | 11,165 |
+| linux | 8 | 353 | 33 | 88 | 474 |
+| linux (Files) | 4 | 212 | 24 | 61 | 297 |
+| linux\\flutter | 4 | 141 | 9 | 27 | 177 |
 | macos | 7 | 485 | 5 | 16 | 506 |
 | macos (Files) | 1 | 7 | 0 | 0 | 7 |
 | macos\\Flutter | 1 | 40 | 3 | 4 | 47 |
@@ -71,9 +71,11 @@ Summary / [Details](details.md) / [Diff Summary](diff.md) / [Diff Details](diff-
 | macos\\Runner\\Assets.xcassets | 1 | 68 | 0 | 1 | 69 |
 | macos\\Runner\\Assets.xcassets\\AppIcon.appiconset | 1 | 68 | 0 | 1 | 69 |
 | macos\\Runner\\Base.lproj | 1 | 343 | 0 | 1 | 344 |
+| test | 1 | 1 | 0 | 0 | 1 |
 | web | 2 | 73 | 16 | 7 | 96 |
-| windows | 11 | 507 | 94 | 149 | 750 |
-| windows\\flutter | 3 | 79 | 9 | 17 | 105 |
-| windows\\runner | 8 | 428 | 85 | 132 | 645 |
+| windows | 14 | 728 | 94 | 188 | 1,010 |
+| windows (Files) | 1 | 89 | 0 | 20 | 109 |
+| windows\\flutter | 4 | 177 | 9 | 29 | 215 |
+| windows\\runner | 9 | 462 | 85 | 139 | 686 |
 
 Summary / [Details](details.md) / [Diff Summary](diff.md) / [Diff Details](diff-details.md)

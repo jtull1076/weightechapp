@@ -169,7 +169,7 @@ class CatalogEditor {
             await traverseItems(item);
           }
           case EProduct _: {
-            if (item.hasChanges) {
+            if (true) {
               if (item.mediaPaths != null) {
                 stream?.add(item);
                 
@@ -380,7 +380,7 @@ class CatalogEditor {
     Future<void> traverseCatalog(EItem item) async {
       switch (item) {
         case ECategory _ : {
-          if (backupOverride) {
+          if (backupOverride && item != catalog) {
             await item.setImagePaths();
             await item.setImageFiles();
           }
@@ -392,7 +392,7 @@ class CatalogEditor {
 
               if (FileUtils.isURL(path: item.imagePath!)) {
                   newFile = await FirebaseUtils.downloadFromFirebaseStorage(url: item.imagePath!, directory: imageDirectory, suffix: '_saved');
-                  newPath = 'images/${FileUtils.filenameWithExtension(newFile.path)}';
+                  newPath = 'images/${FirebaseUtils.storage.refFromURL(item.imagePath!).name}';
                   item.imagePath =  newPath;
 
                 }
@@ -427,7 +427,7 @@ class CatalogEditor {
 
                 if (FileUtils.isURL(path: item.mediaPaths![i])) {
                   newFile = await FirebaseUtils.downloadFromFirebaseStorage(url: item.mediaPaths![i], directory: imageDirectory, suffix: '_saved');
-                  newPath =  newFile.path;
+                  newPath = 'images/${FirebaseUtils.storage.refFromURL(item.mediaPaths![i]).name}';
                   item.mediaPaths![i] = newPath;
                 }
                 else {
@@ -486,24 +486,27 @@ class CatalogEditor {
     Directory imageDirectory = Directory('${tempDirectory.path}/images')..createSync();
 
 
-    void mapImagesToNewAll(ProductCategory newCategory, ECategory newCatalog) {
-
-    }
-
-
     try {
       // Read the Zip file from disk.
       List<int> bytes = uploadFile.readAsBytesSync();
 
-      stream?.add('Decoding .wtf file...');
+      stream?.add('Opening .wtf file...');
       Log.logger.t('Decoding .wtf file...');
-      final Archive archive = await Isolate.run(() {
-        return TarDecoder().decodeBytes(BZip2Decoder().decodeBytes(bytes));
-      });
-      
-      stream?.add('Unpacking data...');
+      Archive archive = Archive();
+      try {
+        archive = await Isolate.run(() {
+          return TarDecoder().decodeBytes(BZip2Decoder().decodeBytes(bytes));
+        });
+      } catch (e) {
+        Log.logger.w('Archive error.');
+        Log.logger.w(e);
+        rethrow;
+      }
+        
+      // stream?.add('Unpacking data...');
       Log.logger.t('Unpacking data...');
       for (final ArchiveFile file in archive) {
+        Log.logger.t('...Archive file: ${file.name}');
         final String filename = file.name;
         if (file.isFile) {
           final data = file.content as List<int>;
@@ -511,22 +514,21 @@ class CatalogEditor {
             ..createSync(recursive: true)
             ..writeAsBytesSync(data);
           if (filename.endsWith('.json')) {
+            Log.logger.t('Encountered .json file');
             try {
               final json = jsonDecode(utf8.decode(data));
               ECategory newAll = ECategory.fromJson(json);
-              ProductManager.createFromECategory(newAll);
-              newAll.category = ProductManager.all!;
-              all = newAll;
+              try {
+                ProductManager.createFromECategory(newAll);
+                newAll.category = ProductManager.all!;
+                all = newAll;
+              } catch (e) {
+                Log.logger.w("Product Manager creation failed.");
+                rethrow;
+              }
               Log.logger.i("Save file retrieved and decoded: $name");
               // Log.logger.t("Here's the json:");
               // Log.logger.t((const JsonEncoder.withIndent(' ')).convert(json));
-              CatalogEditor.name = name;
-              currentFile = uploadFile;
-              isLocal = true;
-              temporaryDirectory = tempDirectory;
-              Directory.current = temporaryDirectory;
-              if (onComplete != null) onComplete();
-              Log.logger.i('Catalog upload complete.');
             } catch (e) {
               // caught error
               
@@ -542,9 +544,17 @@ class CatalogEditor {
       }
       // return catalog;
       
+      CatalogEditor.name = name;
+      currentFile = uploadFile;
+      isLocal = true;
+      temporaryDirectory = tempDirectory;
+      Directory.current = temporaryDirectory;
+      if (onComplete != null) onComplete();
+      Log.logger.i('Catalog upload complete.');
     } catch (e) {
       throw();
     }
+
   }
 }
 
@@ -896,7 +906,7 @@ class ECategory extends EItem {
   /// If the category has an image provider and a valid image URL, it sets the [imagePath].
   /// Otherwise, it sets the [imagePath] to an empty string.
   Future<void> setImagePaths() async {
-    getImagePaths().then((value) => imagePath = value);
+    await getImagePaths().then((value) => imagePath = value);
   }
 
 
@@ -918,14 +928,33 @@ class ECategory extends EItem {
       else {
         final basePath = await getTemporaryDirectory();
         if (path == null) {
-          Log.logger.e("Must set image path before creating file!");
-          throw 'Must provide path before creating file';
+          if (imagePath != null) {
+            if (FileUtils.isURL(path: imagePath!)) {
+              try {
+                final cacheFile = await FileUtils.cacheManager.getSingleFile(imagePath!);
+                return cacheFile;
+              } catch (e) {
+                try {
+                  final file = await FirebaseUtils.downloadFromFirebaseStorage(url: imagePath!, directory: basePath, returnFile: true);
+
+                  return file;
+
+                } catch (e2) {
+                  Log.logger.w("Failed to download image from $path. Removing from media paths...", error: [e,e2]);
+                }
+              }
+            }
+          }
+          else {
+            Log.logger.e("Must set image path before creating file!");
+            throw 'Must provide path before creating file';
+          }
         }
         else if (path == "") {
           Log.logger.t('This looks like a new category is being created. If something bad happens, idk');
           return null;
         }
-        else if (isURL(path)) {
+        else if (FileUtils.isURL(path: path)) {
           try {
             final cacheFile = await FileUtils.cacheManager.getSingleFile(path);
             return cacheFile;
@@ -953,7 +982,7 @@ class ECategory extends EItem {
   /// If the [imagePath] is a valid URL, it attempts to download the image and sets the [imageFile].
   /// If the [imagePath] is not empty, it creates a File instance from the path.
   Future<void> setImageFiles() async {
-    getImageFiles().then((value) => imageFile = value);
+    await getImageFiles().then((value) => imageFile = value);
   }
 
 
@@ -1175,7 +1204,7 @@ class EProduct extends EItem {
   /// This method initializes [mediaPaths] with download URLs from the 
   /// product's media if [mediaPaths] is not already set.
   Future<void> setImagePaths() async {
-    getImagePaths().then((value) => mediaPaths = value);
+    await getImagePaths().then((value) => mediaPaths = value);
   }
 
 
@@ -1200,35 +1229,71 @@ class EProduct extends EItem {
         List<File> files = [];
         List<String> tempCopy = [];
         if (paths == null) {
-          throw "CANNOT CREATE FILE LIST WITHOUT SETTING PATHS";
-        }
-        for (var path in paths) {
-          if (isURL(path)) {
-            try {
-              final cacheFile = await FileUtils.cacheManager.getSingleFile(path);
-              files.add(cacheFile);
-              tempCopy.add(path);
-            } catch (e) {
-              try {
-                final file = await FirebaseUtils.downloadFromFirebaseStorage(url: path, directory: basePath, returnFile: true);
-
-                files.add(file);
-                tempCopy.add(path);
-              } catch (e) {
+          if (mediaPaths != null) {
+            for (var path in mediaPaths!) {
+              if (isURL(path)) {
                 try {
-                  final idx = mediaPaths!.indexOf(path);
-                  final file = await ApiVideoService.downloadVideo(path, '${basePath.path}/${id}_$idx');
-                  files.add(file);
+                  final cacheFile = await FileUtils.cacheManager.getSingleFile(path);
+                  files.add(cacheFile);
                   tempCopy.add(path);
                 } catch (e) {
-                  Log.logger.w("Failed to download image from $path. Removing from media paths...");
+                  try {
+                    final file = await FirebaseUtils.downloadFromFirebaseStorage(url: path, directory: basePath, returnFile: true);
+
+                    files.add(file);
+                    tempCopy.add(path);
+                  } catch (e) {
+                    try {
+                      final idx = mediaPaths!.indexOf(path);
+                      final file = await ApiVideoService.downloadVideo(path, '${basePath.path}/${id}_$idx');
+                      files.add(file);
+                      tempCopy.add(path);
+                    } catch (e) {
+                      Log.logger.w("Failed to download image from $path. Removing from media paths...");
+                    }
+                  }
                 }
+              }
+              else {
+                files.add(File(path));
+                tempCopy.add(path);
               }
             }
           }
           else {
-            files.add(File(path));
-            tempCopy.add(path);
+            Log.logger.f('Failed to find media paths when creating media files. Throwing...');
+            throw "CANNOT CREATE FILE LIST WITHOUT SETTING PATHS";
+          }
+        }
+        else {
+          for (var path in paths) {
+            if (isURL(path)) {
+              try {
+                final cacheFile = await FileUtils.cacheManager.getSingleFile(path);
+                files.add(cacheFile);
+                tempCopy.add(path);
+              } catch (e) {
+                try {
+                  final file = await FirebaseUtils.downloadFromFirebaseStorage(url: path, directory: basePath, returnFile: true);
+
+                  files.add(file);
+                  tempCopy.add(path);
+                } catch (e) {
+                  try {
+                    final idx = mediaPaths!.indexOf(path);
+                    final file = await ApiVideoService.downloadVideo(path, '${basePath.path}/${id}_$idx');
+                    files.add(file);
+                    tempCopy.add(path);
+                  } catch (e) {
+                    Log.logger.w("Failed to download image from $path. Removing from media paths...");
+                  }
+                }
+              }
+            }
+            else {
+              files.add(File(path));
+              tempCopy.add(path);
+            }
           }
         }
         // mediaPaths = tempCopy;
@@ -1242,7 +1307,7 @@ class EProduct extends EItem {
   /// This method initializes [mediaFiles] with files corresponding to the
   /// URLs or local paths in [mediaPaths]. 
   Future<void> setImageFiles() async {
-    getImageFiles().then((value) => mediaFiles = value);
+    await getImageFiles().then((value) => mediaFiles = value);
   }
 
   /// Reverts the current product to its published version.

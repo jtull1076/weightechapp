@@ -1,10 +1,10 @@
 # Details
 
-Date : 2024-10-02 23:57:39
+Date : 2024-10-14 11:48:54
 
 Directory c:\\Users\\jerem\\OneDrive\\Documents\\Projects\\WeightechKiosk\\WeightechFlutter\\weightechapp
 
-Total : 67 files,  9063 codes, 3234 comments, 1103 blanks, all 13400 lines
+Total : 73 files,  9507 codes, 3237 comments, 1179 blanks, all 13923 lines
 
 [Summary](results.md) / Details / [Diff Summary](diff.md) / [Diff Details](diff-details.md)
 
@@ -43,14 +43,16 @@ Total : 67 files,  9063 codes, 3234 comments, 1103 blanks, all 13400 lines
 | [lib/extra_fluent_widgets.dart](/lib/extra_fluent_widgets.dart) | Dart | 290 | 19 | 19 | 328 |
 | [lib/extra_material_widgets.dart](/lib/extra_material_widgets.dart) | Dart | 397 | 0 | 44 | 441 |
 | [lib/firebase_options.dart](/lib/firebase_options.dart) | Dart | 73 | 12 | 7 | 92 |
-| [lib/fluent_models.dart](/lib/fluent_models.dart) | Dart | 956 | 249 | 212 | 1,417 |
-| [lib/fluent_routes.dart](/lib/fluent_routes.dart) | Dart | 2,960 | 76 | 163 | 3,199 |
+| [lib/fluent_models.dart](/lib/fluent_models.dart) | Dart | 947 | 250 | 212 | 1,409 |
+| [lib/fluent_routes.dart](/lib/fluent_routes.dart) | Dart | 3,003 | 77 | 163 | 3,243 |
 | [lib/main.dart](/lib/main.dart) | Dart | 58 | 4 | 10 | 72 |
 | [lib/models.dart](/lib/models.dart) | Dart | 455 | 26 | 69 | 550 |
 | [lib/themes.dart](/lib/themes.dart) | Dart | 169 | 2 | 6 | 177 |
 | [lib/universal_routes.dart](/lib/universal_routes.dart) | Dart | 1,018 | 20 | 62 | 1,100 |
-| [lib/utils.dart](/lib/utils.dart) | Dart | 390 | 186 | 92 | 668 |
+| [lib/utils.dart](/lib/utils.dart) | Dart | 381 | 187 | 91 | 659 |
 | [lib/windows_routes.dart](/lib/windows_routes.dart) | Dart | 1 | 2,405 | 98 | 2,504 |
+| [linux/CMakeLists.txt](/linux/CMakeLists.txt) | CMake | 118 | 0 | 28 | 146 |
+| [linux/flutter/CMakeLists.txt](/linux/flutter/CMakeLists.txt) | CMake | 79 | 0 | 10 | 89 |
 | [linux/flutter/generated_plugin_registrant.cc](/linux/flutter/generated_plugin_registrant.cc) | C++ | 31 | 4 | 5 | 40 |
 | [linux/flutter/generated_plugin_registrant.h](/linux/flutter/generated_plugin_registrant.h) | C++ | 5 | 5 | 6 | 16 |
 | [linux/flutter/generated_plugins.cmake](/linux/flutter/generated_plugins.cmake) | CMake | 26 | 0 | 6 | 32 |
@@ -65,11 +67,15 @@ Total : 67 files,  9063 codes, 3234 comments, 1103 blanks, all 13400 lines
 | [macos/Runner/MainFlutterWindow.swift](/macos/Runner/MainFlutterWindow.swift) | Swift | 12 | 0 | 4 | 16 |
 | [macos/firebase_app_id_file.json](/macos/firebase_app_id_file.json) | JSON | 7 | 0 | 0 | 7 |
 | [pubspec.yaml](/pubspec.yaml) | YAML | 74 | 0 | 5 | 79 |
+| [test/test.json](/test/test.json) | JSON | 1 | 0 | 0 | 1 |
 | [web/index.html](/web/index.html) | HTML | 38 | 16 | 6 | 60 |
 | [web/manifest.json](/web/manifest.json) | JSON | 35 | 0 | 1 | 36 |
+| [windows/CMakeLists.txt](/windows/CMakeLists.txt) | CMake | 89 | 0 | 20 | 109 |
+| [windows/flutter/CMakeLists.txt](/windows/flutter/CMakeLists.txt) | CMake | 98 | 0 | 12 | 110 |
 | [windows/flutter/generated_plugin_registrant.cc](/windows/flutter/generated_plugin_registrant.cc) | C++ | 42 | 4 | 5 | 51 |
 | [windows/flutter/generated_plugin_registrant.h](/windows/flutter/generated_plugin_registrant.h) | C++ | 5 | 5 | 6 | 16 |
 | [windows/flutter/generated_plugins.cmake](/windows/flutter/generated_plugins.cmake) | CMake | 32 | 0 | 6 | 38 |
+| [windows/runner/CMakeLists.txt](/windows/runner/CMakeLists.txt) | CMake | 34 | 0 | 7 | 41 |
 | [windows/runner/flutter_window.cpp](/windows/runner/flutter_window.cpp) | C++ | 49 | 7 | 16 | 72 |
 | [windows/runner/flutter_window.h](/windows/runner/flutter_window.h) | C++ | 20 | 5 | 9 | 34 |
 | [windows/runner/main.cpp](/windows/runner/main.cpp) | C++ | 30 | 4 | 10 | 44 |
