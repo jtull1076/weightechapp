@@ -8,6 +8,7 @@ import 'dart:io';
 import 'package:feedback_github/feedback_github.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:media_kit/media_kit.dart';
+import 'package:flutter_acrylic/flutter_acrylic.dart';
 
 
 //MARK: MAIN
@@ -15,6 +16,11 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized(); // Initialize Flutter Bindings
 
   MediaKit.ensureInitialized();
+  await Window.initialize();
+
+  
+
+
 
   await windowManager.ensureInitialized();
   if (Platform.isWindows) {
@@ -28,6 +34,14 @@ Future<void> main() async {
   Log.logger.i('Version: ${AppInfo.packageInfo.version}, Build: ${AppInfo.packageInfo.buildNumber}, SessionId: ${AppInfo.sessionId}');
   WeightechThemes();
 
+  // TODO: Make effect optional solid or mica, adjust things accordingly
+
+  await Window.setEffect(
+    effect: WindowEffect.mica,
+    dark: WeightechThemes.fluentTheme.brightness.isDark,
+    color: WeightechThemes.fluentTheme.brightness.isDark ? Colors.white : Colors.white, // WeightechThemes.windowsLight : WeightechThemes.windowsLight
+  );
+
   runApp(
     FluentTheme(
       data: WeightechThemes.fluentTheme,
@@ -40,7 +54,7 @@ Future<void> main() async {
         },
         localeOverride: const Locale('en'),
         theme: FeedbackThemeData(
-          background: Colors.grey,
+          background: Colors.transparent,
           feedbackSheetColor: Colors.white,
           sheetIsDraggable: false,
           bottomSheetDescriptionStyle: const TextStyle(color: Colors.black),
@@ -60,6 +74,7 @@ class WeightechApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    Log.logger.i('Mica color: ${WeightechThemes.fluentLightTheme.micaBackgroundColor}');
     return FluentApp(
       theme: WeightechThemes.fluentLightTheme,
       // darkTheme: WeightechThemes.fluentDarkTheme,

@@ -3,10 +3,12 @@ import 'package:flutter/material.dart' as material;
 import 'package:fluent_ui/fluent_ui.dart' as fluent;
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter_acrylic/flutter_acrylic.dart';
 
 class WeightechThemes {
   static late material.ThemeData materialTheme;
   static late fluent.FluentThemeData fluentTheme;
+  static late fluent.Color defaultBackgroundColor;
   static late fluent.Color commandBarColor;
   static late fluent.Color startupScaffoldColor;
   static late fluent.Color defaultTextColor;
@@ -48,6 +50,7 @@ class WeightechThemes {
     if (brightness == Brightness.dark) {
       materialTheme = materialDarkTheme;
       fluentTheme = fluentDarkTheme;
+      defaultBackgroundColor = fluent.Colors.black;
       defaultTextColor = fluent.Colors.white;
       infoWidgetColor = wtGray.darker;
       loadingAnimationColor = wtGray.light;
@@ -56,6 +59,7 @@ class WeightechThemes {
     else {
       materialTheme = materialLightTheme;
       fluentTheme = fluentLightTheme;
+      defaultBackgroundColor = fluent.Colors.white;
       defaultTextColor = fluent.Colors.black;
       infoWidgetColor = wtGray.lighter;
       loadingAnimationColor = wtBlue.normal;
@@ -63,7 +67,6 @@ class WeightechThemes {
       dialogTitleStyle = const TextStyle(color: WeightechThemes.weightechBlue, fontSize: 18);
     }
   }
-
 
   static final material.ThemeData materialLightTheme = material.ThemeData(
     scaffoldBackgroundColor: material.Colors.white,
@@ -84,16 +87,16 @@ class WeightechThemes {
 
   static final fluent.FluentThemeData fluentLightTheme = fluent.FluentThemeData(
     brightness: fluent.Brightness.light,
-    fontFamily: 'Segoe UI',
+    // fontFamily: 'Segoe UI',
     accentColor: wtBlue,
     activeColor: weightechBlue,
     inactiveColor: weightechGray,
-    cardColor: windowsLight,
-    scaffoldBackgroundColor: fluent.Colors.white,
+    cardColor: fluent.Colors.transparent,
+    scaffoldBackgroundColor: fluent.Colors.transparent,
     dialogTheme: fluent.ContentDialogThemeData(
       titleStyle: const TextStyle(color: WeightechThemes.weightechBlue, fontSize: 18),
       decoration: BoxDecoration(
-        color: windowsLight,
+        color: fluent.Colors.white,
         borderRadius: BorderRadius.circular(12),
         boxShadow: fluent.kElevationToShadow[6],
       ),
@@ -174,4 +177,5 @@ class WeightechThemes {
     inactiveColor: wtGray.darker,
     scaffoldBackgroundColor: windowsLight,
   );
+  
 }
