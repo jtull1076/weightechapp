@@ -106,8 +106,8 @@ class BrochureHeader implements BrochureItem {
       title: TextBox(
         controller: _controller, 
         onChanged: (String newText) => text = newText,
-        style: const TextStyle(
-          color: WeightechThemes.weightechBlue, 
+        style: TextStyle(
+          color: WeightechThemes.isDarkMode ? WeightechThemes.weightechOrange : WeightechThemes.weightechBlue, 
           fontSize: 20, 
           fontWeight: FontWeight.w700
         ),
@@ -141,7 +141,7 @@ class BrochureSubheader implements BrochureItem {
         contentPadding: const EdgeInsets.all(0),
         title: TextBox(
           controller: _controller, 
-          style: const TextStyle(fontSize: 16, color: Color(0xFF333333), fontWeight: FontWeight.w700)
+          style: TextStyle(fontSize: 16, color: WeightechThemes.isDarkMode ? WeightechThemes.wtGray.lighter : WeightechThemes.wtGray.darker, fontWeight: FontWeight.w700)
         ),
         leading: leading,
         trailing: trailing

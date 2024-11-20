@@ -83,6 +83,9 @@ class AppSettings {
   /// Indicates if the app is in dark mode. Default is `false`.
   static bool? isDarkMode;
 
+  /// Indicates if the app should use Windows 11 Mica effect. Default is `false`.
+  static bool? useMica;
+
   /// Holds the reference to the next storage location.
   static late String storageRef;
 
@@ -99,6 +102,7 @@ class AppSettings {
     final SharedPreferencesAsync prefs = SharedPreferencesAsync();
     storageRef = await prefs.getString('storageRef') ?? 'newDevImages';
     isDarkMode = await prefs.getBool('isDarkMode');
+    useMica = await prefs.getBool('useMica') ?? true;
     isFirstLaunch = await prefs.getBool('isFirstLaunch') ?? true;
   }
 
@@ -106,13 +110,19 @@ class AppSettings {
   /// 
   /// This persists the dark mode state and storage reference, 
   /// allowing them to be restored when the app is reopened.
-  Future<void> saveSettings() async {
+  static Future<void> saveSettings() async {
     final SharedPreferencesAsync prefs = SharedPreferencesAsync();
     if (isDarkMode != null) {
       await prefs.setBool('isDarkMode', isDarkMode!);
     }
     else {
       await prefs.remove('isDarkMode');
+    }
+    if (useMica != null) {
+      await prefs.setBool('useMica', useMica!);
+    }
+    else {
+      await prefs.remove('useMica');
     }
   }
   

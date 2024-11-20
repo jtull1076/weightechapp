@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:feedback/feedback.dart';
 import 'dart:async';
 import 'package:weightechapp/themes.dart';
@@ -49,6 +51,11 @@ class _CustomFeedbackFormState extends State<CustomFeedbackForm> {
         children: [
           Column(
             children: [
+              Container(
+                height: 1,
+                width: double.infinity,
+                color: FluentTheme.of(context).brightness.isDark ? WeightechThemes.weightechGray : WeightechThemes.weightechBlue,
+              ),
               Expanded(
                 child: Stack(
                   children: [
@@ -60,17 +67,19 @@ class _CustomFeedbackFormState extends State<CustomFeedbackForm> {
                       children: <Widget>[
                         Text(
                           FeedbackLocalizations.of(context).feedbackDescriptionText,
+                          style: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black),
                           maxLines: 2,
                         ),
+                        const SizedBox(height: 3),
                         Row(
                           children: [
                             Expanded(
                               child: 
                                 TextBox(
-                                  
+                                  style: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black,),
                                   maxLines: null,
+                                  minLines: 2,
                                   controller: controller,
-                                  highlightColor: Colors.white,
                                   onChanged: (value) {
                                     _feedbackText = value;
                                   },
@@ -326,3 +335,89 @@ void fluentUpdateDialog({
     ),
   );
 }
+
+// class WindowTitleBar extends StatelessWidget {
+//   const WindowTitleBar({Key? key}) : super(key: key);
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return Platform.isWindows
+//         ? Container(
+//             width: MediaQuery.of(context).size.width,
+//             height: 32.0,
+//             color: Colors.transparent,
+//             child: MoveWindow(
+//               child: Row(
+//                 crossAxisAlignment: CrossAxisAlignment.center,
+//                 children: [
+//                   const Spacer(),
+//                   MinimizeWindowButton(
+//                     colors: WindowButtonColors(
+//                       iconNormal: brightness == InterfaceBrightness.light
+//                           ? Colors.black
+//                           : Colors.white,
+//                       iconMouseDown: brightness == InterfaceBrightness.light
+//                           ? Colors.black
+//                           : Colors.white,
+//                       iconMouseOver: brightness == InterfaceBrightness.light
+//                           ? Colors.black
+//                           : Colors.white,
+//                       normal: Colors.transparent,
+//                       mouseOver: brightness == InterfaceBrightness.light
+//                           ? Colors.black.withOpacity(0.04)
+//                           : Colors.white.withOpacity(0.04),
+//                       mouseDown: brightness == InterfaceBrightness.light
+//                           ? Colors.black.withOpacity(0.08)
+//                           : Colors.white.withOpacity(0.08),
+//                     ),
+//                   ),
+//                   MaximizeWindowButton(
+//                     colors: WindowButtonColors(
+//                       iconNormal: brightness == InterfaceBrightness.light
+//                           ? Colors.black
+//                           : Colors.white,
+//                       iconMouseDown: brightness == InterfaceBrightness.light
+//                           ? Colors.black
+//                           : Colors.white,
+//                       iconMouseOver: brightness == InterfaceBrightness.light
+//                           ? Colors.black
+//                           : Colors.white,
+//                       normal: Colors.transparent,
+//                       mouseOver: brightness == InterfaceBrightness.light
+//                           ? Colors.black.withOpacity(0.04)
+//                           : Colors.white.withOpacity(0.04),
+//                       mouseDown: brightness == InterfaceBrightness.light
+//                           ? Colors.black.withOpacity(0.08)
+//                           : Colors.white.withOpacity(0.08),
+//                     ),
+//                   ),
+//                   CloseWindowButton(
+//                     onPressed: () {
+//                       appWindow.close();
+//                     },
+//                     colors: WindowButtonColors(
+//                       iconNormal: brightness == InterfaceBrightness.light
+//                           ? Colors.black
+//                           : Colors.white,
+//                       iconMouseDown: brightness == InterfaceBrightness.light
+//                           ? Colors.black
+//                           : Colors.white,
+//                       iconMouseOver: brightness == InterfaceBrightness.light
+//                           ? Colors.black
+//                           : Colors.white,
+//                       normal: Colors.transparent,
+//                       mouseOver: brightness == InterfaceBrightness.light
+//                           ? Colors.black.withOpacity(0.04)
+//                           : Colors.white.withOpacity(0.04),
+//                       mouseDown: brightness == InterfaceBrightness.light
+//                           ? Colors.black.withOpacity(0.08)
+//                           : Colors.white.withOpacity(0.08),
+//                     ),
+//                   ),
+//                 ],
+//               ),
+//             ),
+//           )
+//         : Container();
+//   }
+// }
