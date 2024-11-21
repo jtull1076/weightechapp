@@ -81,7 +81,7 @@ class _StartupPageState extends State<StartupPage> with TickerProviderStateMixin
           children: [
             Padding(
               padding: const EdgeInsets.only(right: 0),
-              child: Image.asset('assets/icon/wt_icon.ico', height: 200),
+              child: Image.asset('assets/w_logo.png', height: 100),
             ),
             const SizedBox(height: 10), 
             Text("App Version: ${AppInfo.packageInfo.version}"),

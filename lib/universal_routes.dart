@@ -74,7 +74,7 @@ class _OfflinePageState extends State<OfflinePage> with TickerProviderStateMixin
               Container(
                 constraints: const BoxConstraints(maxHeight: 100),
                 alignment: Alignment.topCenter,
-                child: Hero(tag: 'main-logo', child: Image.asset('assets/weightech_logo_beta.png', cacheWidth: 500, fit: BoxFit.scaleDown))
+                child: Padding(padding: const EdgeInsets.only(top: 10.0), child: Hero(tag: 'main-logo', child: Image.asset('assets/weightech_logo_beta.png', cacheWidth: 500, height: 100, alignment: Alignment.center,))),
               ),
               Center(
                 child: Column(
@@ -132,10 +132,6 @@ class IdlePage extends StatelessWidget {
                     const Text('Press anywhere to begin.', style: TextStyle(fontSize: 18.0, fontStyle: FontStyle.normal))],
                 ),
               ),
-              Align(
-                alignment: Alignment.bottomRight,
-                child: Text('${AppInfo.packageInfo.version} ${AppInfo.sessionId}')
-              )
             ]
           )
         )
@@ -348,6 +344,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   Column(
                     children: [
                       GestureDetector(
+                        onLongPress: () async {
+                          Log.logger.t('Opening info dialog...');
+                          _timer.cancel();
+                          await _showInfoDialog(context);
+                          Log.logger.t('Info dialog closed.');
+                        },
                         onDoubleTap: (){
                           Log.logger.t('---Return to Idle Interaction---');
                           Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const IdlePage()));
@@ -365,6 +367,36 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           )
         )
       )
+    );
+  }  
+
+  Future<void> _showInfoDialog(BuildContext context) async {
+    await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Application Info'),
+          content: SizedBox(
+            height: 40,
+            child: 
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Version: ${AppInfo.packageInfo.version}+${AppInfo.packageInfo.buildNumber}'),
+                Text('Session ID: ${AppInfo.sessionId}'),
+              ]
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text("Close"),
+            )
+          ]
+        );
+      }
     );
   }
 }
@@ -443,10 +475,9 @@ class _ProductPageState extends State<ProductPage> with TickerProviderStateMixin
                         GestureDetector(
                           onDoubleTap: (){
                             Log.logger.t('---Return to Idle Interaction---');
-                            _timer.cancel();
                             Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const IdlePage()));
                           },
-                          child: Padding(padding: const EdgeInsets.only(top: 10.0), child: Image.asset('assets/weightech_logo_beta.png', height: 100, alignment: Alignment.center,)),
+                          child: Padding(padding: const EdgeInsets.only(top: 10.0), child: Hero(tag: 'main-logo', child: Image.asset('assets/weightech_logo_beta.png', cacheWidth: 500, height: 100, alignment: Alignment.center,))),
                         ),
                     ),
                     Align(
@@ -1172,10 +1203,7 @@ class _ListingPageState extends State<ListingPage> with TickerProviderStateMixin
                                       Log.logger.t('---Return to Idle Interaction---');
                                       Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const IdlePage()));
                                     },
-                                    child: Padding(
-                                      padding: const EdgeInsets.only(top: 10.0), 
-                                      child: Image.asset('assets/weightech_logo_beta.png', height: 100, alignment: Alignment.center,)
-                                    )
+                                    child: Padding(padding: const EdgeInsets.only(top: 10.0), child: Hero(tag: 'main-logo', child: Image.asset('assets/weightech_logo_beta.png', cacheWidth: 500, height: 100, alignment: Alignment.center,))),
                                   ),
                               ),
                               Align(

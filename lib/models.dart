@@ -11,6 +11,7 @@ import 'dart:convert';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:weightechapp/themes.dart';
 import 'package:weightechapp/utils.dart';
 import 'package:string_validator/string_validator.dart' show isURL;
 import 'package:http/http.dart' as http;
@@ -268,6 +269,9 @@ sealed class CatalogItem {
 
   Widget buildCard(VoidCallback onTapCallback) {
     return Card(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.zero,
+      ),
       surfaceTintColor: Colors.white,
       shadowColor: const Color(0xAA000000),
       margin: const EdgeInsets.only(left: 10.0, right: 10.0, bottom: 10.0, top: 10.0),
@@ -292,35 +296,49 @@ sealed class CatalogItem {
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(10,15,10,15),
                   child: FutureBuilder(
-                    future: FileUtils.cacheManager.getSingleFile(imageUrl!),
+                    future: Future.delayed(Duration.zero),
                     builder: ((context, snapshot) {
-                      if (snapshot.hasData) {
-                        return Container (
-                          padding: const EdgeInsets.only(left: 20.0, right: 20.0, top: 20, bottom: 20),
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(5),
-                            image: DecorationImage(
-                              fit: BoxFit.cover,
-                              image: ResizeImage(
-                                imageProvider!,
-                                policy: ResizeImagePolicy.fit,
-                                height: 400,
-                              )
+                      return Container (
+                        padding: const EdgeInsets.only(left: 20.0, right: 20.0, top: 20, bottom: 20),
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(5),
+                          image: DecorationImage(
+                            fit: BoxFit.cover,
+                            image: ResizeImage(
+                              imageProvider!,
+                              policy: ResizeImagePolicy.fit,
+                              height: 400,
                             )
-                          ),
-                        );
-                      }
-                      else {
-                        return Center(
-                          child: LoadingAnimationWidget.discreteCircle(
-                            color: const Color(0xFF224190), 
-                            secondRingColor: const Color(0xFFC9C9CC),
-                            thirdRingColor: Colors.white,
-                            size: 30
                           )
-                        );
-                      }
+                        ));
+                      // if (snapshot.hasData) {
+                      //   return Container (
+                      //     padding: const EdgeInsets.only(left: 20.0, right: 20.0, top: 20, bottom: 20),
+                      //     alignment: Alignment.center,
+                      //     decoration: BoxDecoration(
+                      //       borderRadius: BorderRadius.circular(5),
+                      //       image: DecorationImage(
+                      //         fit: BoxFit.cover,
+                      //         image: ResizeImage(
+                      //           imageProvider!,
+                      //           policy: ResizeImagePolicy.fit,
+                      //           height: 400,
+                      //         )
+                      //       )
+                      //     ),
+                      //   );
+                      // }
+                      // else {
+                      //   return Center(
+                      //     child: LoadingAnimationWidget.discreteCircle(
+                      //       color: const Color(0xFF224190), 
+                      //       secondRingColor: const Color(0xFFC9C9CC),
+                      //       thirdRingColor: Colors.white,
+                      //       size: 30
+                      //     )
+                      //   );
+                      // }
                     })
                   )                  
                 )

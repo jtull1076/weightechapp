@@ -1,7 +1,7 @@
 name: weightechapp
 description: "Android implementation for WeighTech's sales app."
 publish_to: 'none'
-version: 0.1.3+2
+version: 0.1.3+4
 
 environment:
   sdk: '>=3.3.0 <4.0.0'
@@ -39,6 +39,7 @@ dependencies:
   flutter_archive: ^6.0.3
   upgrader: ^11.2.0
   apivideo_player: ^1.2.1
+  adaptive_theme: ^3.6.0
 
 dev_dependencies:
   flutter_test:
@@ -50,6 +51,9 @@ flutter:
   uses-material-design: true
   assets:
     - assets/weightech_logo.png
+    - assets/w_logo.png
+    - assets/w_logo_gray.png
+    - assets/w_logo_blue.png
     - assets/weightech_logo_beta.png
     - assets/icon/wt_icon.ico
     - assets/skullanimation_v2.gif
