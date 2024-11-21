@@ -26,12 +26,10 @@ class ProductManager {
       // timestamp = DateTime.fromMillisecondsSinceEpoch(catalogJson["timestamp"].millisecondsSinceEpoch);
       name = catalogJson["catalogName"];
       catalogJson['versionId'] = id;
-      
     } catch (e) {
       rethrow;
     }
   }
-
 
   static Future<void> createFromMap(Map<String, dynamic> catalogJson) async {
     try {
@@ -42,23 +40,21 @@ class ProductManager {
     }
   }
 
-
   static Future<void> createFromECategory(ECategory eCatalog) async {
-
     ProductCategory traverseCategory(eCategory) {
       List<CatalogItem> catalogItems = [];
 
       for (var item in eCategory.editorItems) {
         switch (item) {
-          case ECategory _ : {
-            ProductCategory newItem = traverseCategory(item);
-            catalogItems.add(newItem);
-          }
-          case EProduct _ : {
-            catalogItems.add(
-              item.product
-            );
-          }
+          case ECategory _:
+            {
+              ProductCategory newItem = traverseCategory(item);
+              catalogItems.add(newItem);
+            }
+          case EProduct _:
+            {
+              catalogItems.add(item.product);
+            }
         }
       }
 
@@ -69,7 +65,6 @@ class ProductManager {
     all = traverseCategory(eCatalog);
     Log.logger.i('ProductManager updated from upload file!');
   }
-
 
   static void _restructureDatabase() {
     final ProductCategory root = all!;
@@ -82,17 +77,17 @@ class ProductManager {
           String baseRefName = item.id;
           int i = 0;
 
-          for (var url in item.productMedia?.map((x) => x['downloadUrl']).toList() ?? []) {
+          for (var url
+              in item.productMedia?.map((x) => x['downloadUrl']).toList() ??
+                  []) {
             String name = '${baseRefName}_$i';
             String extension = '';
 
             if (url.contains('.mp4?')) {
               extension = 'mp4';
-            }
-            else if (url.contains('.png?')){
+            } else if (url.contains('.png?')) {
               extension = 'png';
-            }
-            else if (url.contains('.jpeg') || (url.contains('.jpg'))) {
+            } else if (url.contains('.jpeg') || (url.contains('.jpg'))) {
               extension = 'jpeg';
             }
 
@@ -104,8 +99,7 @@ class ProductManager {
             });
             i++;
           }
-        }
-        else {
+        } else {
           traverseCategories(item as ProductCategory);
         }
       }
@@ -148,17 +142,19 @@ class ProductManager {
       }
       for (var item in category.catalogItems) {
         switch (item) {
-          case ProductCategory _: {
-            traverseItems(item);
-            if (result != null) {
-              return;
+          case ProductCategory _:
+            {
+              traverseItems(item);
+              if (result != null) {
+                return;
+              }
             }
-          }
-          case Product _: {
-            if (item.id == id) {
-              result = item;
+          case Product _:
+            {
+              if (item.id == id) {
+                result = item;
+              }
             }
-          }
         }
       }
     }
@@ -170,7 +166,7 @@ class ProductManager {
 
   static Future<void> postCatalogToFirestore({String? name, String? id}) async {
     Log.logger.t("Posting catalog to Firestore");
-    Map<String,dynamic> catalogJson = all!.toJson();
+    Map<String, dynamic> catalogJson = all!.toJson();
     catalogJson['timestamp'] = DateTime.now();
     catalogJson['versionId'] = id;
     catalogJson['catalogName'] = name;
@@ -182,7 +178,7 @@ class ProductManager {
     Log.logger.t(" -> done.");
   }
 
-  static Future<Map<String,dynamic>> getCatalogFromFirestore() async {
+  static Future<Map<String, dynamic>> getCatalogFromFirestore() async {
     Log.logger.t("Retrieving catalog from Firestore");
     return await FirebaseUtils.getCatalogFromFirestore();
   }
@@ -195,9 +191,13 @@ sealed class CatalogItem {
   String? imageUrl;
   ImageProvider? imageProvider;
 
-  CatalogItem({required this.name, this.parentId, String? id, this.imageUrl, BuildContext? context}) 
-  : id = id ?? shortid.generate()
-  {
+  CatalogItem(
+      {required this.name,
+      this.parentId,
+      String? id,
+      this.imageUrl,
+      BuildContext? context})
+      : id = id ?? shortid.generate() {
     if (imageUrl != null) {
       try {
         imageProvider = CachedNetworkImageProvider(imageUrl!);
@@ -206,24 +206,23 @@ sealed class CatalogItem {
         imageUrl = null;
         imageProvider = Image.asset('assets/weightech_logo.png').image;
       }
-    }
-    else {
+    } else {
       imageProvider = Image.asset('assets/weightech_logo.png').image;
     }
   }
 
   Widget buildCard(VoidCallback onTapCallback) {
     return Card(
-      surfaceTintColor: Colors.white,
-      margin: const EdgeInsets.only(left: 10.0, right: 10.0, bottom: 30.0, top: 30.0),
-      child: Stack( 
-        children: [
+        surfaceTintColor: Colors.white,
+        margin: const EdgeInsets.only(
+            left: 10.0, right: 10.0, bottom: 30.0, top: 30.0),
+        child: Stack(children: [
           Column(
             mainAxisAlignment: MainAxisAlignment.start,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-                            // Expanded(
-              //   child: 
+              // Expanded(
+              //   child:
               //     Container (
               //       alignment: Alignment.center,
               //       padding: const EdgeInsets.only(left: 14.0, right: 14.0, top: 30, bottom: 14),
@@ -234,56 +233,45 @@ sealed class CatalogItem {
               //     )
               // ),
               Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(10,15,10,15),
-                  child: Container (
-                    padding: const EdgeInsets.only(left: 20.0, right: 20.0, top: 20, bottom: 20),
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(20),
-                      image: DecorationImage(
-                        fit: BoxFit.cover,
-                        image: ResizeImage(
-                          imageProvider!,
-                          policy: ResizeImagePolicy.fit,
-                          height: 400,
-                        )
-                      )
-                    ),
-                  )
-                )
-              ),
+                  child: Padding(
+                      padding: const EdgeInsets.fromLTRB(10, 15, 10, 15),
+                      child: Container(
+                        padding: const EdgeInsets.only(
+                            left: 20.0, right: 20.0, top: 20, bottom: 20),
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(20),
+                            image: DecorationImage(
+                                fit: BoxFit.cover,
+                                image: ResizeImage(
+                                  imageProvider!,
+                                  policy: ResizeImagePolicy.fit,
+                                  height: 400,
+                                ))),
+                      ))),
               Container(
                 height: 25,
                 alignment: Alignment.center,
                 padding: const EdgeInsets.symmetric(horizontal: 15),
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
-                  child: Text(
-                    name, 
-                    textAlign: TextAlign.center, 
-                    style: const TextStyle(fontSize: 16.0, color: Colors.black)
-                  ),
+                  child: Text(name,
+                      textAlign: TextAlign.center,
+                      style:
+                          const TextStyle(fontSize: 16.0, color: Colors.black)),
                 ),
               ),
               const SizedBox(height: 10),
             ],
           ),
           Positioned.fill(
-            child: 
-              Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: () {
+              child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(onTap: () {
                     Log.logger.t('Item tapped: $name');
                     onTapCallback();
-                  }
-                )
-              )
-          )
-        ]
-      )
-    );
+                  })))
+        ]));
   }
 
   Widget buildListTile({int? index}) {
@@ -302,8 +290,7 @@ sealed class CatalogItem {
   static CatalogItem fromJson(Map<String, dynamic> json) {
     if (json['catalogItems'] != null) {
       return ProductCategory.fromJson(json);
-    }
-    else {
+    } else {
       return Product.fromJson(json);
     }
   }
@@ -341,7 +328,9 @@ class ProductCategory extends CatalogItem {
 
   ProductCategory.temp() : this(name: '');
 
-  ProductCategory.all() : catalogItems = [], super(name: 'All');
+  ProductCategory.all()
+      : catalogItems = [],
+        super(name: 'All');
 
   // Function to add a product to the list1
   void addProduct(Product product) {
@@ -349,7 +338,7 @@ class ProductCategory extends CatalogItem {
     catalogItems.add(product);
   }
 
-  void addCategory(ProductCategory category){
+  void addCategory(ProductCategory category) {
     category.parentId = id;
     catalogItems.add(category);
   }
@@ -359,13 +348,14 @@ class ProductCategory extends CatalogItem {
     catalogItems.remove(product);
   }
 
-  void removeCategory(ProductCategory category){
+  void removeCategory(ProductCategory category) {
     catalogItems.remove(category);
   }
 
   // Function to get all products
   List<Product> getAllProducts() {
-    return catalogItems.where((item) => item.runtimeType == Product).toList() as List<Product>;
+    return catalogItems.where((item) => item.runtimeType == Product).toList()
+        as List<Product>;
   }
 
   List<dynamic> getAllCatalogItems() {
@@ -392,26 +382,29 @@ class ProductCategory extends CatalogItem {
   void addProductByParentId(Product newProduct) {
     if (id == newProduct.parentId) {
       addProduct(newProduct);
-      Log.logger.t('${newProduct.name} (id: ${newProduct.id}) added to $name (id: $id)');
+      Log.logger.t(
+          '${newProduct.name} (id: ${newProduct.id}) added to $name (id: $id)');
       return;
     }
     for (var item in catalogItems) {
       if (item is ProductCategory && item.id == newProduct.parentId) {
         item.addProduct(newProduct);
-        Log.logger.t('${newProduct.name} (id: ${newProduct.id}) added to ${item.name} (id: ${item.id})');
+        Log.logger.t(
+            '${newProduct.name} (id: ${newProduct.id}) added to ${item.name} (id: ${item.id})');
         return;
       }
     }
     // If not found in the current category, recursively search in subcategories
     for (var item in catalogItems) {
       if (item is ProductCategory) {
-        item.addProductByParentId(newProduct); // Recursively search in subcategories
+        item.addProductByParentId(
+            newProduct); // Recursively search in subcategories
       }
     }
-    Log.logger.t('Parent category with ID ${newProduct.parentId} not found in category $name (id: $id).');
+    Log.logger.t(
+        'Parent category with ID ${newProduct.parentId} not found in category $name (id: $id).');
   }
 
-  
   @override
   Map<String, dynamic> toJson() {
     Map<String, dynamic> json = super.toJson();
@@ -425,14 +418,14 @@ class ProductCategory extends CatalogItem {
     // Log.logger.t((const JsonEncoder.withIndent('   ')).convert(json));
     // Log.logger.t("------");
     return ProductCategory(
-      name: json['name'],
-      id: json['id'],
-      parentId: json['parentId'],
-      imageUrl: json['imageUrl'],
-      catalogItems: (json['catalogItems'] as List<dynamic>).map((itemJson) => CatalogItem.fromJson(itemJson)).toList()
-    );
+        name: json['name'],
+        id: json['id'],
+        parentId: json['parentId'],
+        imageUrl: json['imageUrl'],
+        catalogItems: (json['catalogItems'] as List<dynamic>)
+            .map((itemJson) => CatalogItem.fromJson(itemJson))
+            .toList());
   }
-
 }
 
 class Product extends CatalogItem {
@@ -452,13 +445,15 @@ class Product extends CatalogItem {
     this.description,
     this.brochure,
     BuildContext? context,
-  }) : super(imageUrl: imageUrl ?? ((productMedia?.isNotEmpty ?? false) ? productMedia![0]['downloadUrl'] : null))
-  {
+  }) : super(
+            imageUrl: imageUrl ??
+                ((productMedia?.isNotEmpty ?? false)
+                    ? productMedia![0]['downloadUrl']
+                    : null)) {
     productMedia ??= [];
   }
 
   Product.temp() : this(name: '');
-  
 
   List<BrochureItem> retrieveBrochureList() {
     Log.logger.t("Retrieving brochure list...");
@@ -467,8 +462,7 @@ class Product extends CatalogItem {
 
     if (brochure == null) {
       return brochureList;
-    }
-    else {
+    } else {
       for (var mapItem in brochure!) {
         String key = mapItem.keys.first;
         brochureList.add(BrochureHeader(text: key));
@@ -479,8 +473,7 @@ class Product extends CatalogItem {
                 for (var entry in value) {
                   brochureList.add(BrochureEntry(text: entry));
                 }
-              }
-              else {
+              } else {
                 String subKey = key;
                 brochureList.add(BrochureSubheader(text: subKey));
                 for (var entry in item[subKey]) {
@@ -489,15 +482,13 @@ class Product extends CatalogItem {
               }
             });
           }
-        }
-        else if (mapItem[key] is Map) {
+        } else if (mapItem[key] is Map) {
           mapItem[key].forEach((key, value) {
             if (key == "Entries") {
               for (var entry in value) {
                 brochureList.add(BrochureEntry(text: entry));
               }
-            }
-            else {
+            } else {
               String subKey = key;
               brochureList.add(BrochureSubheader(text: subKey));
               for (var entry in mapItem[key][subKey]) {
@@ -530,20 +521,21 @@ class Product extends CatalogItem {
       id: json['id'],
       modelNumber: json['modelNumber'],
       description: json['description'],
-      brochure: List<Map<String,dynamic>>.from(json['brochure']),
+      brochure: List<Map<String, dynamic>>.from(json['brochure']),
       parentId: json['parentId'],
       productMedia: List<Map<String, dynamic>>.from(json['media'] ?? []),
     );
   }
 
-  void storeListOfImages(List<File> imageFiles){
+  void storeListOfImages(List<File> imageFiles) {
     final storageRef = FirebaseUtils.storage.ref("devImages");
-    for ( int i=0 ; i < imageFiles.length ; i++ ) {
+    for (int i = 0; i < imageFiles.length; i++) {
       final imageRef = storageRef.child("${id}_$i");
       try {
         imageRef.putFile(imageFiles[i]);
       } on FirebaseException catch (e) {
-        Log.logger.t("Failed to add ${id}_$i to Firebase. Error code: ${e.code}");
+        Log.logger
+            .t("Failed to add ${id}_$i to Firebase. Error code: ${e.code}");
       }
     }
   }

@@ -20,8 +20,6 @@ import 'package:path/path.dart' as p;
 import 'package:internet_connection_checker_plus/internet_connection_checker_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-
-
 /// A class to manage application information and session data.
 class AppInfo {
   /// Holds the package information of the app, initialized through [init].
@@ -40,7 +38,7 @@ class AppInfo {
   /// - Fetching platform-specific package information.
   /// - Generating a session ID using `shortid`.
   /// - Checking if the device has an active internet connection.
-  /// 
+  ///
   /// This method is asynchronous and should be awaited.
   Future<void> init() async {
     packageInfo = await PackageInfo.fromPlatform();
@@ -95,8 +93,8 @@ class AppSettings {
   AppSettings();
 
   /// Initializes the settings by loading them from shared preferences.
-  /// 
-  /// This method retrieves the saved values for dark mode and storage reference, 
+  ///
+  /// This method retrieves the saved values for dark mode and storage reference,
   /// setting default values if none are found.
   Future<void> init() async {
     final SharedPreferencesAsync prefs = SharedPreferencesAsync();
@@ -107,25 +105,22 @@ class AppSettings {
   }
 
   /// Saves the current settings to shared preferences.
-  /// 
-  /// This persists the dark mode state and storage reference, 
+  ///
+  /// This persists the dark mode state and storage reference,
   /// allowing them to be restored when the app is reopened.
   static Future<void> saveSettings() async {
     final SharedPreferencesAsync prefs = SharedPreferencesAsync();
     if (isDarkMode != null) {
       await prefs.setBool('isDarkMode', isDarkMode!);
-    }
-    else {
+    } else {
       await prefs.remove('isDarkMode');
     }
     if (useMica != null) {
       await prefs.setBool('useMica', useMica!);
-    }
-    else {
+    } else {
       await prefs.remove('useMica');
     }
   }
-  
 }
 
 /// A class that manages logging for the application.
@@ -145,18 +140,17 @@ class Log {
   Future<void> init() async {
     Directory appDocsDir = await getApplicationSupportDirectory();
     logger = Logger(
-      filter: AppLogFilter(),
-      printer: AppLogPrinter(),
-      output: MultiOutput(
-        [
+        filter: AppLogFilter(),
+        printer: AppLogPrinter(),
+        output: MultiOutput([
           FileOutput(
-            file: await File("${appDocsDir.path}/logs/app-${AppInfo.sessionId}.log").create(recursive: true)
-          ),
+              file: await File(
+                      "${appDocsDir.path}/logs/app-${AppInfo.sessionId}.log")
+                  .create(recursive: true)),
           ConsoleOutput()
-        ]
-      )
-    );
-    debugPrint("Log location: ${appDocsDir.path}/logs/app-${AppInfo.sessionId}.log");
+        ]));
+    debugPrint(
+        "Log location: ${appDocsDir.path}/logs/app-${AppInfo.sessionId}.log");
     Log.logger.t("...Logger initialized...");
     Log.logger.t(DateTime.now().toString());
   }
@@ -166,7 +160,7 @@ class Log {
 class AppLogFilter extends LogFilter {
   /// Determines if a log event should be logged.
   ///
-  /// Logs all events with a level of [Level.debug] or higher, 
+  /// Logs all events with a level of [Level.debug] or higher,
   /// as well as events at the "trace" level.
   ///
   /// Returns `true` if the event should be logged, otherwise `false`.
@@ -187,18 +181,15 @@ class AppLogPrinter extends PrettyPrinter {
   /// - Prints no method calls for regular logs, but up to 10 for errors.
   /// - Sets the line length to 120 characters.
   /// - Enables color and emoji support in the log output.
-  AppLogPrinter() 
-  : super(
-    excludeBox: {Level.info : true, Level.trace: true},
-    methodCount: 0,
-    errorMethodCount: 10,
-    lineLength: 120,
-    colors: true, 
-    printEmojis: true
-  );
+  AppLogPrinter()
+      : super(
+            excludeBox: {Level.info: true, Level.trace: true},
+            methodCount: 0,
+            errorMethodCount: 10,
+            lineLength: 120,
+            colors: true,
+            printEmojis: true);
 }
-
-
 
 /// A utility class for handling file-related operations such as downloading,
 /// caching, checking file types, and retrieving file paths.
@@ -301,7 +292,6 @@ class FileUtils {
   }
 }
 
-
 /// A utility class for interacting with Firebase services such as Firestore,
 /// Firebase Storage, and Firebase Authentication.
 class FirebaseUtils {
@@ -334,7 +324,8 @@ class FirebaseUtils {
   ///
   /// This method is asynchronous and should be awaited.
   Future<void> init() async {
-    firebaseApp = await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    firebaseApp = await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform);
 
     userCredential = await FirebaseAuth.instance.signInAnonymously();
     Log.logger.t("-> Signed in with temporary account.");
@@ -343,13 +334,22 @@ class FirebaseUtils {
     database = FirebaseFirestore.instanceFor(app: firebaseApp);
 
     Log.logger.t("-> Setting up Firebase Storage...");
-    storage = FirebaseStorage.instanceFor(app: firebaseApp, bucket: 'gs://weightechapp.appspot.com');
-    
+    storage = FirebaseStorage.instanceFor(
+        app: firebaseApp, bucket: 'gs://weightechapp.appspot.com');
+
     Log.logger.t("-> Getting access tokens...");
-    await database.collection("tokens").doc("github").get().then((DocumentSnapshot doc) {
+    await database
+        .collection("tokens")
+        .doc("github")
+        .get()
+        .then((DocumentSnapshot doc) {
       githubToken = (doc.data() as Map<String, dynamic>)['access_token']!;
     });
-    await database.collection("tokens").doc("api-video").get().then((DocumentSnapshot doc) {
+    await database
+        .collection("tokens")
+        .doc("api-video")
+        .get()
+        .then((DocumentSnapshot doc) {
       apiVideoKey = (doc.data() as Map<String, dynamic>)['api_key']!;
     });
   }
@@ -360,10 +360,12 @@ class FirebaseUtils {
   ///
   /// Logs the document ID of the uploaded catalog on success.
   static Future<void> postCatalogToFirestore(Map<String, dynamic> json) async {
-    await database.collection("catalog").add(json)
-      .then((DocumentReference doc) {
-        Log.logger.i('Firestore DocumentSnapshot added with ID: ${doc.id}');
-      });
+    await database
+        .collection("catalog")
+        .add(json)
+        .then((DocumentReference doc) {
+      Log.logger.i('Firestore DocumentSnapshot added with ID: ${doc.id}');
+    });
   }
 
   /// Retrieves the most recent catalog document from the `catalog` collection in Firestore.
@@ -374,23 +376,29 @@ class FirebaseUtils {
   /// - Retries the operation up to two times in case of failure.
   static Future<Map<String, dynamic>> getCatalogFromFirestore() async {
     return await retry(
-      () => database.collection("catalog").orderBy("timestamp", descending: true).limit(1).get()
-        .timeout(const Duration(seconds: 5))
-        .then((event) {
-          if (event.docs.isEmpty) {
-            throw("Empty get data.");
-          }
-          Log.logger.i('Firebase DocumentSnapshot retrieved with ID: ${event.docs[0].id}');
-          return event.docs[0].data();
-        }),
+      () => database
+          .collection("catalog")
+          .orderBy("timestamp", descending: true)
+          .limit(1)
+          .get()
+          .timeout(const Duration(seconds: 5))
+          .then((event) {
+        if (event.docs.isEmpty) {
+          throw ("Empty get data.");
+        }
+        Log.logger.i(
+            'Firebase DocumentSnapshot retrieved with ID: ${event.docs[0].id}');
+        return event.docs[0].data();
+      }),
       onRetry: (Exception exception) {
         debugPrint("Retrying.");
-        Log.logger.w("Encountered exception when retrieving catalog. Trying again.", error: exception);
+        Log.logger.w(
+            "Encountered exception when retrieving catalog. Trying again.",
+            error: exception);
       },
       maxAttempts: 2,
     );
   }
-
 
   /// Retrieves the most recent [number] of catalog documents from the `catalog` collection in Firestore.
   ///
@@ -398,25 +406,32 @@ class FirebaseUtils {
   ///
   /// - Returns a [Future] that resolves to a [List] containing the catalog data.
   /// - Retries the operation up to two times in case of failure.
-  static Future<List<Map<String, dynamic>>> getLastFromFirestore(int number) async {
+  static Future<List<Map<String, dynamic>>> getLastFromFirestore(
+      int number) async {
     return await retry(
-      () => database.collection("catalog").orderBy("timestamp", descending: true).limit(number).get()
-        .timeout(const Duration(seconds: 5))
-        .then((event) {
-          if (event.docs.isEmpty) {
-            throw("Empty get data.");
-          }
-          Log.logger.i('Firebase DocumentSnapshot retrieved with IDs: ${event.docs.map((e) => e.id).toList()}');
-          return event.docs.map((e) => e.data()).toList();
-        }),
+      () => database
+          .collection("catalog")
+          .orderBy("timestamp", descending: true)
+          .limit(number)
+          .get()
+          .timeout(const Duration(seconds: 5))
+          .then((event) {
+        if (event.docs.isEmpty) {
+          throw ("Empty get data.");
+        }
+        Log.logger.i(
+            'Firebase DocumentSnapshot retrieved with IDs: ${event.docs.map((e) => e.id).toList()}');
+        return event.docs.map((e) => e.data()).toList();
+      }),
       onRetry: (Exception exception) {
         debugPrint("Retrying.");
-        Log.logger.w("Encountered exception when retrieving catalog. Trying again.", error: exception);
+        Log.logger.w(
+            "Encountered exception when retrieving catalog. Trying again.",
+            error: exception);
       },
       maxAttempts: 2,
     );
   }
-
 
   static Future<void> removeStorageReference(String refName) async {
     var imagesRef = storage.ref().child(refName);
@@ -424,15 +439,15 @@ class FirebaseUtils {
     Log.logger.i('Firebase Reference $refName deleted.');
   }
 
-
   static Future<void> deleteLastFromStorage(int number) async {
     try {
-      List<Map<String, dynamic>> catalogsToKeep = await getLastFromFirestore(number);
+      List<Map<String, dynamic>> catalogsToKeep =
+          await getLastFromFirestore(number);
 
       Set<String> versionIds = catalogsToKeep
-        .where((entry) => entry.containsKey('versionId'))
-        .map((entry) => entry['versionId'] as String)
-        .toSet();
+          .where((entry) => entry.containsKey('versionId'))
+          .map((entry) => entry['versionId'] as String)
+          .toSet();
 
       var imagesRef = storage.ref().child('newDevImages');
       ListResult result = await imagesRef.listAll();
@@ -449,18 +464,17 @@ class FirebaseUtils {
             await fileRef.delete();
           }
 
-          Log.logger.i("Deleted all files in folder 'images/$folderName' (not in versionIds)");
+          Log.logger.i(
+              "Deleted all files in folder 'images/$folderName' (not in versionIds)");
         } else {
-          Log.logger.i("Skipped folder 'images/$folderName' (matches versionId)");
+          Log.logger
+              .i("Skipped folder 'images/$folderName' (matches versionId)");
         }
       }
-    }
-    catch (e) {
+    } catch (e) {
       Log.logger.e("Error deleting storage files: $e");
     }
   }
-
-
 
   /// Downloads a file from Firebase Storage and saves it locally.
   ///
@@ -472,27 +486,30 @@ class FirebaseUtils {
   /// - Returns a [Future] that resolves to the downloaded [File].
   ///
   /// Throws an error if the download fails and logs the failure.
-  static Future<File> downloadFromFirebaseStorage({required String url, String? suffix, Directory? directory, bool returnFile = false}) async {
+  static Future<File> downloadFromFirebaseStorage(
+      {required String url,
+      String? suffix,
+      Directory? directory,
+      bool returnFile = false}) async {
     directory ??= await getDownloadsDirectory();
-    
+
     try {
       final imageRef = FirebaseUtils.storage.refFromURL(url);
 
       late File file;
-      file = File('${directory!.path}/${FileUtils.filename(imageRef.name)}${suffix ?? ''}${FileUtils.extension(imageRef.name)}');
+      file = File(
+          '${directory!.path}/${FileUtils.filename(imageRef.name)}${suffix ?? ''}${FileUtils.extension(imageRef.name)}');
 
       await imageRef.writeToFile(file);
 
       return file;
-      
     } catch (e, stackTrace) {
-      Log.logger.e("Failed to download file at $url.", error: e, stackTrace: stackTrace);
-      throw("Failed to download file at $url");
+      Log.logger.e("Failed to download file at $url.",
+          error: e, stackTrace: stackTrace);
+      throw ("Failed to download file at $url");
     }
   }
 }
-
-
 
 /// A service class for interacting with the api.video platform, handling video
 /// creation, uploading, downloading, and deletion.
@@ -511,7 +528,8 @@ class ApiVideoService {
   /// - Returns a [Future] that resolves to a [Map] containing details of the created video.
   ///
   /// Throws an [Exception] if the video creation fails.
-  static Future<Map<String, dynamic>> createVideo({required String title, String? source}) async {
+  static Future<Map<String, dynamic>> createVideo(
+      {required String title, String? source}) async {
     final response = await http.post(
       Uri.parse(apiUrl),
       headers: {
@@ -544,9 +562,10 @@ class ApiVideoService {
   ///   streaming, and accessing the thumbnail of the uploaded video.
   ///
   /// Throws an [Exception] if the upload fails.
-  static Future<Map<String, dynamic>> uploadVideo(String videoId, String filePath) async {
+  static Future<Map<String, dynamic>> uploadVideo(
+      String videoId, String filePath) async {
     Log.logger.t("Uploading video to host...");
-    
+
     final file = File(filePath);
     final fileStream = file.openRead();
     final length = await file.length();
@@ -581,7 +600,7 @@ class ApiVideoService {
     } else {
       debugPrint('Failed to upload video: ${response.reasonPhrase}');
       debugPrint(await response.stream.bytesToString());
-      throw('Failed to upload video.');
+      throw ('Failed to upload video.');
     }
   }
 
@@ -595,7 +614,7 @@ class ApiVideoService {
   /// Throws an [Exception] if the video download fails.
   static Future<File> downloadVideo(String url, String savePath) async {
     Log.logger.t("Downloading video from $url");
-    
+
     // Send the HTTP GET request to download the file
     final response = await http.get(Uri.parse(url));
 
@@ -617,7 +636,7 @@ class ApiVideoService {
   /// Logs the response from each delete operation.
   static Future<void> deleteExistingForId(String itemId) async {
     Log.logger.t("Deleting existing videos for $itemId (if they exist).");
-    
+
     final response = await http.get(
       Uri.parse(apiUrl),
       headers: {
@@ -642,12 +661,12 @@ class ApiVideoService {
             'Content-Type': 'application/json',
           },
         );
-        Log.logger.i('HTTP Delete response: ${deleteResponse.statusCode} ${deleteResponse.reasonPhrase}');
+        Log.logger.i(
+            'HTTP Delete response: ${deleteResponse.statusCode} ${deleteResponse.reasonPhrase}');
       }
     }
   }
 }
-
 
 extension TreeMapping on TreeDragAndDropDetails<Object> {
   T mapDropPosition<T>({
@@ -659,7 +678,7 @@ extension TreeMapping on TreeDragAndDropDetails<Object> {
     final double pointerVerticalOffset = dropPosition.dy;
 
     if (pointerVerticalOffset < oneThirdOfTotalHeight) {
-       return whenAbove();
+      return whenAbove();
     } else if (pointerVerticalOffset < oneThirdOfTotalHeight * 2) {
       return whenInside();
     } else {
@@ -667,3 +686,4 @@ extension TreeMapping on TreeDragAndDropDetails<Object> {
     }
   }
 }
+

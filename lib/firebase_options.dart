@@ -88,5 +88,4 @@ class DefaultFirebaseOptions {
     databaseURL: 'https://weightechapp-default-rtdb.firebaseio.com',
     storageBucket: 'weightechapp.appspot.com',
   );
-
 }

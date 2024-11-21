@@ -31,10 +31,10 @@
 
 // //MARK: OFFLINE PAGE
 
-// /// A class defining the stateful HomePage, i.e. the 'All' category listing page. 
-// /// 
-// /// Defined separately as stateful to handle all animations from [IdlePage]. 
-// /// 
+// /// A class defining the stateful HomePage, i.e. the 'All' category listing page.
+// ///
+// /// Defined separately as stateful to handle all animations from [IdlePage].
+// ///
 // /// See also: [_OfflinePageState]
 // class OfflinePage extends StatefulWidget {
 //   const OfflinePage({super.key});
@@ -45,7 +45,7 @@
 
 // class _OfflinePageState extends State<OfflinePage> with TickerProviderStateMixin {
 //   late StreamSubscription listener;
-  
+
 //   @override
 //   void initState() {
 //     super.initState();
@@ -106,10 +106,8 @@
 //   }
 // }
 
-
-
 // //MARK: ERROR PAGE
-// /// A class defining the stateless [ErrorPage]. Used as the landing page (though not called "LandingPage" because "IdlePage" seemed more apt). 
+// /// A class defining the stateless [ErrorPage]. Used as the landing page (though not called "LandingPage" because "IdlePage" seemed more apt).
 // class ErrorPage extends StatelessWidget {
 //   final Object? message;
 //   const ErrorPage({this.message, super.key});
@@ -145,7 +143,6 @@
 //   }
 // }
 
-
 // class StartupPage extends StatefulWidget {
 //   const StartupPage({super.key});
 
@@ -169,7 +166,7 @@
 //     _runStartupTasks();
 //   }
 
-//   Future<void> _runStartupTasks() async { 
+//   Future<void> _runStartupTasks() async {
 
 //     if (!await InternetConnection().hasInternetAccess) {
 //       if (mounted) {
@@ -220,7 +217,7 @@
 //               padding: const EdgeInsets.only(right: 0),
 //               child: Image.asset('assets/icon/wt_icon.ico', height: 200),
 //             ),
-//             const SizedBox(height: 10), 
+//             const SizedBox(height: 10),
 //             Text("App Version: ${AppInfo.packageInfo.version}"),
 //             Text(_startupTaskMessage),
 //             StreamBuilder(
@@ -303,14 +300,12 @@
 //   }
 // }
 
-
-
 //MARK: CONTROL PAGE
 
-/// A class defining the stateful [ControlPage]. This is used for controlling (obviously) the app settings and editing the catalog. 
-/// 
+/// A class defining the stateful [ControlPage]. This is used for controlling (obviously) the app settings and editing the catalog.
+///
 /// Stateful for handling [IdlePage] -> [ControlPage] animation
-/// 
+///
 /// See also: [_ControlPageState]
 library;
 // class ControlPage extends StatefulWidget {
@@ -361,7 +356,7 @@ library;
 //   @override
 //   void initState() {
 //     super.initState();
-    
+
 //     _animationController = AnimationController(duration : const Duration(seconds: 4), vsync: this);
 //     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _animationController, curve: const Interval(0.4, 0.6, curve: Curves.ease)));
 //     _dividerWidthAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _animationController, curve: const Interval(0.5, 0.7, curve: Curves.ease)));
@@ -371,7 +366,7 @@ library;
 
 //     _editorAll = EItem.createEditorCatalog(ProductManager.all!);
 //     _editorAll.showChildren = true;
-    
+
 //     _itemsToDisplay = _editorAll.editorItems;
 //     _selectedCategory = _editorAll;
 
@@ -399,7 +394,7 @@ library;
 //       //);
 //     });
 //   }
-  
+
 //   @override
 //   void dispose() {
 //     _animationController.dispose();
@@ -451,7 +446,7 @@ library;
 //       ),
 //       body: IgnorePointer(
 //         ignoring: _ignoringPointer,
-//         child: 
+//         child:
 //           Stack(
 //             children: [
 //               Column(
@@ -459,15 +454,15 @@ library;
 //                   SizedBox(
 //                     width: double.infinity,
 //                     height: 110,
-//                     child: 
+//                     child:
 //                       Stack(
 //                         children: [
 //                           Align(
 //                             alignment: Alignment.centerRight,
-//                             child: 
+//                             child:
 //                               Padding(
 //                                 padding: const EdgeInsets.only(right: 30),
-//                                 child: 
+//                                 child:
 //                                   FadeTransition(
 //                                     opacity: _fadeAnimation,
 //                                     child: MenuAnchor(
@@ -520,9 +515,9 @@ library;
 //                                                           TextButton(
 //                                                             child: const Text("View Licenses"),
 //                                                             onPressed: () => showLicensePage(
-//                                                               context: context, 
-//                                                               applicationName: AppInfo.packageInfo.appName, 
-//                                                               applicationVersion: AppInfo.packageInfo.version, 
+//                                                               context: context,
+//                                                               applicationName: AppInfo.packageInfo.appName,
+//                                                               applicationVersion: AppInfo.packageInfo.version,
 //                                                               applicationIcon: Image.asset('assets/icon/wt_icon.ico', height: 200)
 //                                                             ),
 //                                                           ),
@@ -552,7 +547,7 @@ library;
 //                                       ],
 //                                       builder: (BuildContext context, MenuController controller, Widget? child) {
 //                                         return IconButton(
-//                                           icon: const Icon(Icons.menu), 
+//                                           icon: const Icon(Icons.menu),
 //                                           color: WeightechThemes.weightechBlue,
 //                                           onPressed: () {
 //                                             if (controller.isOpen) {
@@ -570,7 +565,7 @@ library;
 //                           ),
 //                           Center(
 //                             child: Padding(
-//                               padding: const EdgeInsets.only(top: 10.0), 
+//                               padding: const EdgeInsets.only(top: 10.0),
 //                               child: Hero(
 //                                 tag: 'main-logo',
 //                                 child: Image.asset('assets/weightech_logo_beta.png', height: 100, alignment: Alignment.center,)
@@ -579,13 +574,13 @@ library;
 //                           ),
 //                           Align(
 //                             alignment: Alignment.centerLeft,
-//                             child: 
+//                             child:
 //                               Padding(
 //                                 padding: const EdgeInsets.only(left: 30),
-//                                 child: 
+//                                 child:
 //                                   FadeTransition(
 //                                     opacity: _fadeAnimation,
-//                                     child: 
+//                                     child:
 //                                       IconButton(
 //                                         icon: const Icon(Icons.arrow_back),
 //                                         iconSize: 30,
@@ -611,10 +606,10 @@ library;
 //                     padding: const EdgeInsets.symmetric(horizontal: 25),
 //                     alignment: Alignment.centerLeft,
 //                     child: SizeTransition(
-//                       sizeFactor: _dividerWidthAnimation, 
+//                       sizeFactor: _dividerWidthAnimation,
 //                       axis: Axis.vertical,
 //                       child: FadeTransition(
-//                         opacity: _fadeAnimation, 
+//                         opacity: _fadeAnimation,
 //                         child: Column(
 //                           children: [
 //                             const Divider(color: WeightechThemes.weightechBlue, height: 2, thickness: 2, indent: 0, endIndent: 0,),
@@ -624,8 +619,8 @@ library;
 //                                 color: WeightechThemes.weightechBlue,
 //                               ),
 //                               width: double.infinity,
-//                               child: const Text("Catalog Editor", 
-//                                 textAlign: TextAlign.center, 
+//                               child: const Text("Catalog Editor",
+//                                 textAlign: TextAlign.center,
 //                                 style: TextStyle(fontSize: 32.0, fontWeight: FontWeight.bold, color: Colors.white),
 //                               )
 //                             )
@@ -640,7 +635,7 @@ library;
 //                       sizeFactor: _editorHeightAnimation,
 //                       axis: Axis.vertical,
 //                       axisAlignment: 1,
-//                       child: 
+//                       child:
 //                       Row(
 //                       crossAxisAlignment: CrossAxisAlignment.start,
 //                       children: [
@@ -809,7 +804,7 @@ library;
 //                         ),
 //                         Flexible(
 //                           flex: 5,
-//                           child: 
+//                           child:
 //                             switch(_focusItem) {
 //                               EProduct _ => productEditor(product : _focusItem as EProduct),
 //                               ECategory _ => categoryEditor(category : _focusItem as ECategory),
@@ -837,7 +832,7 @@ library;
 //               ),
 //               if (_loadingSomething)
 //                 const Center(
-//                   child: 
+//                   child:
 //                     CircularProgressIndicator(),
 //                 ),
 //             ]
@@ -862,7 +857,7 @@ library;
 //           shrinkWrap: true,
 //           physics: const NeverScrollableScrollPhysics(),
 //           buildDefaultDragHandles: false,
-//           itemCount: item.editorItems.length, 
+//           itemCount: item.editorItems.length,
 //           itemBuilder: (context, index) {
 //             var subItem = item.editorItems[index];
 //             switch (subItem) {
@@ -873,11 +868,11 @@ library;
 //                   child: Column(
 //                     children: [
 //                       subItem.buildListTile(
-//                         index: index, 
-//                         onArrowCallback: () => setState(() => subItem.showChildren = !subItem.showChildren), 
+//                         index: index,
+//                         onArrowCallback: () => setState(() => subItem.showChildren = !subItem.showChildren),
 //                         onEditCallback: () async => toggleEditorItem(subItem),
 //                         onDragStarted: () => setState(() {
-//                           subItem.showChildren = false; 
+//                           subItem.showChildren = false;
 //                           _dragging = true;
 //                         }),
 //                         onDragCompleted: () => setState(() {
@@ -889,7 +884,7 @@ library;
 //                           _dragging = false;
 //                           _hoverOnAll = false;
 //                           _hoverOnDelete = false;
-//                         }),                       
+//                         }),
 //                         ticker: this,
 //                       ),
 //                       const Divider(color: Colors.grey, indent: 20, endIndent: 20, height: 1, thickness: 1),
@@ -905,7 +900,7 @@ library;
 //                   child: Column(
 //                     children: [
 //                       subItem.buildListTile(
-//                         index: index, 
+//                         index: index,
 //                         onEditCallback: () async => await toggleEditorItem(subItem),
 //                         onDragCompleted: () => setState(() {
 //                           _dragging = false;
@@ -927,13 +922,13 @@ library;
 //                 );
 //               }
 //             }
-//           }, 
+//           },
 //           onReorder: (int oldIndex, int newIndex) {
 //             if (newIndex > item.editorItems.length) newIndex = item.editorItems.length;
 //             if (oldIndex < newIndex) newIndex--;
 //             var dragEItem = item.editorItems.removeAt(oldIndex);
 //             var dragItem = item.category.catalogItems.removeAt(oldIndex);
-            
+
 //             item.editorItems.insert(newIndex, dragEItem);
 //             item.category.catalogItems.insert(newIndex, dragItem);
 //           },
@@ -960,7 +955,7 @@ library;
 //               children: [
 //                 Container(
 //                   constraints: const BoxConstraints(minHeight: 360),
-//                   child: 
+//                   child:
 //                     Row(
 //                       crossAxisAlignment: CrossAxisAlignment.start,
 //                       children: [
@@ -971,7 +966,7 @@ library;
 //                             padding: const EdgeInsets.only(left: 50, right: 30),
 //                             alignment: Alignment.center,
 //                             height: 360,
-//                             child: 
+//                             child:
 //                               Column(
 //                                 mainAxisAlignment: MainAxisAlignment.center,
 //                                 children: [
@@ -1083,7 +1078,7 @@ library;
 //                                             height: (_mediaPaths.isNotEmpty) ? 100 : 250,
 //                                             padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 5),
 //                                             alignment: Alignment.center,
-//                                             child: 
+//                                             child:
 //                                               _mediaPaths.isEmpty ?
 //                                                 Column(
 //                                                   mainAxisAlignment: MainAxisAlignment.center,
@@ -1092,10 +1087,10 @@ library;
 //                                                     const Text("Drag and drop file here", style: TextStyle(fontWeight: FontWeight.bold)),
 //                                                     const SizedBox(height: 10),
 //                                                     const Row(
-//                                                       mainAxisAlignment: MainAxisAlignment.center, 
+//                                                       mainAxisAlignment: MainAxisAlignment.center,
 //                                                       children: [
-//                                                         Expanded(child: Divider(color: Colors.black, height: 1, thickness: 1, indent: 70, endIndent: 15)), 
-//                                                         Text("or"), 
+//                                                         Expanded(child: Divider(color: Colors.black, height: 1, thickness: 1, indent: 70, endIndent: 15)),
+//                                                         Text("or"),
 //                                                         Expanded(child: Divider(color: Colors.black, height: 1, thickness: 1, indent: 15, endIndent: 70))
 //                                                       ]
 //                                                     ),
@@ -1103,9 +1098,9 @@ library;
 //                                                     OutlinedButton(
 //                                                       style: const ButtonStyle(
 //                                                         foregroundColor: WidgetStatePropertyAll<Color>(Colors.black)
-//                                                       ),                 
+//                                                       ),
 //                                                       onPressed: () async {
-//                                                         FilePickerResult? _ = 
+//                                                         FilePickerResult? _ =
 //                                                           await FilePicker.platform.
 //                                                             pickFiles(allowMultiple: true, type: FileType.media, allowedExtensions: ['png', 'jpg', 'mp4'])
 //                                                             .then((result) {
@@ -1159,10 +1154,10 @@ library;
 //                                                   const Text("Drag and drop", style: TextStyle(fontWeight: FontWeight.bold)),
 //                                                   const SizedBox(width: 20),
 //                                                   const Column(
-//                                                     mainAxisAlignment: MainAxisAlignment.center, 
+//                                                     mainAxisAlignment: MainAxisAlignment.center,
 //                                                     children: [
-//                                                       Expanded(child: VerticalDivider(color: Colors.black, width: 1, thickness: 1, indent: 10, endIndent: 1)), 
-//                                                       Text("or"), 
+//                                                       Expanded(child: VerticalDivider(color: Colors.black, width: 1, thickness: 1, indent: 10, endIndent: 1)),
+//                                                       Text("or"),
 //                                                       Expanded(child: VerticalDivider(color: Colors.black, width: 1, thickness: 1, indent: 1, endIndent: 10))
 //                                                     ]
 //                                                   ),
@@ -1170,10 +1165,10 @@ library;
 //                                                   OutlinedButton(
 //                                                     style: const ButtonStyle(
 //                                                       foregroundColor: WidgetStatePropertyAll<Color>(Colors.black)
-//                                                     ),                 
+//                                                     ),
 //                                                     onPressed: () async {
 //                                                       Log.logger.t("...Image upload encountered...");
-//                                                       FilePickerResult? _ = 
+//                                                       FilePickerResult? _ =
 //                                                         await FilePicker.platform.
 //                                                           pickFiles(allowMultiple: true, type: FileType.media, allowedExtensions: ['png', 'jpg', 'mp4'])
 //                                                           .then((result) {
@@ -1220,7 +1215,7 @@ library;
 //                                                 ]
 //                                               )
 //                                           ),
-//                                         ), 
+//                                         ),
 //                                       ),
 //                                     ),
 //                                     const SizedBox(height: 10),
@@ -1252,7 +1247,7 @@ library;
 //                                             children: [
 //                                               ReorderableDragStartListener(
 //                                                 index: index,
-//                                                 child: 
+//                                                 child:
 //                                                   Container(
 //                                                     decoration: BoxDecoration(
 //                                                       color: const Color(0x55C9C9CC),
@@ -1288,8 +1283,8 @@ library;
 //                                                                         fixedSize: MaterialStatePropertyAll<Size>(Size(25,25))
 //                                                                       ),
 //                                                                       padding: EdgeInsets.zero,
-//                                                                       icon: isDownloading ? 
-//                                                                         LoadingAnimationWidget.bouncingBall(color: const Color(0xFFA9A9AA), size: 15) 
+//                                                                       icon: isDownloading ?
+//                                                                         LoadingAnimationWidget.bouncingBall(color: const Color(0xFFA9A9AA), size: 15)
 //                                                                         : const Icon(Icons.cloud_download_outlined),
 //                                                                       color: const Color(0xFFA9A9AA),
 //                                                                       hoverColor: const Color(0xFFD9D9DD),
@@ -1398,7 +1393,7 @@ library;
 //                                           File fileToMove = _mediaFiles.removeAt(oldIndex);
 //                                           _mediaPaths.insert(newIndex, pathToMove);
 //                                           _mediaFiles.insert(newIndex, fileToMove);
-                                          
+
 //                                           _primaryImageIndex = _mediaPaths.indexOf(primaryImage);
 
 //                                           setState(() {});
@@ -1414,13 +1409,13 @@ library;
 //                 ),
 //                 const SizedBox(height: 10),
 //                 const Padding(
-//                   padding: EdgeInsets.only(left: 150, right: 150, bottom: 10), 
-//                   child: 
+//                   padding: EdgeInsets.only(left: 150, right: 150, bottom: 10),
+//                   child:
 //                     Text("Product Description", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
 //                 ),
 //                 Padding(
 //                   padding: const EdgeInsets.only(left: 150, right: 150, bottom: 20),
-//                   child: 
+//                   child:
 //                     TextFormField(
 //                       controller: _descriptionController,
 //                       decoration: const InputDecoration(
@@ -1431,12 +1426,12 @@ library;
 //                       keyboardType: TextInputType.multiline,
 //                     )
 //                 ),
-//                 Padding( 
+//                 Padding(
 //                   padding: const EdgeInsets.symmetric(horizontal: 150),
 //                   child:
 //                     Container(
 //                       alignment: Alignment.centerLeft,
-//                       child: 
+//                       child:
 //                         ReorderableListView.builder(
 //                           shrinkWrap: true,
 //                           physics: const NeverScrollableScrollPhysics(),
@@ -1444,7 +1439,7 @@ library;
 //                           itemCount: _brochure.length,
 //                           itemBuilder: (context, index) {
 //                             final item = _brochure[index];
-                            
+
 //                             return MouseRegion(
 //                               key: Key('Mouse_$index'),
 //                               onEnter: (PointerEnterEvent evt) {
@@ -1462,19 +1457,19 @@ library;
 //                                   children: [
 //                                     Padding(
 //                                       padding: const EdgeInsets.only(bottom: 0),
-//                                       child: 
+//                                       child:
 //                                         ReorderableDragStartListener(
 //                                           index: index,
 //                                           child: Row(
 //                                             children: [
 //                                               Expanded(
 //                                                 child: item.buildItem(context)
-//                                               ), 
+//                                               ),
 //                                               if (index == _brochureActiveIndex)
 //                                                 IconButton(
 //                                                   hoverColor: const Color(0x55C3291B),
-//                                                   icon: const Icon(Icons.delete), 
-//                                                   onPressed: () => setState(()=> _brochure.removeAt(index)) 
+//                                                   icon: const Icon(Icons.delete),
+//                                                   onPressed: () => setState(()=> _brochure.removeAt(index))
 //                                                 )
 //                                             ]
 //                                           )
@@ -1490,7 +1485,7 @@ library;
 //                                             Row(
 //                                               children: [
 //                                                 Expanded(
-//                                                   child: 
+//                                                   child:
 //                                                   ElevatedButton(
 //                                                     style: const ButtonStyle(
 //                                                       backgroundColor: MaterialStatePropertyAll<Color>(WeightechThemes.weightechGray),
@@ -1502,13 +1497,13 @@ library;
 //                                                         int newItemIndex = index+1;
 //                                                         _brochure.insert(newItemIndex, BrochureHeader.basic());
 //                                                       });
-//                                                     }, 
+//                                                     },
 //                                                     child: const Text("Header+")
 //                                                   ),
 //                                                 ),
 //                                                 const SizedBox(width: 20),
 //                                                 Expanded(
-//                                                   child: 
+//                                                   child:
 //                                                     ElevatedButton(
 //                                                       style: const ButtonStyle(
 //                                                         backgroundColor: MaterialStatePropertyAll<Color>(WeightechThemes.weightechGray),
@@ -1519,7 +1514,7 @@ library;
 //                                                           int newItemIndex = index+1;
 //                                                           _brochure.insert(newItemIndex, BrochureSubheader.basic());
 //                                                         });
-//                                                       }, 
+//                                                       },
 //                                                       child: const Text("Subheader+")
 //                                                     ),
 //                                                 ),
@@ -1536,7 +1531,7 @@ library;
 //                                                           int newItemIndex = index+1;
 //                                                           _brochure.insert(newItemIndex, BrochureEntry.basic());
 //                                                         });
-//                                                       }, 
+//                                                       },
 //                                                       child: const Text("Entry+")
 //                                                     )
 //                                                 )
@@ -1554,7 +1549,7 @@ library;
 //                               final item = _brochure.removeAt(oldIndex);
 //                               _brochure.insert(newIndex, item);
 //                             });
-//                           },                                                            
+//                           },
 //                         )
 //                     ),
 //                 ),
@@ -1625,7 +1620,7 @@ library;
 //   }
 
 //   Widget categoryEditor({ECategory? category}) {
-    
+
 //     bool hoverOnImageRemove = false;
 
 //     return SizedBox(
@@ -1633,12 +1628,12 @@ library;
 //       width: double.infinity,
 //       child:
 //         SingleChildScrollView(
-//           child: 
+//           child:
 //             Column(
 //               children: [
 //                 Container(
 //                   constraints: const BoxConstraints(minHeight: 360),
-//                   child: 
+//                   child:
 //                     Row(
 //                       crossAxisAlignment: CrossAxisAlignment.start,
 //                       children: [
@@ -1649,7 +1644,7 @@ library;
 //                             padding: const EdgeInsets.only(left: 20),
 //                             alignment: Alignment.center,
 //                             height: 340,
-//                             child: 
+//                             child:
 //                               Column(
 //                                 mainAxisAlignment: MainAxisAlignment.center,
 //                                 children: [
@@ -1749,7 +1744,7 @@ library;
 //                                             height: 250,
 //                                             padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 5),
 //                                             alignment: Alignment.center,
-//                                             child: 
+//                                             child:
 //                                               _mediaPaths.isEmpty ?
 //                                                 Column(
 //                                                   mainAxisAlignment: MainAxisAlignment.center,
@@ -1758,10 +1753,10 @@ library;
 //                                                     const Text("Drag and drop file here", style: TextStyle(fontWeight: FontWeight.bold)),
 //                                                     const SizedBox(height: 10),
 //                                                     const Row(
-//                                                       mainAxisAlignment: MainAxisAlignment.center, 
+//                                                       mainAxisAlignment: MainAxisAlignment.center,
 //                                                       children: [
-//                                                         Expanded(child: Divider(color: Colors.black, height: 1, thickness: 1, indent: 70, endIndent: 15)), 
-//                                                         Text("or"), 
+//                                                         Expanded(child: Divider(color: Colors.black, height: 1, thickness: 1, indent: 70, endIndent: 15)),
+//                                                         Text("or"),
 //                                                         Expanded(child: Divider(color: Colors.black, height: 1, thickness: 1, indent: 15, endIndent: 70))
 //                                                       ]
 //                                                     ),
@@ -1769,9 +1764,9 @@ library;
 //                                                     OutlinedButton(
 //                                                       style: const ButtonStyle(
 //                                                         foregroundColor: WidgetStatePropertyAll<Color>(Colors.black)
-//                                                       ),                 
+//                                                       ),
 //                                                       onPressed: () async {
-//                                                         FilePickerResult? _ = 
+//                                                         FilePickerResult? _ =
 //                                                           await FilePicker.platform.
 //                                                             pickFiles(allowMultiple: false, type: FileType.image, allowedExtensions: ['png', 'jpg'])
 //                                                             .then((result) {
@@ -1865,10 +1860,10 @@ library;
 //                                                         const Text("Drag and drop file here", style: TextStyle(fontWeight: FontWeight.bold)),
 //                                                         const SizedBox(width: 20),
 //                                                         const Column(
-//                                                           mainAxisAlignment: MainAxisAlignment.center, 
+//                                                           mainAxisAlignment: MainAxisAlignment.center,
 //                                                           children: [
-//                                                             Expanded(child: VerticalDivider(color: Colors.black, width: 1, thickness: 1, indent: 10, endIndent: 1)), 
-//                                                             Text("or"), 
+//                                                             Expanded(child: VerticalDivider(color: Colors.black, width: 1, thickness: 1, indent: 10, endIndent: 1)),
+//                                                             Text("or"),
 //                                                             Expanded(child: VerticalDivider(color: Colors.black, width: 1, thickness: 1, indent: 1, endIndent: 10))
 //                                                           ]
 //                                                         ),
@@ -1876,9 +1871,9 @@ library;
 //                                                         OutlinedButton(
 //                                                           style: const ButtonStyle(
 //                                                             foregroundColor: MaterialStatePropertyAll<Color>(Colors.black)
-//                                                           ),                 
+//                                                           ),
 //                                                           onPressed: () async {
-//                                                             FilePickerResult? _ = 
+//                                                             FilePickerResult? _ =
 //                                                               await FilePicker.platform.
 //                                                                 pickFiles(allowMultiple: false, type: FileType.image, allowedExtensions: ['png', 'jpg'])
 //                                                                 .then((result) {
@@ -1924,7 +1919,7 @@ library;
 //                                                 ]
 //                                               )
 //                                           ),
-//                                         ), 
+//                                         ),
 //                                       ),
 //                                     ),
 //                                     const SizedBox(height: 10),
@@ -1972,7 +1967,6 @@ library;
 //         )
 //     );
 //   }
-
 
 //   Future<void> _previewMedia(BuildContext context, File mediaFile) async {
 //     if (p.extension(mediaFile.path) == '.mp4') {
@@ -2050,11 +2044,11 @@ library;
 //                   if (snapshot.data is EProduct) {
 //                     return RichText(
 //                       text: TextSpan(
-//                         text: 'Saving images for... ', 
+//                         text: 'Saving images for... ',
 //                         style: DefaultTextStyle.of(context).style,
 //                         children: [
 //                           TextSpan(
-//                             text: snapshot.data.product.name, 
+//                             text: snapshot.data.product.name,
 //                             style: DefaultTextStyle.of(context).style.copyWith(color: WeightechThemes.weightechBlue)
 //                           ),
 //                           TextSpan(
@@ -2068,11 +2062,11 @@ library;
 //                   else if (snapshot.data is ECategory) {
 //                     return RichText(
 //                       text: TextSpan(
-//                         text: 'Saving images for... ', 
+//                         text: 'Saving images for... ',
 //                         style: DefaultTextStyle.of(context).style,
 //                         children: [
 //                           TextSpan(
-//                             text: snapshot.data.category.name, 
+//                             text: snapshot.data.category.name,
 //                             style: DefaultTextStyle.of(context).style.copyWith(color: WeightechThemes.weightechBlue)
 //                           ),
 //                           TextSpan(
@@ -2095,7 +2089,7 @@ library;
 //       }
 //     );
 //   }
-  
+
 //   Future<void> _showPreviewDialog(BuildContext context) async {
 //     await showDialog<bool>(
 //       context: context,
@@ -2120,25 +2114,25 @@ library;
 //                         border: Border.all(color: WeightechThemes.weightechBlue)
 //                       ),
 //                       width: double.infinity,
-//                       child: 
+//                       child:
 //                         Padding(
 //                           padding: const EdgeInsets.all(1.4),
 //                           child:
 //                             FadeTransition(
 //                               opacity: _fadeAnimation,
-//                               child: 
-//                                 Text(_nameController.text, 
-//                                   textAlign: TextAlign.center, 
+//                               child:
+//                                 Text(_nameController.text,
+//                                   textAlign: TextAlign.center,
 //                                   style: const TextStyle(fontSize: 22.4, fontWeight: FontWeight.bold, color: Colors.white),
 //                                 )
 //                             )
 //                         )
 //                       ),
 //                     Expanded(
-//                       child: 
+//                       child:
 //                         SingleChildScrollView(
 //                           scrollDirection: Axis.vertical,
-//                           child: 
+//                           child:
 //                             Row(
 //                               crossAxisAlignment: CrossAxisAlignment.start,
 //                               children: [
@@ -2155,7 +2149,7 @@ library;
 //                                           children: [
 //                                             CarouselSlider.builder(
 //                                               options: CarouselOptions(
-//                                                 enableInfiniteScroll: _mediaFiles.length > 1 ? true : false, 
+//                                                 enableInfiniteScroll: _mediaFiles.length > 1 ? true : false,
 //                                                 enlargeCenterPage: true,
 //                                                 enlargeFactor: 1,
 //                                                 onPageChanged: (index, reason) {
@@ -2196,10 +2190,10 @@ library;
 //                                     ),
 //                                 ),
 //                                 Flexible(
-//                                   child:    
+//                                   child:
 //                                     Padding(
 //                                       padding: const EdgeInsets.only(left: 28, right: 42, top: 3.5),
-//                                       child: 
+//                                       child:
 //                                         ListView.builder(
 //                                           shrinkWrap: true,
 //                                           padding: const EdgeInsets.only(top: 14),
@@ -2228,7 +2222,7 @@ library;
 //                                                         padding: const EdgeInsets.only(top: 3.5),
 //                                                         child:
 //                                                           Row(
-//                                                             crossAxisAlignment: CrossAxisAlignment.start, 
+//                                                             crossAxisAlignment: CrossAxisAlignment.start,
 //                                                             children: [
 //                                                               const Text("\u2022"),
 //                                                               const SizedBox(width: 5.6),
@@ -2262,7 +2256,7 @@ library;
 //                                                           itemBuilder: (context, entryIndex) {
 //                                                             final entry = subheaderValue[entryIndex];
 //                                                             return Row(
-//                                                               crossAxisAlignment: CrossAxisAlignment.start, 
+//                                                               crossAxisAlignment: CrossAxisAlignment.start,
 //                                                               children: [
 //                                                                 const Text("\u2022"),
 //                                                                 const SizedBox(width: 3.5),
@@ -2285,8 +2279,8 @@ library;
 //                                 )
 //                               ],
 //                             ),
-//                         )   
-                        
+//                         )
+
 //                     )
 //                   ]
 //                 )
@@ -2319,7 +2313,6 @@ library;
 //     return '';
 //   }
 
-
 //   Future<bool> _showExitDialog(BuildContext context) async {
 //     bool hoverOnYes = false;
 //     return await showDialog<bool>(
@@ -2338,9 +2331,9 @@ library;
 //                   }
 //                 ),
 //                 TextButton(
-//                   style: hoverOnYes ? 
+//                   style: hoverOnYes ?
 //                     const ButtonStyle(
-//                       foregroundColor: MaterialStatePropertyAll<Color>(Colors.white), 
+//                       foregroundColor: MaterialStatePropertyAll<Color>(Colors.white),
 //                       backgroundColor: MaterialStatePropertyAll<Color>(Color(0xFFC3291B))
 //                     ) :
 //                     const ButtonStyle(),
@@ -2381,10 +2374,10 @@ library;
 //                       }
 //                     ),
 //                     TextButton(
-//                       style: hoverOnYes ? 
+//                       style: hoverOnYes ?
 //                         const ButtonStyle(
-//                           foregroundColor: MaterialStatePropertyAll<Color>(Colors.white), 
-//                           backgroundColor: MaterialStatePropertyAll<Color>(Color(0xFFC3291B))) : 
+//                           foregroundColor: MaterialStatePropertyAll<Color>(Colors.white),
+//                           backgroundColor: MaterialStatePropertyAll<Color>(Color(0xFFC3291B))) :
 //                         const ButtonStyle(),
 //                       onHover: (hovering) {
 //                         setState(() => hoverOnYes = hovering);
@@ -2418,10 +2411,10 @@ library;
 //                       }
 //                     ),
 //                     TextButton(
-//                       style: hoverOnYes ? 
+//                       style: hoverOnYes ?
 //                         const ButtonStyle(
-//                           foregroundColor: MaterialStatePropertyAll<Color>(Colors.white), 
-//                           backgroundColor: MaterialStatePropertyAll<Color>(Color(0xFFC3291B))) : 
+//                           foregroundColor: MaterialStatePropertyAll<Color>(Colors.white),
+//                           backgroundColor: MaterialStatePropertyAll<Color>(Color(0xFFC3291B))) :
 //                         const ButtonStyle(),
 //                       onHover: (hovering) {
 //                         setState(() => hoverOnYes = hovering);

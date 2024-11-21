@@ -47,91 +47,93 @@ class _CustomFeedbackFormState extends State<CustomFeedbackForm> {
   @override
   Widget build(BuildContext context) {
     return DefaultTextEditingShortcuts(
-      child: Stack(
+        child: Stack(children: [
+      Column(
         children: [
-          Column(
-            children: [
-              Container(
-                height: 1,
-                width: double.infinity,
-                color: FluentTheme.of(context).brightness.isDark ? WeightechThemes.weightechGray : WeightechThemes.weightechBlue,
-              ),
-              Expanded(
-                child: Stack(
-                  children: [
-                    ListView(
-                      controller: widget.scrollController,
-                      // Pad the top by 20 to match the corner radius if drag enabled.
-                      padding: EdgeInsets.fromLTRB(
-                          50, widget.scrollController != null ? 20 : 16, 50, 0),
-                      children: <Widget>[
-                        Text(
-                          FeedbackLocalizations.of(context).feedbackDescriptionText,
-                          style: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black),
-                          maxLines: 2,
-                        ),
-                        const SizedBox(height: 3),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: 
-                                TextBox(
-                                  style: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black,),
-                                  maxLines: null,
-                                  minLines: 2,
-                                  controller: controller,
-                                  onChanged: (value) {
-                                    _feedbackText = value;
-                                  },
-                                ),
-                            ),
-                            // // Added the below as a quick fix for https://github.com/ueman/feedback/issues/281
-                            // InkWell(
-                            //   child: const Icon(Icons.keyboard_backspace),
-                            //   onTap: () {
-                            //     if (controller.text != '') {
-                            //       controller.text = controller.text.substring(0, controller.text.length-1);
-                            //     }
-                            //   }
-                            // ),
-                            // const SizedBox(width: 4),
-                            // InkWell(
-                            //   child: const Icon(Icons.clear),
-                            //   onTap: () => setState(() => controller.text = '')
-                            // )
-                          ]
-                        )
-                      ],
+          Container(
+            height: 1,
+            width: double.infinity,
+            color: FluentTheme.of(context).brightness.isDark
+                ? WeightechThemes.weightechGray
+                : WeightechThemes.weightechBlue,
+          ),
+          Expanded(
+            child: Stack(
+              children: [
+                ListView(
+                  controller: widget.scrollController,
+                  // Pad the top by 20 to match the corner radius if drag enabled.
+                  padding: EdgeInsets.fromLTRB(
+                      50, widget.scrollController != null ? 20 : 16, 50, 0),
+                  children: <Widget>[
+                    Text(
+                      FeedbackLocalizations.of(context).feedbackDescriptionText,
+                      style: TextStyle(
+                          color: FluentTheme.of(context).brightness.isDark
+                              ? Colors.white
+                              : Colors.black),
+                      maxLines: 2,
                     ),
-                    if (widget.scrollController != null)
-                      const FeedbackSheetDragHandle(),
+                    const SizedBox(height: 3),
+                    Row(children: [
+                      Expanded(
+                        child: TextBox(
+                          style: TextStyle(
+                            color: FluentTheme.of(context).brightness.isDark
+                                ? Colors.white
+                                : Colors.black,
+                          ),
+                          maxLines: null,
+                          minLines: 2,
+                          controller: controller,
+                          onChanged: (value) {
+                            _feedbackText = value;
+                          },
+                        ),
+                      ),
+                      // // Added the below as a quick fix for https://github.com/ueman/feedback/issues/281
+                      // InkWell(
+                      //   child: const Icon(Icons.keyboard_backspace),
+                      //   onTap: () {
+                      //     if (controller.text != '') {
+                      //       controller.text = controller.text.substring(0, controller.text.length-1);
+                      //     }
+                      //   }
+                      // ),
+                      // const SizedBox(width: 4),
+                      // InkWell(
+                      //   child: const Icon(Icons.clear),
+                      //   onTap: () => setState(() => controller.text = '')
+                      // )
+                    ])
                   ],
                 ),
-              ),
-              _loading ?
-                const ProgressRing()
-                : FilledButton(
+                if (widget.scrollController != null)
+                  const FeedbackSheetDragHandle(),
+              ],
+            ),
+          ),
+          _loading
+              ? const ProgressRing()
+              : FilledButton(
                   key: const Key('submit_feedback_button'),
-                  onPressed: _feedbackText.isNotEmpty ? 
-                    () async {
-                      setState(() => _loading = true);
-                      await widget.onSubmit(controller.text);
-                      setState(() => _loading = false);
-                    }
-                    : null,
+                  onPressed: _feedbackText.isNotEmpty
+                      ? () async {
+                          setState(() => _loading = true);
+                          await widget.onSubmit(controller.text);
+                          setState(() => _loading = false);
+                        }
+                      : null,
                   child: Text(
                     FeedbackLocalizations.of(context).submitButtonText,
                   ),
                 ),
-              const SizedBox(height: 15),
-            ],
-          ),
-        ] 
-      )
-    );
+          const SizedBox(height: 15),
+        ],
+      ),
+    ]));
   }
 }
-
 
 Widget fluentChip({
   required BuildContext context,
@@ -144,7 +146,6 @@ Widget fluentChip({
   required Future<void> Function() launchInstaller,
   required void Function() dismissUpdate,
 }) {
-
   if (UpdatStatus.checking == status) {
     return const Text("Checking for update...");
   }
@@ -159,58 +160,57 @@ Widget fluentChip({
 
   if (UpdatStatus.downloading == status) {
     return Card(
-      child: Container(
-        height: 200,
-        width: 400,
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text("Downloading Update",
-              style: FluentTheme.of(context).typography.title,
-            ),
-            const SizedBox(height: 8),
-            Text("The newest app version is downloading...",
-              style: FluentTheme.of(context).typography.body,
-            ),
-            const SizedBox(height: 10),
-            const Center(child: ProgressBar()),
-          ]
-        )
-      )
-    );
+        child: Container(
+            height: 200,
+            width: 400,
+            padding: const EdgeInsets.all(16),
+            child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Downloading Update",
+                    style: FluentTheme.of(context).typography.title,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    "The newest app version is downloading...",
+                    style: FluentTheme.of(context).typography.body,
+                  ),
+                  const SizedBox(height: 10),
+                  const Center(child: ProgressBar()),
+                ])));
   }
 
   if (UpdatStatus.readyToInstall == status) {
     return Card(
-      child: Container(
-        height: 200,
-        width: 400,
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text("Installer Running",
-              style: FluentTheme.of(context).typography.title,
-            ),
-            const SizedBox(height: 8),
-            Text("The installer should be open on your device.\nFollow the instructions to install the newest version.",
-              style: FluentTheme.of(context).typography.body,
-            ),
-            const SizedBox(height: 8),
-            Button(
-              onPressed: dismissUpdate,
-              child: const Text('Skip update'),
-            )
-          ]
-        )
-      )
-    );
+        child: Container(
+            height: 200,
+            width: 400,
+            padding: const EdgeInsets.all(16),
+            child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Installer Running",
+                    style: FluentTheme.of(context).typography.title,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    "The installer should be open on your device.\nFollow the instructions to install the newest version.",
+                    style: FluentTheme.of(context).typography.body,
+                  ),
+                  const SizedBox(height: 8),
+                  Button(
+                    onPressed: dismissUpdate,
+                    child: const Text('Skip update'),
+                  )
+                ])));
   }
 
-  if (UpdatStatus.available == status || UpdatStatus.availableWithChangelog == status) {
+  if (UpdatStatus.available == status ||
+      UpdatStatus.availableWithChangelog == status) {
     return Card(
       child: Container(
         height: 200,
@@ -249,24 +249,19 @@ Widget fluentChip({
                   child: const Text('Later'),
                 ),
                 const SizedBox(width: 10),
-                if (UpdatStatus.availableWithChangelog == status)
-                  ... [
-                    Button(
+                if (UpdatStatus.availableWithChangelog == status) ...[
+                  Button(
                       onPressed: openDialog,
-                      child: const Text('View Changelog')
-                    ),
-                    const SizedBox(width: 10),
-                  ],
+                      child: const Text('View Changelog')),
+                  const SizedBox(width: 10),
+                ],
                 FilledButton(
-                  onPressed: startUpdate,
-                  child: const Row(
-                    children: [
+                    onPressed: startUpdate,
+                    child: const Row(children: [
                       Icon(FluentIcons.arrow_download_20_regular),
                       SizedBox(width: 2),
                       Text('Download Now')
-                    ]
-                  )
-                ),
+                    ])),
               ],
             ),
           ],
@@ -290,11 +285,12 @@ void fluentUpdateDialog({
   required Future<void> Function() launchInstaller,
   required void Function() dismissUpdate,
 }) {
-
   showDialog(
     context: context,
     builder: (context) => ContentDialog(
-      title: (latestVersion != null) ? Text('Version $latestVersion available') : const Text('Update available'),
+      title: (latestVersion != null)
+          ? Text('Version $latestVersion available')
+          : const Text('Update available'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -312,7 +308,9 @@ void fluentUpdateDialog({
             ),
             Padding(
               padding: const EdgeInsets.all(8.0),
-              child: SelectableText(changelog!,),
+              child: SelectableText(
+                changelog!,
+              ),
             ),
           ],
         ],

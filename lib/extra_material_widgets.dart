@@ -73,7 +73,6 @@ class FullScreenPageState extends State<FullScreenPage> {
 
   Duration animationDuration = Duration.zero;
 
-
   @override
   void initState() {
     super.initState();
@@ -84,11 +83,9 @@ class FullScreenPageState extends State<FullScreenPage> {
     setState(() {
       if (widget.disposeLevel == DisposeLevel.high) {
         disposeLimit = 300;
-      }
-      else if (widget.disposeLevel == DisposeLevel.medium) {
+      } else if (widget.disposeLevel == DisposeLevel.medium) {
         disposeLimit = 200;
-      }
-      else {
+      } else {
         disposeLimit = 100;
       }
     });
@@ -115,11 +112,9 @@ class FullScreenPageState extends State<FullScreenPage> {
 
     if (tmp > 1) {
       opacity = 1;
-    }
-    else if (tmp < 0) {
+    } else if (tmp < 0) {
       opacity = 0;
-    }
-    else {
+    } else {
       opacity = tmp;
     }
     if (positionYDelta > disposeLimit || positionYDelta < -disposeLimit) {
@@ -137,13 +132,12 @@ class FullScreenPageState extends State<FullScreenPage> {
         positionYDelta = 0;
       });
 
-      Future.delayed(animationDuration).then((_){
+      Future.delayed(animationDuration).then((_) {
         setState(() {
           animationDuration = Duration.zero;
         });
       });
     }
-
   }
 
   @override
@@ -173,23 +167,22 @@ class FullScreenPageState extends State<FullScreenPage> {
                 child: widget.child,
               ),
               Align(
-                alignment: Alignment.topLeft,
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 30, top: 30),
-                  child: IconButton(
-                    icon: const Icon(Icons.arrow_back),
-                    color: WeightechThemes.weightechBlue,
-                    iconSize: 30,
-                    onPressed: () {
-                      setState(() {
-                        animationDuration = const Duration(milliseconds: 300);
-                        opacity = 0.5;
-                      });
-                      Navigator.of(context).pop();
-                    },
-                  )
-                )
-              )
+                  alignment: Alignment.topLeft,
+                  child: Padding(
+                      padding: const EdgeInsets.only(left: 30, top: 30),
+                      child: IconButton(
+                        icon: const Icon(Icons.arrow_back),
+                        color: WeightechThemes.weightechBlue,
+                        iconSize: 30,
+                        onPressed: () {
+                          setState(() {
+                            animationDuration =
+                                const Duration(milliseconds: 300);
+                            opacity = 0.5;
+                          });
+                          Navigator.of(context).pop();
+                        },
+                      )))
             ],
           ),
         ),
@@ -197,7 +190,6 @@ class FullScreenPageState extends State<FullScreenPage> {
     );
   }
 }
-
 
 @immutable
 class ExpandableFab extends StatefulWidget {
@@ -258,26 +250,24 @@ class _ExpandableFabState extends State<ExpandableFab>
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: 
-      SizedBox.expand(
-        child: Stack(
-          alignment: Alignment.bottomRight,
-          clipBehavior: Clip.none,
-          children: [
-            _buildTapToCloseFab(),
-            ..._buildExpandingActionButtons(),
-            _buildTapToOpenFab(),
-          ],
-        ),
-      )
-    );
+        child: SizedBox.expand(
+      child: Stack(
+        alignment: Alignment.bottomRight,
+        clipBehavior: Clip.none,
+        children: [
+          _buildTapToCloseFab(),
+          ..._buildExpandingActionButtons(),
+          _buildTapToOpenFab(),
+        ],
+      ),
+    ));
   }
 
   List<Widget> _buildExpandingActionButtons() {
     final children = <Widget>[];
     final count = widget.children.length;
     final step = 70.0 / (count - 1);
-    for (var i = 0, angleInDegrees =  10.0;
+    for (var i = 0, angleInDegrees = 10.0;
         i < count;
         i++, angleInDegrees += step) {
       children.add(
@@ -332,38 +322,36 @@ class _ExpandableFabState extends State<ExpandableFab>
         ),
         duration: const Duration(milliseconds: 250),
         curve: const Interval(0.0, 0.5, curve: Curves.easeOut),
-        child:  AnimatedRotation(
-          turns: _open ? 0.875 : 1.0,
-          curve: const Interval(0.25, 1.0, curve: Curves.easeInOut),
-          duration: const Duration(milliseconds: 250),
-          child: Container(
-            padding: const EdgeInsets.all(20),
-            width: 80,
-            height: 80,
-            child: Center(
-              child: Material(
-                color: const Color(0xFFA0A0A2),
-                shape: const CircleBorder(),
-                clipBehavior: Clip.antiAlias,
-                elevation: 4,
-                child: InkWell(
-                  onTap: _toggle,
-                  child: Transform.rotate(
-                    angle: 45*math.pi/180,
-                    child: Container(
-                      alignment: Alignment.center,
-                      padding: const EdgeInsets.all(8),
-                      child: const Icon(
-                        Icons.close,
-                        color: Colors.white,
-                      ),
-                    ),
-                  )
+        child: AnimatedRotation(
+            turns: _open ? 0.875 : 1.0,
+            curve: const Interval(0.25, 1.0, curve: Curves.easeInOut),
+            duration: const Duration(milliseconds: 250),
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              width: 80,
+              height: 80,
+              child: Center(
+                child: Material(
+                  color: const Color(0xFFA0A0A2),
+                  shape: const CircleBorder(),
+                  clipBehavior: Clip.antiAlias,
+                  elevation: 4,
+                  child: InkWell(
+                      onTap: _toggle,
+                      child: Transform.rotate(
+                        angle: 45 * math.pi / 180,
+                        child: Container(
+                          alignment: Alignment.center,
+                          padding: const EdgeInsets.all(8),
+                          child: const Icon(
+                            Icons.close,
+                            color: Colors.white,
+                          ),
+                        ),
+                      )),
                 ),
               ),
-            ),
-          )
-        ),
+            )),
       ),
     );
   }
@@ -437,4 +425,3 @@ class _ExpandingActionButton extends StatelessWidget {
     );
   }
 }
-

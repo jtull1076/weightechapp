@@ -1,23 +1,30 @@
+import 'dart:ui';
+
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
+import 'dart:ui' as ui;
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:path/path.dart' as path_handler;
 import 'package:string_validator/string_validator.dart';
 import 'package:weightechapp/utils.dart';
 import 'package:weightechapp/models.dart';
-import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons, TreeView, TreeViewItem;
+import 'package:weightechapp/themes.dart';
+import 'package:fluent_ui/fluent_ui.dart'
+    hide FluentIcons, TreeView, TreeViewItem;
 import 'package:archive/archive_io.dart';
 import 'package:shortid/shortid.dart';
 import 'dart:isolate';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 
-
-/// The [CatalogEditor] class manages editing operations for catalogs, including 
-/// creating editor versions of catalogs, saving locally, uploading to the cloud, 
+/// The [CatalogEditor] class manages editing operations for catalogs, including
+/// creating editor versions of catalogs, saving locally, uploading to the cloud,
 /// and managing media files.
 class CatalogEditor {
-  
   /// The main catalog currently being edited.
   static late ECategory all;
 
@@ -51,7 +58,8 @@ class CatalogEditor {
     isUnsaved = false;
     createEditorCatalog(catalog);
     if (AppInfo.hasInternet) {
-      publishedCatalog = getPublishedVersion(ProductCategory.fromJson(ProductManager.all!.toJson()));
+      publishedCatalog = getPublishedVersion(
+          ProductCategory.fromJson(ProductManager.all!.toJson()));
       publishedCatalogTimestamp = ProductManager.timestamp;
     } else {
       publishedCatalog = null;
@@ -63,19 +71,22 @@ class CatalogEditor {
   ///
   /// The editor items are recursively processed to maintain hierarchy.
   static void createEditorCatalog(ProductCategory catalogCopy) {
-
     ECategory traverseCategory(category) {
       List<EItem> editorItems = [];
 
       for (var item in category.catalogItems) {
         switch (item) {
-          case ProductCategory _ : {
-            ECategory newItem = traverseCategory(item);
-            editorItems.add(newItem);
-          }
-          case Product _ : {
-            editorItems.add(EProduct(product: item,));
-          }
+          case ProductCategory _:
+            {
+              ECategory newItem = traverseCategory(item);
+              editorItems.add(newItem);
+            }
+          case Product _:
+            {
+              editorItems.add(EProduct(
+                product: item,
+              ));
+            }
         }
       }
 
@@ -85,42 +96,43 @@ class CatalogEditor {
     all = traverseCategory(catalogCopy);
   }
 
-
   /// Retrieves the published version of the catalog in an editable
   /// format.
   ///
   /// This method is typically used when the app detects internet access.
   static ECategory getPublishedVersion(ProductCategory catalogCopy) {
-
     ECategory traverseCategory(category) {
       List<EItem> editorItems = [];
 
       for (var item in category.catalogItems) {
         switch (item) {
-          case ProductCategory _ : {
-            ECategory newItem = traverseCategory(item);
-            editorItems.add(newItem);
-          }
-          case Product _ : {
-            editorItems.add(EProduct(product: item,));
-          }
+          case ProductCategory _:
+            {
+              ECategory newItem = traverseCategory(item);
+              editorItems.add(newItem);
+            }
+          case Product _:
+            {
+              editorItems.add(EProduct(
+                product: item,
+              ));
+            }
         }
       }
 
       return ECategory(category: category, editorItems: editorItems);
     }
 
-
     return traverseCategory(catalogCopy);
   }
 
-
-  /// Saves the current catalog to the cloud by updating product images and 
+  /// Saves the current catalog to the cloud by updating product images and
   /// posting the catalog to Firestore.
   ///
-  /// An optional [streamController] can be provided to track the progress of 
+  /// An optional [streamController] can be provided to track the progress of
   /// the operation.
-  static Future<void> saveCatalogToCloud({StreamController? streamController}) async {
+  static Future<void> saveCatalogToCloud(
+      {StreamController? streamController}) async {
     try {
       String newId = shortid.generate();
       await updateImages(newId, streamController);
@@ -135,152 +147,190 @@ class CatalogEditor {
     }
   }
 
-
   /// Updates images associated with the catalog by uploading them to Firebase
   /// storage.
   ///
   /// An optional [stream] can be provided to report progress.
-  static Future<void> updateImages(String newId, StreamController? stream,) async {
-    final storageRef = FirebaseUtils.storage.ref().child(AppSettings.storageRef);
+  static Future<void> updateImages(
+    String newId,
+    StreamController? stream,
+  ) async {
+    final storageRef =
+        FirebaseUtils.storage.ref().child(AppSettings.storageRef);
     // final newStorageRef = FirebaseUtils.storage.ref().child("${AppSettings.nextStorageRef}/$newId");
-
 
     Future<void> traverseItems(ECategory category) async {
       if (category.imageFile != null) {
         stream?.add(category);
-        final refName = "${category.id}_0${path_handler.extension(category.imageFile!.path)}";
+        final refName =
+            "${category.id}_0${path_handler.extension(category.imageFile!.path)}";
 
-        final SettableMetadata metadata = SettableMetadata(contentType: 'images/${path_handler.extension(category.imageFile!.path)}');
+        final SettableMetadata metadata = SettableMetadata(
+            contentType:
+                'images/${path_handler.extension(category.imageFile!.path)}');
 
         try {
-          await storageRef.child(refName).putFile(category.imageFile!, metadata).then((value) async {
+          await storageRef
+              .child(refName)
+              .putFile(category.imageFile!, metadata)
+              .then((value) async {
             await storageRef.child(refName).getDownloadURL().then((value) {
               category.category.imageUrl = value;
               Log.logger.t("Category image url updated.");
             });
           });
         } catch (e, stackTrace) {
-          Log.logger.e("Error encountered while updating category image", error: e, stackTrace: stackTrace);
+          Log.logger.e("Error encountered while updating category image",
+              error: e, stackTrace: stackTrace);
         }
       }
       for (var item in category.editorItems) {
         switch (item) {
-          case ECategory _: {
-            await traverseItems(item);
-          }
-          case EProduct _: {
-            if (true) {
-              if (item.mediaPaths != null) {
-                stream?.add(item);
-                
-                ApiVideoService.deleteExistingForId(item.id);
-                item.product.productMedia = [];
+          case ECategory _:
+            {
+              await traverseItems(item);
+            }
+          case EProduct _:
+            {
+              if (true) {
+                if (item.mediaPaths != null) {
+                  stream?.add(item);
 
-                int nonPrimaryCount = 0;
-                for (int i = 0; i < item.mediaFiles!.length; i++) {
-                  File imageFile = item.mediaFiles![i];
-                  String baseRefName = '';
-                  if (i == item.primaryImageIndex) {
-                    baseRefName = "${item.id}_0";
-                    String extension = path_handler.extension(imageFile.path).substring(1);
+                  ApiVideoService.deleteExistingForId(item.id);
+                  item.product.productMedia = [];
 
-                    if (extension == 'jpg') {
-                      extension = 'jpeg';
-                    }
-                    
-                    try {
-                      await storageRef.child("$baseRefName.$extension").putFile(imageFile, SettableMetadata(contentType: 'images/$extension'))
-                      .then((value) async {
-                        final imageUrl = await storageRef.child("$baseRefName.$extension").getDownloadURL();
-                        item.product.imageUrl = imageUrl;
-                        item.product.productMedia!.insert(0, 
-                        {
-                          'name': baseRefName,
-                          'contentType': (extension == 'mp4' ? 'video' : 'image'),
-                          'fileType': extension,
-                          'downloadUrl': imageUrl
-                        });
-                      });
-                    } catch (e, stackTrace) {
-                      Log.logger.e("Error encountered while updating primary product image.", error: e, stackTrace: stackTrace);
-                    }
-                  }
-                  else {
+                  int nonPrimaryCount = 0;
+                  for (int i = 0; i < item.mediaFiles!.length; i++) {
+                    File imageFile = item.mediaFiles![i];
+                    String baseRefName = '';
+                    if (i == item.primaryImageIndex) {
+                      baseRefName = "${item.id}_0";
+                      String extension =
+                          path_handler.extension(imageFile.path).substring(1);
+
+                      if (extension == 'jpg') {
+                        extension = 'jpeg';
+                      }
+
                       try {
-                        baseRefName = "${item.id}_${nonPrimaryCount+1}";
-                        String extension = path_handler.extension(imageFile.path).substring(1);
+                        await storageRef
+                            .child("$baseRefName.$extension")
+                            .putFile(
+                                imageFile,
+                                SettableMetadata(
+                                    contentType: 'images/$extension'))
+                            .then((value) async {
+                          final imageUrl = await storageRef
+                              .child("$baseRefName.$extension")
+                              .getDownloadURL();
+                          item.product.imageUrl = imageUrl;
+                          item.product.productMedia!.insert(0, {
+                            'name': baseRefName,
+                            'contentType':
+                                (extension == 'mp4' ? 'video' : 'image'),
+                            'fileType': extension,
+                            'downloadUrl': imageUrl
+                          });
+                        });
+                      } catch (e, stackTrace) {
+                        Log.logger.e(
+                            "Error encountered while updating primary product image.",
+                            error: e,
+                            stackTrace: stackTrace);
+                      }
+                    } else {
+                      try {
+                        baseRefName = "${item.id}_${nonPrimaryCount + 1}";
+                        String extension =
+                            path_handler.extension(imageFile.path).substring(1);
 
                         if (extension == 'jpg') {
                           extension = 'jpeg';
                         }
                         if (extension == 'jpeg' || extension == 'png') {
-                            try {
-                              await storageRef.child("$baseRefName.$extension").putFile(imageFile, SettableMetadata(contentType: 'images/$extension'))
-                              .then((value) async {
-                                final imageUrl = await storageRef.child("$baseRefName.$extension").getDownloadURL();
-                                item.product.productMedia!.add( 
-                                {
-                                  'name': baseRefName,
-                                  'contentType': 'image',
-                                  'fileType' : extension,
-                                  'downloadUrl': imageUrl,
-                                });
+                          try {
+                            await storageRef
+                                .child("$baseRefName.$extension")
+                                .putFile(
+                                    imageFile,
+                                    SettableMetadata(
+                                        contentType: 'images/$extension'))
+                                .then((value) async {
+                              final imageUrl = await storageRef
+                                  .child("$baseRefName.$extension")
+                                  .getDownloadURL();
+                              item.product.productMedia!.add({
+                                'name': baseRefName,
+                                'contentType': 'image',
+                                'fileType': extension,
+                                'downloadUrl': imageUrl,
                               });
-                              nonPrimaryCount++;
-                            } catch (e, stackTrace) {
-                              Log.logger.e("Error encountered while updating non-primary product images.", error: e, stackTrace: stackTrace);
-                            }
-                        }
-                        else if (extension == 'mp4') {
-                          await storageRef.child("$baseRefName.$extension").putFile(imageFile, SettableMetadata(contentType: 'video/mp4'))
-                          .then((value) async {
-                            final videoUrl = await storageRef.child("$baseRefName.$extension").getDownloadURL();
-                            final videoResponse = await ApiVideoService.createVideo(title: '$baseRefName.$extension', source: videoUrl);
+                            });
+                            nonPrimaryCount++;
+                          } catch (e, stackTrace) {
+                            Log.logger.e(
+                                "Error encountered while updating non-primary product images.",
+                                error: e,
+                                stackTrace: stackTrace);
+                          }
+                        } else if (extension == 'mp4') {
+                          await storageRef
+                              .child("$baseRefName.$extension")
+                              .putFile(imageFile,
+                                  SettableMetadata(contentType: 'video/mp4'))
+                              .then((value) async {
+                            final videoUrl = await storageRef
+                                .child("$baseRefName.$extension")
+                                .getDownloadURL();
+                            final videoResponse =
+                                await ApiVideoService.createVideo(
+                                    title: '$baseRefName.$extension',
+                                    source: videoUrl);
                             final videoData = {
-                              'downloadUrl' : videoUrl,
-                              'streamUrl' : videoResponse['assets']['hls'],
-                              'thumbnailUrl' : videoResponse['assets']['thumbnail'],
-                              'playerUrl' : videoResponse['assets']['player'],
-                              'videoId' : videoResponse['videoId']
+                              'downloadUrl': videoUrl,
+                              'streamUrl': videoResponse['assets']['hls'],
+                              'thumbnailUrl': videoResponse['assets']
+                                  ['thumbnail'],
+                              'playerUrl': videoResponse['assets']['player'],
+                              'videoId': videoResponse['videoId']
                             };
                             // final videoId = video['videoId'];
                             // final videoData = await ApiVideoService.uploadVideo(videoId, imageFile.path);
                             item.product.productMedia!.add({
                               'name': baseRefName,
                               'contentType': 'video',
-                              'fileType' : 'mp4',
-                              ...
-                              videoData
+                              'fileType': 'mp4',
+                              ...videoData
                             });
                           });
                           nonPrimaryCount++;
                         }
                       } catch (e) {
-                        Log.logger.w("Failed to upload media for $baseRefName: $e");
+                        Log.logger
+                            .w("Failed to upload media for $baseRefName: $e");
                       }
                     }
                   }
+                }
               }
-                  
             }
-          }
         }
       }
     }
-
 
     await traverseItems(all);
     Log.logger.t("-> Images updated.");
   }
 
-
-  /// Saves the catalog locally to a specified [path], creating a zip encoded file 
+  /// Saves the catalog locally to a specified [path], creating a zip encoded file
   /// that includes both the catalog JSON and any associated media files.
   ///
-  /// This method uses temporary directories to store backup images before 
+  /// This method uses temporary directories to store backup images before
   /// packaging..
-  static Future<void> saveCatalogLocal({required String path, StreamController? streamController, bool isBackup = false}) async {
-
+  static Future<void> saveCatalogLocal(
+      {required String path,
+      StreamController? streamController,
+      bool isBackup = false}) async {
     Log.logger.i("Attempting to save");
     Log.logger.t("Save file path: $path");
 
@@ -296,31 +346,36 @@ class CatalogEditor {
 
     Directory tempDirectory = Directory('${directory.path}/$name');
     tempDirectory.createSync();
-    
+
     streamController?.add('Creating JSON file...');
     Log.logger.t('Creating JSON file...');
 
     File jsonFile = await File('${tempDirectory.path}/$name.json').create();
-    
-    ECategory copyOfAll = ECategory.fromJson(all.toJson());
-    
-    try {
 
+    ECategory copyOfAll = ECategory.fromJson(all.toJson());
+
+    try {
       streamController?.add('Archiving images...');
       Log.logger.t('Archiving images...');
 
-      List<ArchiveFile> archiveImages = await _storeBackupImages(catalog: copyOfAll, directory: tempDirectory, name: name, backupOverride: isBackup);
+      List<ArchiveFile> archiveImages = await _storeBackupImages(
+          catalog: copyOfAll,
+          directory: tempDirectory,
+          name: name,
+          backupOverride: isBackup);
 
       streamController?.add('Creating JSON data...');
       Log.logger.t('Creating JSON data...');
 
-      jsonFile.writeAsStringSync(jsonEncode(copyOfAll.toJson()), mode: FileMode.write);
+      jsonFile.writeAsStringSync(jsonEncode(copyOfAll.toJson()),
+          mode: FileMode.write);
       final bytes = jsonFile.readAsBytesSync();
 
       streamController?.add('Archiving JSON data...');
       Log.logger.t('Archiving JSON data...');
 
-      final ArchiveFile jsonArchive = ArchiveFile(FileUtils.filenameWithExtension(jsonFile.path), bytes.length, bytes);
+      final ArchiveFile jsonArchive = ArchiveFile(
+          FileUtils.filenameWithExtension(jsonFile.path), bytes.length, bytes);
 
       final archive = Archive();
 
@@ -328,7 +383,7 @@ class CatalogEditor {
       for (ArchiveFile file in archiveImages) {
         archive.addFile(file);
       }
-      
+
       streamController?.add('Encoding data...');
       Log.logger.t('Encoding data...');
 
@@ -341,7 +396,7 @@ class CatalogEditor {
       streamController?.add('Writing to file...');
       Log.logger.t('Writing to file...');
 
-      saveFile.writeAsBytesSync(tarBz2); 
+      saveFile.writeAsBytesSync(tarBz2);
 
       streamController?.add('Cleaning up...');
       Log.logger.t('Cleaning up...');
@@ -353,7 +408,6 @@ class CatalogEditor {
 
       Log.logger.i('Saved successfully!');
       streamController?.add('Saved successfully!');
-      
     } catch (e, stackTrace) {
       streamController?.add('Failed to create save!');
       Log.logger.w("Failed to create save!");
@@ -362,14 +416,19 @@ class CatalogEditor {
     }
   }
 
-
   /// Recursively stores backup images for the catalog by copying media files
   /// into a specified [directory] and creating archive files from them.
   ///
   /// Returns a list of [ArchiveFile]s representing the media files.
-  static Future<List<ArchiveFile>> _storeBackupImages({required ECategory catalog, required Directory directory, required String name, bool backupOverride = false}) async {
-    Directory imageDirectory = await Directory('${directory.path}/images').create(recursive: true);
-    final List<FileSystemEntity> entities = await imageDirectory.list().toList();
+  static Future<List<ArchiveFile>> _storeBackupImages(
+      {required ECategory catalog,
+      required Directory directory,
+      required String name,
+      bool backupOverride = false}) async {
+    Directory imageDirectory =
+        await Directory('${directory.path}/images').create(recursive: true);
+    final List<FileSystemEntity> entities =
+        await imageDirectory.list().toList();
 
     final archiveList = <ArchiveFile>[];
 
@@ -379,71 +438,88 @@ class CatalogEditor {
 
     Future<void> traverseCatalog(EItem item) async {
       switch (item) {
-        case ECategory _ : {
-          if (backupOverride && item != catalog) {
-            await item.setImagePaths();
-            await item.setImageFiles();
-          }
-
-          if (item.imageFile != null) {
-            try {
-              late String newPath;
-              late File newFile;
-
-              if (FileUtils.isURL(path: item.imagePath!)) {
-                  newFile = await FirebaseUtils.downloadFromFirebaseStorage(url: item.imagePath!, directory: imageDirectory, suffix: '_saved');
-                  newPath = 'images/${FirebaseUtils.storage.refFromURL(item.imagePath!).name}';
-                  item.imagePath =  newPath;
-
-                }
-                else {
-                  newPath = 'images/${FileUtils.filenameWithExtension(item.imagePath!)}';
-                  newFile = item.imageFile!.copySync('${imageDirectory.path}/${FileUtils.filenameWithExtension(item.imagePath!)}');
-                  item.imagePath = newPath;
-                }
-
-              final bytes = newFile.readAsBytesSync();
-
-              archiveList.add(ArchiveFile(FileUtils.filenameWithExtension(newPath), bytes.length, bytes));
-            } catch (e) {
-              throw();
+        case ECategory _:
+          {
+            if (backupOverride && item != catalog) {
+              await item.setImagePaths();
+              await item.setImageFiles();
             }
-          }
-          for (var subItem in item.editorItems) {
-            await traverseCatalog(subItem);
-          }
-        }
-        case EProduct _ : {
-          if (backupOverride) {
-            await item.setImagePaths();
-            await item.setImageFiles();
-          }
 
-          if (item.mediaFiles?.isNotEmpty ?? false) {
-            for (int i = 0; i < item.mediaFiles!.length; i++) {
+            if (item.imageFile != null) {
               try {
                 late String newPath;
                 late File newFile;
 
-                if (FileUtils.isURL(path: item.mediaPaths![i])) {
-                  newFile = await FirebaseUtils.downloadFromFirebaseStorage(url: item.mediaPaths![i], directory: imageDirectory, suffix: '_saved');
-                  newPath = 'images/${FirebaseUtils.storage.refFromURL(item.mediaPaths![i]).name}';
-                  item.mediaPaths![i] = newPath;
-                }
-                else {
-                  newPath = '${imageDirectory.path}/${FileUtils.filenameWithExtension(item.mediaPaths![i])}';
-                  newFile = item.mediaFiles![i].copySync(newPath);
-                  item.mediaPaths![i] = 'images/${FileUtils.filenameWithExtension(item.mediaPaths![i])}';
+                if (FileUtils.isURL(path: item.imagePath!)) {
+                  newFile = await FirebaseUtils.downloadFromFirebaseStorage(
+                      url: item.imagePath!,
+                      directory: imageDirectory,
+                      suffix: '_saved');
+                  newPath =
+                      'images/${FirebaseUtils.storage.refFromURL(item.imagePath!).name}';
+                  item.imagePath = newPath;
+                } else {
+                  newPath =
+                      'images/${FileUtils.filenameWithExtension(item.imagePath!)}';
+                  newFile = item.imageFile!.copySync(
+                      '${imageDirectory.path}/${FileUtils.filenameWithExtension(item.imagePath!)}');
+                  item.imagePath = newPath;
                 }
 
                 final bytes = newFile.readAsBytesSync();
-                archiveList.add(ArchiveFile(FileUtils.filenameWithExtension(newPath), bytes.length, bytes));
+
+                archiveList.add(ArchiveFile(
+                    FileUtils.filenameWithExtension(newPath),
+                    bytes.length,
+                    bytes));
               } catch (e) {
-                throw();
+                throw ();
+              }
+            }
+            for (var subItem in item.editorItems) {
+              await traverseCatalog(subItem);
+            }
+          }
+        case EProduct _:
+          {
+            if (backupOverride) {
+              await item.setImagePaths();
+              await item.setImageFiles();
+            }
+
+            if (item.mediaFiles?.isNotEmpty ?? false) {
+              for (int i = 0; i < item.mediaFiles!.length; i++) {
+                try {
+                  late String newPath;
+                  late File newFile;
+
+                  if (FileUtils.isURL(path: item.mediaPaths![i])) {
+                    newFile = await FirebaseUtils.downloadFromFirebaseStorage(
+                        url: item.mediaPaths![i],
+                        directory: imageDirectory,
+                        suffix: '_saved');
+                    newPath =
+                        'images/${FirebaseUtils.storage.refFromURL(item.mediaPaths![i]).name}';
+                    item.mediaPaths![i] = newPath;
+                  } else {
+                    newPath =
+                        '${imageDirectory.path}/${FileUtils.filenameWithExtension(item.mediaPaths![i])}';
+                    newFile = item.mediaFiles![i].copySync(newPath);
+                    item.mediaPaths![i] =
+                        'images/${FileUtils.filenameWithExtension(item.mediaPaths![i])}';
+                  }
+
+                  final bytes = newFile.readAsBytesSync();
+                  archiveList.add(ArchiveFile(
+                      FileUtils.filenameWithExtension(newPath),
+                      bytes.length,
+                      bytes));
+                } catch (e) {
+                  throw ();
+                }
               }
             }
           }
-        }
       }
     }
 
@@ -452,39 +528,36 @@ class CatalogEditor {
     return archiveList;
   }
 
-
-
   /// Uploads a locally saved catalog from the specified [path].
   ///
-  /// The catalog is expected to be a WTF (zip-encoded) file containing the JSON representation 
-  /// of the catalog and its associated media files. The ZIP file is extracted, 
-  /// and the catalog is deserialized into an [ECategory] object, which is then set 
+  /// The catalog is expected to be a WTF (zip-encoded) file containing the JSON representation
+  /// of the catalog and its associated media files. The ZIP file is extracted,
+  /// and the catalog is deserialized into an [ECategory] object, which is then set
   /// as the current catalog for editing.
   ///
-  /// If provided, the optional [onComplete] callback will be invoked after 
+  /// If provided, the optional [onComplete] callback will be invoked after
   /// the catalog is successfully uploaded and processed.
   ///
   /// Throws an exception if there is an error during the upload or extraction process.
   ///
   /// - [path] : The path of the WTF (zip) file to be uploaded.
   /// - [onComplete] : A callback function that is called when the upload process completes.
-  static Future<void> uploadCatalogLocal({
-    required String path, 
-    VoidCallback? onComplete, 
-    StreamController? stream
-  }) async {
-
+  static Future<void> uploadCatalogLocal(
+      {required String path,
+      VoidCallback? onComplete,
+      StreamController? stream}) async {
     Log.logger.i('Uploading local file...');
-    
+
     File uploadFile = File(path);
     Directory uploadDirectory = uploadFile.parent;
 
     String name = FileUtils.filename(uploadFile.path);
     stream?.add('Creating temporary directories...');
-    Directory tempDirectory = (await getTemporaryDirectory()).createTempSync('.~$name');
+    Directory tempDirectory =
+        (await getTemporaryDirectory()).createTempSync('.~$name');
     // Directory tempDirectory = Directory('${uploadDirectory.path}/$name')..createSync();
-    Directory imageDirectory = Directory('${tempDirectory.path}/images')..createSync();
-
+    Directory imageDirectory = Directory('${tempDirectory.path}/images')
+      ..createSync();
 
     try {
       // Read the Zip file from disk.
@@ -502,7 +575,7 @@ class CatalogEditor {
         Log.logger.w(e);
         rethrow;
       }
-        
+
       // stream?.add('Unpacking data...');
       Log.logger.t('Unpacking data...');
       for (final ArchiveFile file in archive) {
@@ -531,19 +604,17 @@ class CatalogEditor {
               // Log.logger.t((const JsonEncoder.withIndent(' ')).convert(json));
             } catch (e) {
               // caught error
-              
             }
-          }
-          else {
+          } else {
             newFile.renameSync('${imageDirectory.path}/$filename');
           }
-        }
-        else {// it should be a directory
-            Directory('${tempDirectory.path}/$filename').create(recursive: true);
+        } else {
+          // it should be a directory
+          Directory('${tempDirectory.path}/$filename').create(recursive: true);
         }
       }
       // return catalog;
-      
+
       CatalogEditor.name = name;
       currentFile = uploadFile;
       isLocal = true;
@@ -552,12 +623,10 @@ class CatalogEditor {
       if (onComplete != null) onComplete();
       Log.logger.i('Catalog upload complete.');
     } catch (e) {
-      throw();
+      throw ();
     }
-
   }
 }
-
 
 /// A sealed class representing an item in the catalog, which can be either a category or a product.
 sealed class EItem {
@@ -579,14 +648,17 @@ sealed class EItem {
   /// - [name] : The name of the item.
   /// - [parentId] : The identifier of the parent item (optional).
   /// - [hasChanges] : Indicates whether the item has unsaved changes (default is false).
-  EItem({required this.id, required this.name, this.parentId, this.hasChanges = false});
-
+  EItem(
+      {required this.id,
+      required this.name,
+      this.parentId,
+      this.hasChanges = false});
 
   /// Retrieves an item by its unique identifier from the catalog hierarchy.
   ///
   /// - [root] : The root category from which the search starts.
   /// - [id] : The unique identifier of the item to find.
-  /// 
+  ///
   /// Returns the [EItem] if found, otherwise returns null.
   static EItem? getItemById({required root, required id}) {
     EItem? result;
@@ -598,17 +670,19 @@ sealed class EItem {
       }
       for (var item in category.editorItems) {
         switch (item) {
-          case ECategory _: {
-            traverseItems(item);
-            if (result != null) {
-              return;
+          case ECategory _:
+            {
+              traverseItems(item);
+              if (result != null) {
+                return;
+              }
             }
-          }
-          case EProduct _: {
-            if (item.id == id) {
-              result = item;
+          case EProduct _:
+            {
+              if (item.id == id) {
+                result = item;
+              }
             }
-          }
         }
       }
     }
@@ -618,12 +692,11 @@ sealed class EItem {
     return result;
   }
 
-
   /// Retrieves an item by its name from the catalog hierarchy.
   ///
   /// - [root] : The root category from which the search starts.
   /// - [name] : The name of the item to find.
-  /// 
+  ///
   /// Returns the [EItem] if found, otherwise returns null.
   static EItem? getItemByName({required root, required name}) {
     EItem? result;
@@ -635,17 +708,19 @@ sealed class EItem {
       }
       for (var item in category.editorItems) {
         switch (item) {
-          case ECategory _: {
-            traverseItems(item);
-            if (result != null) {
-              return;
+          case ECategory _:
+            {
+              traverseItems(item);
+              if (result != null) {
+                return;
+              }
             }
-          }
-          case EProduct _: {
-            if (item.product.name == name) {
-              result = item;
+          case EProduct _:
+            {
+              if (item.product.name == name) {
+                result = item;
+              }
             }
-          }
         }
       }
     }
@@ -662,34 +737,36 @@ sealed class EItem {
     return getItemById(root: CatalogEditor.all, id: parentId) as ECategory?;
   }
 
-
   /// Retrieves the sub-items of this item.
   List<EItem> getSubItems() {
     return [];
   }
 
-
   /// Removes the item from its parent category.
   void removeFromParent() {
-    final ECategory? parent = getItemById(root: CatalogEditor.all, id: parentId) as ECategory?;
+    final ECategory? parent =
+        getItemById(root: CatalogEditor.all, id: parentId) as ECategory?;
 
     if (parent != null) {
       parent.editorItems.remove(this);
       parentId = null;
 
       switch (this) {
-        case ECategory _ : {
-          parent.category.catalogItems.remove((this as ECategory).category);
-          Log.logger.i("Removed ${(this as ECategory).category.name} from ${parent.category.name}");
-        }
-        case EProduct _ : {
-          parent.category.catalogItems.remove((this as EProduct).product);
-          Log.logger.i("Removed ${(this as EProduct).product.name} from ${parent.category.name}");
-        }
+        case ECategory _:
+          {
+            parent.category.catalogItems.remove((this as ECategory).category);
+            Log.logger.i(
+                "Removed ${(this as ECategory).category.name} from ${parent.category.name}");
+          }
+        case EProduct _:
+          {
+            parent.category.catalogItems.remove((this as EProduct).product);
+            Log.logger.i(
+                "Removed ${(this as EProduct).product.name} from ${parent.category.name}");
+          }
       }
     }
   }
-
 
   /// Reassigns the item to a new parent category.
   ///
@@ -700,7 +777,6 @@ sealed class EItem {
 
     newParent.addItem(this, index: atIndex);
   }
-
 
   /// Reorders the item within its parent category.
   ///
@@ -716,7 +792,6 @@ sealed class EItem {
 
   /// Marks the item and its ancestors as having changes.
   void setHasChangesRecursive() {
-    
     void traverse(ECategory? item) {
       if (item != null) {
         item.branchHasChanges = true;
@@ -743,35 +818,31 @@ sealed class EItem {
   /// Returns a map containing the item's properties.
   Map<String, dynamic> toJson() {
     return {
-      'name' : name,
-      'id' : id,
-      'parentId' : parentId,
-      'hasChanges' : false,
+      'name': name,
+      'id': id,
+      'parentId': parentId,
+      'hasChanges': false,
     };
   }
-
 
   /// Deserializes an item from a JSON representation.
   ///
   /// - [json] : A map containing the item's properties.
-  /// 
+  ///
   /// Returns an instance of [EItem], either [ECategory] or [EProduct].
   static EItem fromJson(Map<String, dynamic> json) {
     if (json['editorItems'] != null) {
       return ECategory.fromJson(json);
-    }
-    else {
+    } else {
       return EProduct.fromJson(json);
     }
   }
-
 
   /// Reverts the item to its published state.
   ///
   /// This method can be overridden by subclasses to provide specific functionality.
   Future<void> revertToPublished({StreamController? streamController}) async {}
 }
-
 
 /// Represents a category in the catalog, extending [EItem].
 class ECategory extends EItem {
@@ -795,8 +866,9 @@ class ECategory extends EItem {
   /// - [category] : The underlying [ProductCategory].
   /// - [editorItems] : A list of editor items within this category.
   /// - [imagePath] : The path to the category's image (optional).
-  ECategory({required this.category, required this.editorItems, this.imagePath}) 
-      : super(id: category.id, name: category.name, parentId: category.parentId) {
+  ECategory({required this.category, required this.editorItems, this.imagePath})
+      : super(
+            id: category.id, name: category.name, parentId: category.parentId) {
     if (imagePath != null) imageFile = File(imagePath!);
   }
 
@@ -809,9 +881,8 @@ class ECategory extends EItem {
     return editorItems;
   }
 
-
   /// Retrieves all subcategories of this category, optionally excluding specified categories.
-  /// 
+  ///
   /// - [categoriesToExclude] : A list of categories to exclude from the result (optional).
   /// - Returns: A list of all subcategories within this category, excluding any specified in [categoriesToExclude].
   List<ECategory> getSubCategories({List<ECategory>? categoriesToExclude}) {
@@ -839,44 +910,40 @@ class ECategory extends EItem {
     return subCategories;
   }
 
-
   /// Adds an item (either an [ECategory] or [EProduct]) to this category.
   ///
   /// The item is assigned a parent ID corresponding to this category's ID.
-  /// 
+  ///
   /// If an index is provided, the item is inserted at that index; otherwise, it is appended to the end of the list.
   ///
   /// - [item] : The item to be added, which can be either an [ECategory] or [EProduct].
   /// - [index] : The optional index at which to insert the item. If not provided, the item is added to the end of the list.
   void addItem(EItem item, {int? index}) {
     switch (item) {
-      case ECategory _ :
+      case ECategory _:
         item.parentId = id;
         item.category.parentId = id;
         if (index != null) {
-           editorItems.insert(index, item);
-           category.catalogItems.insert(index, item.category);
-        }
-        else {
+          editorItems.insert(index, item);
+          category.catalogItems.insert(index, item.category);
+        } else {
           editorItems.add(item);
           category.catalogItems.add(item.category);
         }
         Log.logger.i("Added ${item.category.name} to ${category.name}");
-      case EProduct _ :
+      case EProduct _:
         item.parentId = id;
         item.product.parentId = id;
         if (index != null) {
-           editorItems.insert(index, item);
-           category.catalogItems.insert(index, item.product);
-        }
-        else {
+          editorItems.insert(index, item);
+          category.catalogItems.insert(index, item.product);
+        } else {
           editorItems.add(item);
           category.catalogItems.add(item.product);
         }
         Log.logger.i("Added ${item.product.name} to ${category.name}");
     }
   }
-
 
   /// Retrieves the image path for this category.
   ///
@@ -887,18 +954,15 @@ class ECategory extends EItem {
   Future<String?> getImagePaths() async {
     if (imagePath != null) {
       return imagePath!;
-    }
-    else if (hasChanges) {
+    } else if (hasChanges) {
       return imagePath;
-    }
-    else if (category.imageProvider != null) {
+    } else if (category.imageProvider != null) {
       if (category.imageUrl != null) {
         return category.imageUrl!;
       }
     }
     return '';
   }
-
 
   /// Sets the image path for this category.
   ///
@@ -908,7 +972,6 @@ class ECategory extends EItem {
   Future<void> setImagePaths() async {
     await getImagePaths().then((value) => imagePath = value);
   }
-
 
   /// Retrieves the image file associated with this category.
   ///
@@ -920,52 +983,53 @@ class ECategory extends EItem {
   Future<File?> getImageFiles({String? path}) async {
     if (imageFile != null) {
       return imageFile!;
-    }
-    else {
+    } else {
       if (hasChanges) {
         return imageFile;
-      }
-      else {
+      } else {
         final basePath = await getTemporaryDirectory();
         if (path == null) {
           if (imagePath != null) {
             if (FileUtils.isURL(path: imagePath!)) {
               try {
-                final cacheFile = await FileUtils.cacheManager.getSingleFile(imagePath!);
+                final cacheFile =
+                    await FileUtils.cacheManager.getSingleFile(imagePath!);
                 return cacheFile;
               } catch (e) {
                 try {
-                  final file = await FirebaseUtils.downloadFromFirebaseStorage(url: imagePath!, directory: basePath, returnFile: true);
+                  final file = await FirebaseUtils.downloadFromFirebaseStorage(
+                      url: imagePath!, directory: basePath, returnFile: true);
 
                   return file;
-
                 } catch (e2) {
-                  Log.logger.w("Failed to download image from $path. Removing from media paths...", error: [e,e2]);
+                  Log.logger.w(
+                      "Failed to download image from $path. Removing from media paths...",
+                      error: [e, e2]);
                 }
               }
             }
-          }
-          else {
+          } else {
             Log.logger.e("Must set image path before creating file!");
             throw 'Must provide path before creating file';
           }
-        }
-        else if (path == "") {
-          Log.logger.t('This looks like a new category is being created. If something bad happens, idk');
+        } else if (path == "") {
+          Log.logger.t(
+              'This looks like a new category is being created. If something bad happens, idk');
           return null;
-        }
-        else if (FileUtils.isURL(path: path)) {
+        } else if (FileUtils.isURL(path: path)) {
           try {
             final cacheFile = await FileUtils.cacheManager.getSingleFile(path);
             return cacheFile;
           } catch (e) {
             try {
-              final file = await FirebaseUtils.downloadFromFirebaseStorage(url: path, directory: basePath, returnFile: true);
+              final file = await FirebaseUtils.downloadFromFirebaseStorage(
+                  url: path, directory: basePath, returnFile: true);
 
               return file;
-
             } catch (e2) {
-              Log.logger.w("Failed to download image from $path. Removing from media paths...", error: [e,e2]);
+              Log.logger.w(
+                  "Failed to download image from $path. Removing from media paths...",
+                  error: [e, e2]);
             }
           }
         }
@@ -974,7 +1038,6 @@ class ECategory extends EItem {
     Log.logger.f('No image file found at $path for $id.');
     return null;
   }
-
 
   /// Sets the image file for this category.
   ///
@@ -985,13 +1048,12 @@ class ECategory extends EItem {
     await getImageFiles().then((value) => imageFile = value);
   }
 
-
   /// Saves the current state of the category, including optional updates to its name,
   /// parent category, image path, and image file.
   ///
   /// If [parent] is not specified, the category will be added to the current parent
-  /// (or the root if no parent exists). If the category already has a parent and the 
-  /// new parent is different, it will reassign the parent. It will also update the 
+  /// (or the root if no parent exists). If the category already has a parent and the
+  /// new parent is different, it will reassign the parent. It will also update the
   /// image path and image file if provided.
   ///
   /// The method sets the `hasChanges` flag recursively to indicate changes have been made.
@@ -1007,20 +1069,16 @@ class ECategory extends EItem {
     String? imagePath,
     File? imageFile,
   }) {
-
-    Log.logger.t(
-      """
+    Log.logger.t("""
         Saving product...
 
         Previous attributes: 
         ${category.toJson()}
-      """
-    );
+      """);
 
     if (parentId == null) {
       (parent ?? CatalogEditor.all).addItem(this);
-    }
-    else {
+    } else {
       if (parentId != (parent ?? CatalogEditor.all).id) {
         reassignParent(newParent: parent ?? CatalogEditor.all);
       }
@@ -1034,14 +1092,11 @@ class ECategory extends EItem {
 
     setHasChangesRecursive();
 
-    Log.logger.t(
-      """
+    Log.logger.t("""
         New attributes:
         ${category.toJson()}
-      """
-    );
+      """);
   }
-
 
   /// Converts this category instance to a JSON-compatible map.
   ///
@@ -1056,7 +1111,6 @@ class ECategory extends EItem {
     return json;
   }
 
-
   /// Creates a new instance of [ECategory] from a JSON map.
   ///
   /// The [json] parameter must contain the keys 'category', 'editorItems', and 'imagePath'.
@@ -1067,26 +1121,30 @@ class ECategory extends EItem {
     // Log.logger.t((const JsonEncoder.withIndent('   ')).convert(json));
     // Log.logger.t("------");
     return ECategory(
-      category: ProductCategory.fromJson(json['category']),
-      editorItems: (json['editorItems'] as List<dynamic>).map((itemJson) => EItem.fromJson(itemJson)).toList(),
-      imagePath: json['imagePath']
-    );
+        category: ProductCategory.fromJson(json['category']),
+        editorItems: (json['editorItems'] as List<dynamic>)
+            .map((itemJson) => EItem.fromJson(itemJson))
+            .toList(),
+        imagePath: json['imagePath']);
   }
-
 
   /// Reverts the category to its published state by restoring its attributes from the published catalog.
   ///
   /// This method retrieves the published version of the category using its ID, then sets
-  /// the current category's attributes (name, image path, and image file) to match the 
+  /// the current category's attributes (name, image path, and image file) to match the
   /// published version. It calls the superclass method to handle any additional revert logic.
   @override
   Future<void> revertToPublished({StreamController? streamController}) async {
     super.revertToPublished();
 
-    final publishedVersion = EItem.getItemById(root: CatalogEditor.publishedCatalog, id: id) as ECategory?;
+    final publishedVersion =
+        EItem.getItemById(root: CatalogEditor.publishedCatalog, id: id)
+            as ECategory?;
     if (publishedVersion != null) {
       String? newPath = await publishedVersion.getImagePaths();
-      File? newFile = (newPath != null) ? await publishedVersion.getImageFiles(path: newPath) : null;
+      File? newFile = (newPath != null)
+          ? await publishedVersion.getImageFiles(path: newPath)
+          : null;
       save(
         name: publishedVersion.name,
         imagePath: newPath,
@@ -1094,14 +1152,12 @@ class ECategory extends EItem {
       );
       streamController?.add('Item found and reverted!');
       await Future.delayed(const Duration(seconds: 2));
-    }
-    else {
+    } else {
       streamController?.add('Item not found in database.');
       await Future.delayed(const Duration(seconds: 2));
     }
   }
 }
-
 
 /// Represents a product in the catalog, extending [EItem].
 class EProduct extends EItem {
@@ -1117,7 +1173,6 @@ class EProduct extends EItem {
   /// The index of the primary image in the media files.
   int primaryImageIndex;
 
-  
   /// Creates an instance of [EProduct].
   ///
   /// [product] is the underlying product data.
@@ -1135,7 +1190,8 @@ class EProduct extends EItem {
         try {
           mediaFiles!.add(File(path));
         } catch (e, trace) {
-          Log.logger.w("Failed to add file at $path", error: e, stackTrace: trace);
+          Log.logger
+              .w("Failed to add file at $path", error: e, stackTrace: trace);
         }
       }
     }
@@ -1152,11 +1208,12 @@ class EProduct extends EItem {
   factory EProduct.fromJson(Map<String, dynamic> json) {
     return EProduct(
       product: Product.fromJson(json['product']),
-      mediaPaths: json['mediaPaths'] != null ? List<String>.from(json['mediaPaths']) : null,
+      mediaPaths: json['mediaPaths'] != null
+          ? List<String>.from(json['mediaPaths'])
+          : null,
       primaryImageIndex: json['primaryImageIndex'],
     );
   }
-
 
   /// Converts the [EProduct] instance to a JSON map.
   ///
@@ -1172,7 +1229,6 @@ class EProduct extends EItem {
     return json;
   }
 
-
   /// Retrieves the list of image paths associated with the product.
   ///
   /// If [mediaPaths] is already set, it returns those paths.
@@ -1182,12 +1238,10 @@ class EProduct extends EItem {
   Future<List<String>?> getImagePaths() async {
     if (mediaPaths != null) {
       return mediaPaths!;
-    }
-    else {
+    } else {
       if (hasChanges) {
         return mediaPaths;
-      }
-      else {
+      } else {
         List<String> paths = [];
         if (product.productMedia?.isNotEmpty ?? false) {
           for (var media in product.productMedia!) {
@@ -1201,12 +1255,11 @@ class EProduct extends EItem {
 
   /// Sets the list of image paths based on the product's media.
   ///
-  /// This method initializes [mediaPaths] with download URLs from the 
+  /// This method initializes [mediaPaths] with download URLs from the
   /// product's media if [mediaPaths] is not already set.
   Future<void> setImagePaths() async {
     await getImagePaths().then((value) => mediaPaths = value);
   }
-
 
   /// Retrieves the list of image files associated with the product.
   ///
@@ -1214,17 +1267,15 @@ class EProduct extends EItem {
   /// If there are changes, it returns the current [mediaFiles].
   /// Otherwise, it checks the provided [paths] to build a list of files,
   /// attempting to download them from URLs or create files from local paths.
-  /// 
+  ///
   /// Throws an error if [paths] is null.
   Future<List<File>?> getImageFiles({List<String>? paths}) async {
     if (mediaFiles != null) {
       return mediaFiles!;
-    }
-    else {
+    } else {
       if (hasChanges) {
         return mediaFiles;
-      }
-      else {
+      } else {
         final basePath = await getTemporaryDirectory();
         List<File> files = [];
         List<String> tempCopy = [];
@@ -1233,64 +1284,70 @@ class EProduct extends EItem {
             for (var path in mediaPaths!) {
               if (isURL(path)) {
                 try {
-                  final cacheFile = await FileUtils.cacheManager.getSingleFile(path);
+                  final cacheFile =
+                      await FileUtils.cacheManager.getSingleFile(path);
                   files.add(cacheFile);
                   tempCopy.add(path);
                 } catch (e) {
                   try {
-                    final file = await FirebaseUtils.downloadFromFirebaseStorage(url: path, directory: basePath, returnFile: true);
+                    final file =
+                        await FirebaseUtils.downloadFromFirebaseStorage(
+                            url: path, directory: basePath, returnFile: true);
 
                     files.add(file);
                     tempCopy.add(path);
                   } catch (e) {
                     try {
                       final idx = mediaPaths!.indexOf(path);
-                      final file = await ApiVideoService.downloadVideo(path, '${basePath.path}/${id}_$idx');
+                      final file = await ApiVideoService.downloadVideo(
+                          path, '${basePath.path}/${id}_$idx');
                       files.add(file);
                       tempCopy.add(path);
                     } catch (e) {
-                      Log.logger.w("Failed to download image from $path. Removing from media paths...");
+                      Log.logger.w(
+                          "Failed to download image from $path. Removing from media paths...");
                     }
                   }
                 }
-              }
-              else {
+              } else {
                 files.add(File(path));
                 tempCopy.add(path);
               }
             }
-          }
-          else {
-            Log.logger.f('Failed to find media paths when creating media files. Throwing...');
+          } else {
+            Log.logger.f(
+                'Failed to find media paths when creating media files. Throwing...');
             throw "CANNOT CREATE FILE LIST WITHOUT SETTING PATHS";
           }
-        }
-        else {
+        } else {
           for (var path in paths) {
             if (isURL(path)) {
               try {
-                final cacheFile = await FileUtils.cacheManager.getSingleFile(path);
+                final cacheFile =
+                    await FileUtils.cacheManager.getSingleFile(path);
                 files.add(cacheFile);
                 tempCopy.add(path);
               } catch (e) {
                 try {
-                  final file = await FirebaseUtils.downloadFromFirebaseStorage(url: path, directory: basePath, returnFile: true);
+                  final file = await FirebaseUtils.downloadFromFirebaseStorage(
+                      url: path, directory: basePath, returnFile: true);
 
                   files.add(file);
                   tempCopy.add(path);
                 } catch (e) {
                   try {
                     final idx = mediaPaths!.indexOf(path);
-                    final file = await ApiVideoService.downloadVideo(path, '${basePath.path}/${id}_$idx');
+                    final file = await ApiVideoService.downloadVideo(
+                        path, '${basePath.path}/${id}_$idx');
                     files.add(file);
                     tempCopy.add(path);
                   } catch (e) {
-                    Log.logger.w("Failed to download image from $path. Removing from media paths...");
+                    Log.logger.w(
+                        "Failed to download image from $path. Removing from media paths...");
                   }
                 }
               }
-            }
-            else {
+            } else {
               files.add(File(path));
               tempCopy.add(path);
             }
@@ -1305,7 +1362,7 @@ class EProduct extends EItem {
   /// Sets the list of image files based on the media paths.
   ///
   /// This method initializes [mediaFiles] with files corresponding to the
-  /// URLs or local paths in [mediaPaths]. 
+  /// URLs or local paths in [mediaPaths].
   Future<void> setImageFiles() async {
     await getImageFiles().then((value) => mediaFiles = value);
   }
@@ -1317,10 +1374,14 @@ class EProduct extends EItem {
   Future<void> revertToPublished({StreamController? streamController}) async {
     super.revertToPublished();
 
-    final publishedVersion = EItem.getItemById(root: CatalogEditor.publishedCatalog, id: id) as EProduct?;
+    final publishedVersion =
+        EItem.getItemById(root: CatalogEditor.publishedCatalog, id: id)
+            as EProduct?;
     if (publishedVersion != null) {
       List<String>? newPaths = await publishedVersion.getImagePaths();
-      List<File>? newFiles = (newPaths != null) ? await publishedVersion.getImageFiles(paths: newPaths) : null;
+      List<File>? newFiles = (newPaths != null)
+          ? await publishedVersion.getImageFiles(paths: newPaths)
+          : null;
       save(
         name: publishedVersion.name,
         modelNumber: publishedVersion.product.modelNumber,
@@ -1331,16 +1392,14 @@ class EProduct extends EItem {
       );
       streamController?.add('Item found and reverted!');
       await Future.delayed(const Duration(seconds: 1));
-    }
-    else {
+    } else {
       streamController?.add('Item not found in database.');
       await Future.delayed(const Duration(seconds: 1));
     }
   }
 
-
   /// Saves the attributes of the product, updating its details and media files.
-  /// 
+  ///
   /// This method allows updating the following attributes of the product:
   /// - [name] : The name of the product.
   /// - [parent] : The new parent category for this product, if applicable.
@@ -1361,29 +1420,24 @@ class EProduct extends EItem {
     List<File>? mediaFiles,
     int primaryImageIndex = 0,
   }) {
-
     const encoder = JsonEncoder.withIndent('  ');
 
-    Log.logger.t(
-      """
+    Log.logger.t("""
         Saving product...
 
         Previous attributes: 
         ${encoder.convert(product.toJson())}
-      """
-    );
+      """);
 
     if (parentId == null) {
       (parent ?? CatalogEditor.all).addItem(this);
-    }
-    else {
+    } else {
       if (parent != null) {
         if (parentId != parent.id) {
           reassignParent(newParent: parent);
         }
       }
     }
-
 
     if (name != null) {
       product.name = name;
@@ -1397,27 +1451,382 @@ class EProduct extends EItem {
       this.mediaFiles = List.from(mediaFiles);
       if (mediaFiles.isNotEmpty) {
         if (mediaFiles[primaryImageIndex].path.endsWith('.mp4')) {
-          final newPrimaryIndex = (mediaFiles.map((x) => x.path).toList()).indexWhere((y) => !y.endsWith('.mp4'));
+          final newPrimaryIndex = (mediaFiles.map((x) => x.path).toList())
+              .indexWhere((y) => !y.endsWith('.mp4'));
           if (newPrimaryIndex != -1) {
             primaryImageIndex = newPrimaryIndex;
           }
         }
       }
-    }
-    else {
+    } else {
       this.mediaFiles = null;
     }
     primaryImageIndex = primaryImageIndex;
-    
+
     setHasChangesRecursive();
 
-
-    Log.logger.t(
-      """
+    Log.logger.t("""
         New attributes:
         ${encoder.convert(product.toJson())}
-      """
-    );
+      """);
+  }
+
+  Future<void> printToPdf({String? path}) async {
+    Printer.printProductToPdf(product: this, path: path);
   }
 }
 
+class Printer {
+  static Future<void> printProductToPdf({required EProduct product, String? path}) async {
+    String filePath = path ?? '${(await getDownloadsDirectory())!.path}/download.pdf';
+    if (FileUtils.extension(filePath) != '.pdf') {
+      filePath += '.pdf';
+    }
+
+    final doc = pw.Document();
+
+    final font = await PdfGoogleFonts.openSansRegular();
+    final fontBold = await PdfGoogleFonts.openSansBold();
+    final fontSemiBold = await PdfGoogleFonts.openSansSemiBold();
+
+    final wt_logo_image = await imageFromAssetBundle('assets/weightech_logo.png');
+
+    final bytes = await getBytesFromImageProvider(product.product.imageProvider!);
+    final pdfImage = pw.MemoryImage(bytes);
+
+    final imageFiles = (await product.getImageFiles(paths: await product.getImagePaths()));
+
+    final pageWidget = pw.Column(children: [
+      pw.Image(wt_logo_image, height: 70),
+      pw.Container(
+          alignment: pw.Alignment.topCenter,
+          decoration: pw.BoxDecoration(
+              color: PdfColor.fromInt(WeightechThemes.weightechBlue.value),
+              border: pw.Border.all(
+                  color: PdfColor.fromInt(WeightechThemes.weightechBlue.value)
+              ),
+          ),
+          width: double.infinity,
+          child: pw.Padding(
+              padding: const pw.EdgeInsets.all(1.4),
+              child: pw.Text(
+                product.name,
+                textAlign: pw.TextAlign.center,
+                style: pw.TextStyle(
+                    fontSize: 22.4,
+                    color: PdfColors.white,
+                    font: fontBold,
+                ),
+              )
+          )
+      ),
+      pw.Container(
+          color: PdfColor.fromInt(WeightechThemes.weightechGray.value),
+          height: 4,
+          width: double.infinity),
+      pw.SizedBox(height: 20),
+      pw.Expanded(
+        child: pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.RichText(text: convertToInlineRichText(product.product.description ?? ''), textScaleFactor: 1.2),
+            pw.SizedBox(height: 20),
+            pw.Container(
+              height: (imageFiles?.isNotEmpty ?? false) ? ((imageFiles!.length) / (calculateCrossAxisCount(imageFiles.length))).ceilToDouble()*100+6 : 0,
+              child: pw.GridView(
+                mainAxisSpacing: 2,
+                crossAxisSpacing: 2,
+                crossAxisCount: calculateCrossAxisCount(imageFiles?.length ?? 0),
+                children: (imageFiles)
+                  ?.map((file) {
+                    return pw.Image(pw.MemoryImage(file.readAsBytesSync()), height: 100);
+                  }
+                ).toList() ?? []
+              ),
+            ),
+            // pw.Container(
+            //   decoration: pw.BoxDecoration(
+            //     borderRadius: pw.BorderRadius.circular(8),
+            //   ),
+            //   child: pw.Image(pdfImage)
+            // ),
+            pw.Expanded(
+                child: pw.Padding(
+                    padding: const pw.EdgeInsets.only(
+                        left: 28, right: 0, top: 3.5),
+                    child: pw.ListView.builder(
+                        padding: const pw.EdgeInsets.only(top: 14),
+                        itemCount: product.product.brochure!.length,
+                        itemBuilder: (context, index) {
+                          final headerKey =
+                              product.product.brochure![index].keys.first;
+                          final headerValue = product.product.brochure![index][headerKey] as List;
+                          final headerEntries =
+                              headerValue.singleWhere(
+                                  (element) =>
+                                      (element as Map)
+                                          .keys
+                                          .first ==
+                                      "Entries",
+                                  orElse: () => <String,
+                                      List<String>>{})["Entries"];
+                          final subheaders =
+                              List.from(headerValue);
+                          subheaders.removeWhere((element) =>
+                              element.keys.first == "Entries");
+
+                          return pw.Column(
+                              crossAxisAlignment:
+                                  pw.CrossAxisAlignment.start,
+                              children: [
+                                pw.Text(
+                                  headerKey,
+                                  style: pw.TextStyle(
+                                      font: fontBold,
+                                      color: PdfColor.fromInt(WeightechThemes.weightechBlue.value),
+                                      fontSize: 19.6,
+                                      fontWeight: pw.FontWeight.bold),
+                                  softWrap: true,
+                                ),
+                                if (headerEntries?.isNotEmpty ??
+                                    false)
+                                  pw.ListView.builder(
+                                      padding:
+                                          const pw.EdgeInsets.only(
+                                              top: 3.5,
+                                              left: 3.5),
+                                      itemCount:
+                                          headerEntries.length,
+                                      itemBuilder:
+                                          (context, entryIndex) {
+                                        final entry =
+                                            headerEntries[
+                                                entryIndex];
+                                        return pw.Padding(
+                                            padding:
+                                                const pw.EdgeInsets
+                                                    .only(
+                                                    top: 3.5),
+                                            child: pw.Row(
+                                                crossAxisAlignment:
+                                                    pw.CrossAxisAlignment
+                                                        .start,
+                                                children: [
+                                                  pw.Text(
+                                                      "\u2022",
+                                                    style: pw.TextStyle(font: font)
+                                                  ),
+                                                  pw.SizedBox(
+                                                      width: 5.6),
+                                                  pw.Expanded(
+                                                      child: pw.Text(
+                                                    entry,
+                                                    style: pw.TextStyle(
+                                                        font: font,
+                                                        fontSize:
+                                                            11.2,
+                                                        color: PdfColors
+                                                            .black),
+                                                    softWrap:
+                                                        true,
+                                                  ))
+                                                ]));
+                                      }),
+                                pw.SizedBox(height: 7),
+                                pw.ListView.builder(
+                                  itemCount: subheaders.length,
+                                  itemBuilder:
+                                      (context, subIndex) {
+                                    final subheaderKey =
+                                        subheaders[subIndex]
+                                            .keys
+                                            .first;
+                                    final subheaderValue =
+                                        subheaders[subIndex]
+                                                [subheaderKey]
+                                            as List<dynamic>;
+
+                                    return pw.Column(
+                                      crossAxisAlignment:
+                                          pw.CrossAxisAlignment
+                                              .start,
+                                      children: [
+                                        pw.Padding(
+                                          padding:
+                                              const pw.EdgeInsets
+                                                  .only(
+                                                  left: 3.5),
+                                          child: pw.Text(
+                                            subheaderKey,
+                                            style: pw.TextStyle(
+                                                font: fontSemiBold,
+                                                color: PdfColor.fromHex('333333'),
+                                                fontSize: 15.4,
+                                                fontWeight:
+                                                    pw.FontWeight
+                                                        .bold),
+                                            softWrap: true,
+                                          ),
+                                        ),
+                                        pw.ListView.builder(
+                                            padding:
+                                                const pw.EdgeInsets
+                                                    .only(
+                                                    left: 3.5,
+                                                    top: 3.5),
+                                            itemCount:
+                                                subheaderValue
+                                                    .length,
+                                            itemBuilder: (context,
+                                                entryIndex) {
+                                              final entry =
+                                                  subheaderValue[
+                                                      entryIndex];
+                                              return pw.Row(
+                                                  crossAxisAlignment:
+                                                      pw.CrossAxisAlignment
+                                                          .start,
+                                                  children: [
+                                                    pw.Text(
+                                                        "\u2022",
+                                                        style: pw.TextStyle(font: font),
+                                                      ),
+                                                    pw.SizedBox(
+                                                        width:
+                                                            3.5),
+                                                    pw.Expanded(
+                                                        child:
+                                                            pw.Text(
+                                                      entry,
+                                                      style: pw.TextStyle(
+                                                        font: font,
+                                                        fontSize: 11.2
+                                                      ),
+                                                      softWrap:
+                                                        true,
+                                                    ))
+                                                  ]);
+                                            }),
+                                        pw.SizedBox(height: 7),
+                                      ],
+                                    );
+                                  },
+                                ),
+                                pw.SizedBox(height: 7),
+                              ]);
+                        })))
+          ],
+        ),
+      ),
+        
+    ]
+  );
+  
+    doc.addPage(pw.Page(
+      pageFormat: PdfPageFormat.a4,
+      margin: pw.EdgeInsets.fromLTRB(40, 20, 40, 40),
+      build: (pw.Context context) {
+        return pageWidget;
+      }
+    ));
+
+    final file = File(filePath);
+    await file.writeAsBytes(await doc.save());
+    Log.logger.i('Printed pdf of ${product.name} to $filePath...');
+}
+
+  /// Converts a `SimpleRichText` formatted string into a `RichText` widget's inline text spans.
+  static pw.TextSpan convertToInlineRichText(String input) {
+    final RegExp formatRegex = RegExp(r'<(b|i|u)>(.*?)<\/\1>', dotAll: true);
+    final List<pw.TextSpan> spans = [];
+    int lastMatchEnd = 0;
+
+    for (final match in formatRegex.allMatches(input)) {
+      // Add plain text before the match
+      if (match.start > lastMatchEnd) {
+        spans.add(pw.TextSpan(text: input.substring(lastMatchEnd, match.start)));
+      }
+
+      // Determine the style
+      final tag = match.group(1); // b, i, or u
+      final text = match.group(2); // Inner content
+      pw.TextStyle style;
+
+      switch (tag) {
+        case 'b':
+          style = pw.TextStyle(fontWeight: pw.FontWeight.bold);
+          break;
+        case 'i':
+          style = pw.TextStyle(fontStyle: pw.FontStyle.italic);
+          break;
+        case 'u':
+          style = pw.TextStyle(decoration: pw.TextDecoration.underline);
+          break;
+        default:
+          style = pw.TextStyle(); // Fallback, should never occur
+      }
+
+      spans.add(pw.TextSpan(text: text, style: style));
+      lastMatchEnd = match.end;
+    }
+
+    // Add any remaining plain text after the last match
+    if (lastMatchEnd < input.length) {
+      spans.add(pw.TextSpan(text: input.substring(lastMatchEnd)));
+    }
+
+    return pw.TextSpan(children: spans);
+  }
+
+  static Future<Uint8List> getBytesFromImageProvider(
+    ImageProvider provider, {
+    ImageConfiguration config = const ImageConfiguration(),
+    ImageByteFormat format = ImageByteFormat.png,
+  }) async {
+    final completer = Completer<ui.Image>();
+
+    // Resolve the ImageProvider to an ImageStream
+    final stream = provider.resolve(config);
+
+    // Create a listener to retrieve the image
+    late final ImageStreamListener listener;
+    listener = ImageStreamListener((ImageInfo info, _) {
+      // Complete the future and remove the listener to avoid multiple calls
+      if (!completer.isCompleted) {
+        completer.complete(info.image);
+      }
+      stream.removeListener(listener);
+    }, onError: (error, stackTrace) {
+      // Handle errors and remove the listener
+      if (!completer.isCompleted) {
+        completer.completeError(error, stackTrace);
+      }
+      stream.removeListener(listener);
+    });
+
+    // Add listener to the stream
+    stream.addListener(listener);
+
+    // Wait for the image
+    final ui.Image image;
+    try {
+      image = await completer.future;
+    } finally {
+      // Clean up listener to avoid memory leaks
+      stream.removeListener(listener);
+    }
+
+    // Convert the image to bytes
+    final byteData = await image.toByteData(format: format);
+    return byteData!.buffer.asUint8List();
+  }
+
+  static int calculateCrossAxisCount(int itemCount, {int maxCrossAxisCount = 4}) {
+    for (int i = maxCrossAxisCount; i > 0; i--) {
+      if (itemCount % i == 0) {
+        return i; // Largest factor <= maxCrossAxisCount
+      }
+    }
+    return itemCount.clamp(1, maxCrossAxisCount); // Fallback for prime numbers
+  }
+}

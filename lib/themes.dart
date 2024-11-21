@@ -25,43 +25,38 @@ class WeightechThemes extends ChangeNotifier {
   static const fluent.Color weightechOrange = Color(0xFFF48128);
   static const fluent.Color windowsLight = Color(0xFFF3F3F3);
   static const fluent.Color windowsDark = Color(0xFF202020);
-  static final fluent.AccentColor wtBlue = fluent.AccentColor
-  .swatch(
-    const {
-      'darkest': Color(0xff0a142b),
-      'darker': Color(0xff0f1d40),
-      'dark': Color(0xff152959),
-      'normal': weightechBlue,
-      'light': Color(0xff2d55bb),
-      'lighter': Color(0xff3666df),
-      'lightest': Color(0xff3d74ff),
-    }
-  );
-  static final fluent.AccentColor wtGray = fluent.AccentColor
-  .swatch(
-    const {
-      'darkest': Color(0xFF3b3b3c),
-      'darker': Color(0xFF5c5c5d),
-      'dark': Color(0xFF808081),
-      'normal': weightechGray,
-      'light': Color(0xffd9d9dB),
-      'lighter': Color(0xffe9e9eB),
-      'lightest': Color(0xfff4f4f9),
-    }
-  );
-  WeightechThemes(){
-    Brightness brightness = WidgetsBinding.instance.platformDispatcher.platformBrightness;
+  static final fluent.AccentColor wtBlue = fluent.AccentColor.swatch(const {
+    'darkest': Color(0xff0a142b),
+    'darker': Color(0xff0f1d40),
+    'dark': Color(0xff152959),
+    'normal': weightechBlue,
+    'light': Color(0xff2d55bb),
+    'lighter': Color(0xff3666df),
+    'lightest': Color(0xff3d74ff),
+  });
+  static final fluent.AccentColor wtGray = fluent.AccentColor.swatch(const {
+    'darkest': Color(0xFF3b3b3c),
+    'darker': Color(0xFF5c5c5d),
+    'dark': Color(0xFF808081),
+    'normal': weightechGray,
+    'light': Color(0xffd9d9dB),
+    'lighter': Color(0xffe9e9eB),
+    'lightest': Color(0xfff4f4f9),
+  });
+  WeightechThemes() {
+    Brightness brightness =
+        WidgetsBinding.instance.platformDispatcher.platformBrightness;
     themeMode = fluent.ThemeMode.system;
     isDarkMode = AppSettings.isDarkMode ?? brightness.isDark;
 
-
     if (AppSettings.isDarkMode != null) {
-      themeMode = AppSettings.isDarkMode! ? fluent.ThemeMode.dark : fluent.ThemeMode.light;
+      themeMode = AppSettings.isDarkMode!
+          ? fluent.ThemeMode.dark
+          : fluent.ThemeMode.light;
     }
 
     setCustoms();
   }
-
 
   static Future<void> setCustoms({AdaptiveThemeMode? mode}) async {
     if (mode == AdaptiveThemeMode.light) {
@@ -73,15 +68,13 @@ class WeightechThemes extends ChangeNotifier {
       infoWidgetColor = wtGray.darkest;
       loadingAnimationColor = weightechOrange;
       fileDropColor = weightechOrange;
-    }
-    else {
+    } else {
       if (isDarkMode) {
         infoWidgetColor = wtGray.darkest;
         loadingAnimationColor = weightechOrange;
         fileDropColor = weightechOrange;
         currentTheme = fluentDarkTheme;
-      }
-      else {
+      } else {
         infoWidgetColor = wtGray.lightest;
         loadingAnimationColor = wtBlue.normal;
         fileDropColor = weightechBlue;
@@ -90,7 +83,6 @@ class WeightechThemes extends ChangeNotifier {
       }
     }
   }
-  
 
   // Function to set the Mica effect based on the current theme mode
   static Future<void> setMicaEffect(AdaptiveThemeMode mode) async {
@@ -98,8 +90,7 @@ class WeightechThemes extends ChangeNotifier {
       await Window.setEffect(effect: WindowEffect.mica, dark: false);
     } else if (mode == AdaptiveThemeMode.dark) {
       await Window.setEffect(effect: WindowEffect.mica, dark: true);
-    }
-    else {
+    } else {
       await Window.setEffect(effect: WindowEffect.mica, dark: isDarkMode);
     }
   }
@@ -110,37 +101,47 @@ class WeightechThemes extends ChangeNotifier {
       await Window.setEffect(effect: WindowEffect.solid, color: windowsLight);
     } else if (mode == AdaptiveThemeMode.dark) {
       await Window.setEffect(effect: WindowEffect.solid, color: windowsDark);
-    }
-    else {
-      await Window.setEffect(effect: WindowEffect.solid, color: (isDarkMode) ? windowsDark : windowsLight);
+    } else {
+      await Window.setEffect(
+          effect: WindowEffect.solid,
+          color: (isDarkMode) ? windowsDark : windowsLight);
     }
   }
 
   static Future<void> setWindowEffect({effect, darkMode, color}) async {
     final isDark = isDarkMode;
     await Window.setEffect(
-      effect: effect ?? ((AppSettings.useMica ?? false) ? WindowEffect.mica : WindowEffect.solid),
+      effect: effect ??
+          ((AppSettings.useMica ?? false)
+              ? WindowEffect.mica
+              : WindowEffect.solid),
       dark: darkMode ?? isDarkMode,
-      color: color ?? (fluent.Colors.transparent), // WeightechThemes.windowsLight : WeightechThemes.windowsLight
+      color: color ??
+          (fluent.Colors
+              .transparent), // WeightechThemes.windowsLight : WeightechThemes.windowsLight
     );
   }
 
   static Future<void> setMica(useMica) async {
-    await setWindowEffect(effect: (useMica ? WindowEffect.mica : WindowEffect.solid));
+    await setWindowEffect(
+        effect: (useMica ? WindowEffect.mica : WindowEffect.solid));
   }
 
-
-  static Future<void> setColorMode(BuildContext context, AdaptiveThemeMode colorMode) async {
+  static Future<void> setColorMode(
+      BuildContext context, AdaptiveThemeMode colorMode) async {
     switch (colorMode) {
-      case (AdaptiveThemeMode.dark) : {
-        await setDarkMode(context);
-      }
-      case (AdaptiveThemeMode.light) : {
-        await setLightMode(context);
-      }
-      case (AdaptiveThemeMode.system) : {
-        await setSystemMode(context);
-      }
+      case (AdaptiveThemeMode.dark):
+        {
+          await setDarkMode(context);
+        }
+      case (AdaptiveThemeMode.light):
+        {
+          await setLightMode(context);
+        }
+      case (AdaptiveThemeMode.system):
+        {
+          await setSystemMode(context);
+        }
     }
   }
 
@@ -165,198 +166,204 @@ class WeightechThemes extends ChangeNotifier {
     AppSettings.isDarkMode = null;
   }
 
-
   static final material.ThemeData materialLightTheme = material.ThemeData(
     scaffoldBackgroundColor: material.Colors.white,
     cardTheme: material.CardTheme(
-      color: material.Colors.white,
-      shadowColor: const Color(0xAA000000),
-      elevation: 4,
-      shape: material.RoundedRectangleBorder(
-        borderRadius: material.BorderRadius.circular(8)
-      )
-    ),
+        color: material.Colors.white,
+        shadowColor: const Color(0xAA000000),
+        elevation: 4,
+        shape: material.RoundedRectangleBorder(
+            borderRadius: material.BorderRadius.circular(8))),
     textTheme: GoogleFonts.openSansTextTheme(),
-    colorScheme: material.ColorScheme.fromSeed(seedColor: weightechBlue, brightness: material.Brightness.light),
+    colorScheme: material.ColorScheme.fromSeed(
+        seedColor: weightechBlue, brightness: material.Brightness.light),
     dialogTheme: const material.DialogTheme(
       surfaceTintColor: material.Colors.white,
     ),
   );
 
-  static final fluent.FluentThemeData fluentLightTheme = fluent.FluentThemeData().copyWith(
-    brightness: fluent.Brightness.light,
-    // fontFamily: 'Segoe UI',
-    typography: fluent.Typography.fromBrightness(brightness: fluent.Brightness.light),
-    accentColor: wtBlue,
-    activeColor: weightechBlue,
-    inactiveColor: weightechGray,
-    cardColor: (AppSettings.useMica ?? false) ? fluent.Colors.transparent : windowsLight,
-    scaffoldBackgroundColor: (AppSettings.useMica ?? false) ? fluent.Colors.transparent : windowsLight,
-    dialogTheme: fluent.ContentDialogThemeData(
-      titleStyle: const TextStyle(color: WeightechThemes.weightechBlue, fontSize: 18),
-      decoration: BoxDecoration(
-        color: fluent.Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: fluent.kElevationToShadow[6],
-      ),
-      padding: const EdgeInsets.all(20),
-      titlePadding: const EdgeInsetsDirectional.only(bottom: 12),
-      actionsSpacing: 10,
-      actionsDecoration: const BoxDecoration(
-        color: windowsLight,
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(12)),
-        // boxShadow: kElevationToShadow[1],
-      ),
-      actionsPadding: const EdgeInsets.all(20),
-    ),
-    buttonTheme: fluent.ButtonThemeData(
-      defaultButtonStyle: fluent.ButtonStyle(
-        textStyle: WidgetStatePropertyAll<TextStyle>(TextStyle(
-          fontFamily: 'Segoe UI',
-          letterSpacing: 0.3, 
-          textBaseline: TextBaseline.alphabetic, 
-          height: 1.4, 
-          decoration: TextDecoration.none,
-          wordSpacing: 1,
-          decorationThickness: 1
-        )),
-      ), 
-      outlinedButtonStyle: fluent.ButtonStyle(
-        textStyle: WidgetStatePropertyAll<TextStyle>(TextStyle(
-          fontFamily: 'Segoe UI',
-          letterSpacing: 0.3, 
-          textBaseline: TextBaseline.alphabetic, 
-          height: 1.4, 
-          decoration: TextDecoration.none,
-          wordSpacing: 1,
-          decorationThickness: 1
-        )),
-        backgroundColor: fluent.WidgetStatePropertyAll<Color>(fluent.Colors.transparent),
-        foregroundColor: fluent.WidgetStatePropertyAll<Color>(wtGray.darker),
-      ),
-      filledButtonStyle: fluent.ButtonStyle(
-        backgroundColor: fluent.WidgetStatePropertyAll<Color>(WeightechThemes.weightechBlue),
-        foregroundColor: fluent.WidgetStatePropertyAll<Color>(fluent.Colors.white),
-        textStyle: WidgetStatePropertyAll<TextStyle>(TextStyle(
-          fontFamily: 'Segoe UI',
-          letterSpacing: 0.3, 
-          textBaseline: TextBaseline.alphabetic, 
-          height: 1.4, 
-          decoration: TextDecoration.none,
-          wordSpacing: 1,
-          decorationThickness: 1
-        )),
-      ),
-      iconButtonStyle: fluent.ButtonStyle(
-        textStyle: WidgetStatePropertyAll<TextStyle>(TextStyle(
-          fontFamily: 'Segoe UI',
-          letterSpacing: 0.3, 
-          textBaseline: TextBaseline.alphabetic, 
-          height: 1.4, 
-          decoration: TextDecoration.none,
-          wordSpacing: 1,
-          decorationThickness: 1
-        )),
-      ),    
-    ),
-    tooltipTheme: const fluent.TooltipThemeData(
-    )
-  );
+  static final fluent.FluentThemeData fluentLightTheme =
+      fluent.FluentThemeData().copyWith(
+          brightness: fluent.Brightness.light,
+          // fontFamily: 'Segoe UI',
+          typography: fluent.Typography.fromBrightness(
+              brightness: fluent.Brightness.light),
+          accentColor: wtBlue,
+          activeColor: weightechBlue,
+          inactiveColor: weightechGray,
+          cardColor: (AppSettings.useMica ?? false)
+              ? fluent.Colors.transparent
+              : windowsLight,
+          scaffoldBackgroundColor: (AppSettings.useMica ?? false)
+              ? fluent.Colors.transparent
+              : windowsLight,
+          dialogTheme: fluent.ContentDialogThemeData(
+            titleStyle: const TextStyle(
+                color: WeightechThemes.weightechBlue, fontSize: 18),
+            decoration: BoxDecoration(
+              color: fluent.Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: fluent.kElevationToShadow[6],
+            ),
+            padding: const EdgeInsets.all(20),
+            titlePadding: const EdgeInsetsDirectional.only(bottom: 12),
+            actionsSpacing: 10,
+            actionsDecoration: const BoxDecoration(
+              color: windowsLight,
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(12)),
+              // boxShadow: kElevationToShadow[1],
+            ),
+            actionsPadding: const EdgeInsets.all(20),
+          ),
+          buttonTheme: fluent.ButtonThemeData(
+            defaultButtonStyle: fluent.ButtonStyle(
+              textStyle: WidgetStatePropertyAll<TextStyle>(TextStyle(
+                  fontFamily: 'Segoe UI',
+                  letterSpacing: 0.3,
+                  textBaseline: TextBaseline.alphabetic,
+                  height: 1.4,
+                  decoration: TextDecoration.none,
+                  wordSpacing: 1,
+                  decorationThickness: 1)),
+            ),
+            outlinedButtonStyle: fluent.ButtonStyle(
+              textStyle: WidgetStatePropertyAll<TextStyle>(TextStyle(
+                  fontFamily: 'Segoe UI',
+                  letterSpacing: 0.3,
+                  textBaseline: TextBaseline.alphabetic,
+                  height: 1.4,
+                  decoration: TextDecoration.none,
+                  wordSpacing: 1,
+                  decorationThickness: 1)),
+              backgroundColor: fluent.WidgetStatePropertyAll<Color>(
+                  fluent.Colors.transparent),
+              foregroundColor:
+                  fluent.WidgetStatePropertyAll<Color>(wtGray.darker),
+            ),
+            filledButtonStyle: fluent.ButtonStyle(
+              backgroundColor: fluent.WidgetStatePropertyAll<Color>(
+                  WeightechThemes.weightechBlue),
+              foregroundColor:
+                  fluent.WidgetStatePropertyAll<Color>(fluent.Colors.white),
+              textStyle: WidgetStatePropertyAll<TextStyle>(TextStyle(
+                  fontFamily: 'Segoe UI',
+                  letterSpacing: 0.3,
+                  textBaseline: TextBaseline.alphabetic,
+                  height: 1.4,
+                  decoration: TextDecoration.none,
+                  wordSpacing: 1,
+                  decorationThickness: 1)),
+            ),
+            iconButtonStyle: fluent.ButtonStyle(
+              textStyle: WidgetStatePropertyAll<TextStyle>(TextStyle(
+                  fontFamily: 'Segoe UI',
+                  letterSpacing: 0.3,
+                  textBaseline: TextBaseline.alphabetic,
+                  height: 1.4,
+                  decoration: TextDecoration.none,
+                  wordSpacing: 1,
+                  decorationThickness: 1)),
+            ),
+          ),
+          tooltipTheme: const fluent.TooltipThemeData());
 
   static final material.ThemeData materialDarkTheme = material.ThemeData(
     scaffoldBackgroundColor: const material.Color(0xFF202020),
     cardTheme: material.CardTheme(
-      color: const material.Color(0xFF202020),
-      elevation: 4,
-      shape: material.RoundedRectangleBorder(
-        borderRadius: material.BorderRadius.circular(8)
-      )
-    ),
+        color: const material.Color(0xFF202020),
+        elevation: 4,
+        shape: material.RoundedRectangleBorder(
+            borderRadius: material.BorderRadius.circular(8))),
     textTheme: GoogleFonts.openSansTextTheme(),
-    colorScheme: material.ColorScheme.fromSeed(seedColor: weightechBlue, brightness: material.Brightness.dark),
+    colorScheme: material.ColorScheme.fromSeed(
+        seedColor: weightechBlue, brightness: material.Brightness.dark),
     dialogTheme: const material.DialogTheme(
       surfaceTintColor: material.Color(0xFF202020),
     ),
   );
 
-  static final fluent.FluentThemeData fluentDarkTheme = fluent.FluentThemeData.dark().copyWith(
-    brightness: fluent.Brightness.dark,
-    // fontFamily: 'Segoe UI',
-    typography: fluent.Typography.fromBrightness(brightness: fluent.Brightness.dark),
-    accentColor: wtGray,
-    activeColor: weightechOrange,
-    inactiveColor: wtGray.darkest,
-    cardColor: (AppSettings.useMica ?? false) ? fluent.Colors.transparent : windowsDark,
-    scaffoldBackgroundColor: (AppSettings.useMica ?? false) ? fluent.Colors.transparent : windowsDark,
-    dialogTheme: fluent.ContentDialogThemeData(
-      titleStyle: const TextStyle(color: WeightechThemes.weightechGray, fontSize: 18),
-      decoration: BoxDecoration(
-        color: windowsDark,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: fluent.kElevationToShadow[6],
-      ),
-      padding: const EdgeInsets.all(20),
-      titlePadding: const EdgeInsetsDirectional.only(bottom: 12),
-      actionsSpacing: 10,
-      actionsDecoration: const BoxDecoration(
-        color: windowsDark,
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(12)),
-        // boxShadow: kElevationToShadow[1],
-      ),
-      actionsPadding: const EdgeInsets.all(20),
-    ),
-    buttonTheme: fluent.ButtonThemeData(
-      defaultButtonStyle: fluent.ButtonStyle(
-        textStyle: WidgetStatePropertyAll<TextStyle>(TextStyle(
-          fontFamily: 'Segoe UI',
-          letterSpacing: 0.3, 
-          textBaseline: TextBaseline.alphabetic, 
-          height: 1.4, 
-          decoration: TextDecoration.none,
-          wordSpacing: 1,
-          decorationThickness: 1
-        )),
-      ), 
-      outlinedButtonStyle: fluent.ButtonStyle(
-        textStyle: WidgetStatePropertyAll<TextStyle>(TextStyle(
-          fontFamily: 'Segoe UI',
-          letterSpacing: 0.3, 
-          textBaseline: TextBaseline.alphabetic, 
-          height: 1.4, 
-          decoration: TextDecoration.none,
-          wordSpacing: 1,
-          decorationThickness: 1
-        )),
-        backgroundColor: fluent.WidgetStatePropertyAll<Color>(fluent.Colors.transparent),
-        foregroundColor: fluent.WidgetStatePropertyAll<Color>(wtGray.lighter),
-      ),
-      filledButtonStyle: fluent.ButtonStyle(
-        backgroundColor: fluent.WidgetStatePropertyAll<Color>(WeightechThemes.weightechOrange),
-        foregroundColor: fluent.WidgetStatePropertyAll<Color>(fluent.Colors.white),
-        textStyle: WidgetStatePropertyAll<TextStyle>(TextStyle(
-          fontFamily: 'Segoe UI',
-          letterSpacing: 0.3, 
-          textBaseline: TextBaseline.alphabetic, 
-          height: 1.4, 
-          decoration: TextDecoration.none,
-          wordSpacing: 1,
-          decorationThickness: 1
-        )),
-      ),
-      iconButtonStyle: fluent.ButtonStyle(
-        textStyle: WidgetStatePropertyAll<TextStyle>(TextStyle(
-          fontFamily: 'Segoe UI',
-          letterSpacing: 0.3, 
-          textBaseline: TextBaseline.alphabetic, 
-          height: 1.4, 
-          decoration: TextDecoration.none,
-          wordSpacing: 1,
-          decorationThickness: 1
-        )),
-      ),    
-    ),
-    tooltipTheme: const fluent.TooltipThemeData(
-    )
-  );
-  
+  static final fluent.FluentThemeData fluentDarkTheme =
+      fluent.FluentThemeData.dark().copyWith(
+          brightness: fluent.Brightness.dark,
+          // fontFamily: 'Segoe UI',
+          typography: fluent.Typography.fromBrightness(
+              brightness: fluent.Brightness.dark),
+          accentColor: wtGray,
+          activeColor: weightechOrange,
+          inactiveColor: wtGray.darkest,
+          cardColor: (AppSettings.useMica ?? false)
+              ? fluent.Colors.transparent
+              : windowsDark,
+          scaffoldBackgroundColor: (AppSettings.useMica ?? false)
+              ? fluent.Colors.transparent
+              : windowsDark,
+          dialogTheme: fluent.ContentDialogThemeData(
+            titleStyle: const TextStyle(
+                color: WeightechThemes.weightechGray, fontSize: 18),
+            decoration: BoxDecoration(
+              color: windowsDark,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: fluent.kElevationToShadow[6],
+            ),
+            padding: const EdgeInsets.all(20),
+            titlePadding: const EdgeInsetsDirectional.only(bottom: 12),
+            actionsSpacing: 10,
+            actionsDecoration: const BoxDecoration(
+              color: windowsDark,
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(12)),
+              // boxShadow: kElevationToShadow[1],
+            ),
+            actionsPadding: const EdgeInsets.all(20),
+          ),
+          buttonTheme: fluent.ButtonThemeData(
+            defaultButtonStyle: fluent.ButtonStyle(
+              textStyle: WidgetStatePropertyAll<TextStyle>(TextStyle(
+                  fontFamily: 'Segoe UI',
+                  letterSpacing: 0.3,
+                  textBaseline: TextBaseline.alphabetic,
+                  height: 1.4,
+                  decoration: TextDecoration.none,
+                  wordSpacing: 1,
+                  decorationThickness: 1)),
+            ),
+            outlinedButtonStyle: fluent.ButtonStyle(
+              textStyle: WidgetStatePropertyAll<TextStyle>(TextStyle(
+                  fontFamily: 'Segoe UI',
+                  letterSpacing: 0.3,
+                  textBaseline: TextBaseline.alphabetic,
+                  height: 1.4,
+                  decoration: TextDecoration.none,
+                  wordSpacing: 1,
+                  decorationThickness: 1)),
+              backgroundColor: fluent.WidgetStatePropertyAll<Color>(
+                  fluent.Colors.transparent),
+              foregroundColor:
+                  fluent.WidgetStatePropertyAll<Color>(wtGray.lighter),
+            ),
+            filledButtonStyle: fluent.ButtonStyle(
+              backgroundColor: fluent.WidgetStatePropertyAll<Color>(
+                  WeightechThemes.weightechOrange),
+              foregroundColor:
+                  fluent.WidgetStatePropertyAll<Color>(fluent.Colors.white),
+              textStyle: WidgetStatePropertyAll<TextStyle>(TextStyle(
+                  fontFamily: 'Segoe UI',
+                  letterSpacing: 0.3,
+                  textBaseline: TextBaseline.alphabetic,
+                  height: 1.4,
+                  decoration: TextDecoration.none,
+                  wordSpacing: 1,
+                  decorationThickness: 1)),
+            ),
+            iconButtonStyle: fluent.ButtonStyle(
+              textStyle: WidgetStatePropertyAll<TextStyle>(TextStyle(
+                  fontFamily: 'Segoe UI',
+                  letterSpacing: 0.3,
+                  textBaseline: TextBaseline.alphabetic,
+                  height: 1.4,
+                  decoration: TextDecoration.none,
+                  wordSpacing: 1,
+                  decorationThickness: 1)),
+            ),
+          ),
+          tooltipTheme: const fluent.TooltipThemeData());
 }
