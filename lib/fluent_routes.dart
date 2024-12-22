@@ -65,6 +65,7 @@ class _OfflinePageState extends State<OfflinePage>
       switch (status) {
         case InternetStatus.connected:
           // The internet is now connectioni
+          Log.logger.t("System connected.");
           if (mounted) Navigator.of(context).pop();
           break;
         case InternetStatus.disconnected:
@@ -281,6 +282,7 @@ class _StartupPageState extends State<StartupPage>
                                             WidgetsBinding.instance
                                                 .addPostFrameCallback(
                                                     (timeStamp) {
+                                              Log.logger.t('-------------------------------');
                                               Navigator.of(context).pushReplacement(
                                                   PageRouteBuilder(
                                                       pageBuilder: (BuildContext
@@ -1186,7 +1188,7 @@ class _ControlPageState extends State<ControlPage>
                                                         CommandBarButton(
                                                       icon: const Icon(
                                                           FluentIcons
-                                                              .eye_20_regular),
+                                                              .print_20_regular),
                                                       label: const Text(
                                                           'Print',
                                                           style: TextStyle(
@@ -1491,7 +1493,39 @@ class _ControlPageState extends State<ControlPage>
   }
 
   Widget catalogBuilder({required ECategory item}) {
-    return buildItemsList(item: item);
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(10,10,10,0),
+          child: AutoSuggestBox<EItem>(
+          items: CatalogEditor.getAllItems().map((item) {
+            return AutoSuggestBoxItem<EItem>(
+              value: item,
+              label: item.name,
+              child: Text(item.name),
+            );
+          }).toList(),
+          onSelected: (item) {
+            final query = _treeController.search((EItem node) => node.id == item.value!.id);
+            EItem? matchingItem;
+            query.matches.forEach((match, details) {
+              if (details.isDirectMatch) {
+                matchingItem = match;
+              }
+            });
+            if (matchingItem != null) {
+              _treeController.expandAncestors(matchingItem!);
+              _treeController.rebuild();
+              toggleEditorItem(matchingItem);
+            }
+          }
+        ),
+        ),
+        Expanded(
+          child: buildItemsList(item: item)
+        )
+      ]
+    );
   }
 
   Widget buildItemsList({required ECategory item}) {
@@ -3963,7 +3997,7 @@ class _ControlPageState extends State<ControlPage>
                     crossAxisAlignment: CrossAxisAlignment.center,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Image.asset('assets/icon/wt_icon.ico', height: 100),
+                      Image.asset('assets/${FluentTheme.of(context).brightness.isLight ? 'w_logo_blue' : 'w_logo_gray'}.png', height: 100),
                       const SizedBox(width: 30),
                       Flexible(
                           fit: FlexFit.loose,
@@ -3973,7 +4007,7 @@ class _ControlPageState extends State<ControlPage>
                               children: [
                                 FittedBox(
                                   fit: BoxFit.scaleDown,
-                                  child: Text(AppInfo.packageInfo.appName,
+                                  child: Text(AppInfo.packageInfo.version,
                                       style: FluentTheme.of(context)
                                           .typography
                                           .title),
@@ -4123,7 +4157,5 @@ class _ControlPageState extends State<ControlPage>
       Log.logger.i('Application closed successfully.');
       windowManager.destroy().then((_) => exit(0));
     }
-
-    AppSettings.saveSettings();
   }
 }

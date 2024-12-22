@@ -10,6 +10,7 @@ import 'package:adaptive_theme/adaptive_theme.dart';
 import 'package:window_manager/window_manager.dart';
 
 class WeightechThemes extends ChangeNotifier {
+  static late AdaptiveThemeMode? startupTheme;
   static late fluent.FluentThemeData currentTheme;
   static late fluent.ThemeMode themeMode;
   static late bool isDarkMode;
@@ -43,19 +44,35 @@ class WeightechThemes extends ChangeNotifier {
     'lighter': Color(0xffe9e9eB),
     'lightest': Color(0xfff4f4f9),
   });
-  WeightechThemes() {
-    Brightness brightness =
-        WidgetsBinding.instance.platformDispatcher.platformBrightness;
-    themeMode = fluent.ThemeMode.system;
-    isDarkMode = AppSettings.isDarkMode ?? brightness.isDark;
+  WeightechThemes({required AdaptiveThemeMode startupMode}) {
+    _initializeTheme(startupMode);
+  }
 
-    if (AppSettings.isDarkMode != null) {
-      themeMode = AppSettings.isDarkMode!
-          ? fluent.ThemeMode.dark
-          : fluent.ThemeMode.light;
-    }
+  void _initializeTheme(AdaptiveThemeMode startupMode) {
+    // Default to light theme if AppSettings.isDarkMode is null
+    isDarkMode = startupMode.isDark;
+    final isDark = startupMode.isDark;
+    themeMode = startupMode == AdaptiveThemeMode.system
+        ? fluent.ThemeMode.system
+        : (isDarkMode ? fluent.ThemeMode.dark : fluent.ThemeMode.light);
 
-    setCustoms();
+    currentTheme = isDarkMode ? fluentDarkTheme : fluentLightTheme;
+
+    _applyThemeSettings();
+    
+  }
+
+  // Set properties dynamically based on theme
+  void _applyThemeSettings() {
+    infoWidgetColor = isDarkMode ? wtGray.darkest : wtGray.lightest;
+    loadingAnimationColor = isDarkMode ? weightechOrange : weightechBlue;
+    fileDropColor = isDarkMode ? weightechOrange : weightechBlue;
+    dialogTitleStyle = TextStyle(
+      color: isDarkMode ? weightechGray : weightechBlue,
+      fontSize: 18,
+    );
+
+    notifyListeners();
   }
 
   static Future<void> setCustoms({AdaptiveThemeMode? mode}) async {
@@ -86,6 +103,7 @@ class WeightechThemes extends ChangeNotifier {
 
   // Function to set the Mica effect based on the current theme mode
   static Future<void> setMicaEffect(AdaptiveThemeMode mode) async {
+    AppSettings.useMica = true;
     if (mode == AdaptiveThemeMode.light) {
       await Window.setEffect(effect: WindowEffect.mica, dark: false);
     } else if (mode == AdaptiveThemeMode.dark) {
@@ -97,6 +115,7 @@ class WeightechThemes extends ChangeNotifier {
 
   // Function to set the Mica effect based on the current theme mode
   static Future<void> disableMicaEffect(AdaptiveThemeMode mode) async {
+    AppSettings.useMica = false;
     if (mode == AdaptiveThemeMode.light) {
       await Window.setEffect(effect: WindowEffect.solid, color: windowsLight);
     } else if (mode == AdaptiveThemeMode.dark) {
@@ -137,6 +156,8 @@ class WeightechThemes extends ChangeNotifier {
       case (AdaptiveThemeMode.light):
         {
           await setLightMode(context);
+          final mode = await AdaptiveTheme.getThemeMode();
+          Log.logger.i('Mode: ${mode}');
         }
       case (AdaptiveThemeMode.system):
         {
@@ -182,7 +203,7 @@ class WeightechThemes extends ChangeNotifier {
     ),
   );
 
-  static final fluent.FluentThemeData fluentLightTheme =
+  static fluent.FluentThemeData fluentLightTheme =
       fluent.FluentThemeData().copyWith(
           brightness: fluent.Brightness.light,
           // fontFamily: 'Segoe UI',
@@ -191,7 +212,7 @@ class WeightechThemes extends ChangeNotifier {
           accentColor: wtBlue,
           activeColor: weightechBlue,
           inactiveColor: weightechGray,
-          cardColor: (AppSettings.useMica ?? false)
+          cardColor: (AppSettings.useMica ?? true)
               ? fluent.Colors.transparent
               : windowsLight,
           scaffoldBackgroundColor: (AppSettings.useMica ?? false)
@@ -282,7 +303,7 @@ class WeightechThemes extends ChangeNotifier {
     ),
   );
 
-  static final fluent.FluentThemeData fluentDarkTheme =
+  static fluent.FluentThemeData fluentDarkTheme =
       fluent.FluentThemeData.dark().copyWith(
           brightness: fluent.Brightness.dark,
           // fontFamily: 'Segoe UI',
@@ -294,7 +315,7 @@ class WeightechThemes extends ChangeNotifier {
           cardColor: (AppSettings.useMica ?? false)
               ? fluent.Colors.transparent
               : windowsDark,
-          scaffoldBackgroundColor: (AppSettings.useMica ?? false)
+          scaffoldBackgroundColor: (AppSettings.useMica ?? true)
               ? fluent.Colors.transparent
               : windowsDark,
           dialogTheme: fluent.ContentDialogThemeData(

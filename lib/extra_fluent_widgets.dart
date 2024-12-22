@@ -120,6 +120,7 @@ class _CustomFeedbackFormState extends State<CustomFeedbackForm> {
                   onPressed: _feedbackText.isNotEmpty
                       ? () async {
                           setState(() => _loading = true);
+                          await Future.delayed(const Duration(seconds: 1));
                           await widget.onSubmit(controller.text);
                           setState(() => _loading = false);
                         }

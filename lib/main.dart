@@ -27,84 +27,82 @@ Future<void> main() async {
   }
 
   await AppInfo().init();
-  await AppSettings().init();
   await Log().init();
   Log.logger.i(
       'Version: ${AppInfo.packageInfo.version}, Build: ${AppInfo.packageInfo.buildNumber}, SessionId: ${AppInfo.sessionId}');
-  WeightechThemes();
+  await AppSettings().init();
+  AdaptiveThemeMode? startupMode = await AdaptiveTheme.getThemeMode();
+  WeightechThemes(startupMode : startupMode ?? AdaptiveThemeMode.light);
 
   runApp(FluentTheme(
-      data: WeightechThemes.currentTheme,
-      child: BetterFeedback(
-          feedbackBuilder: (context, onSubmit, scrollController) {
-            return CustomFeedbackForm(
-              onSubmit: onSubmit,
-              scrollController: scrollController,
-            );
-          },
-          localeOverride: const Locale('en'),
-          themeMode: WeightechThemes.themeMode,
-          theme: FeedbackThemeData(
-            background: Colors.transparent,
-            feedbackSheetColor: Colors.transparent,
-            sheetIsDraggable: false,
-            bottomSheetDescriptionStyle: TextStyle(color: Colors.black),
-            bottomSheetTextInputStyle: TextStyle(color: Colors.black),
-            activeFeedbackModeColor: WeightechThemes.weightechBlue,
-          ),
-          darkTheme: FeedbackThemeData(
-            background: Colors.transparent,
-            feedbackSheetColor: Colors.transparent,
-            sheetIsDraggable: false,
-            bottomSheetDescriptionStyle: TextStyle(color: Colors.white),
-            bottomSheetTextInputStyle: TextStyle(color: Colors.white),
-            activeFeedbackModeColor: WeightechThemes.weightechBlue,
-          ),
-          child: WeightechApp())));
+    data: WeightechThemes.currentTheme,
+    child: BetterFeedback(
+      localizationsDelegates: FluentLocalizations.localizationsDelegates,
+        feedbackBuilder: (context, onSubmit, scrollController) {
+          return CustomFeedbackForm(
+            onSubmit: onSubmit,
+            scrollController: scrollController,
+          );
+        },
+        localeOverride: const Locale('en'),
+        themeMode: WeightechThemes.themeMode,
+        theme: FeedbackThemeData(
+          background: Colors.transparent,
+          feedbackSheetColor: Colors.transparent,
+          sheetIsDraggable: false,
+          bottomSheetDescriptionStyle: TextStyle(color: Colors.black),
+          bottomSheetTextInputStyle: TextStyle(color: Colors.black),
+          activeFeedbackModeColor: WeightechThemes.weightechBlue,
+        ),
+        darkTheme: FeedbackThemeData(
+          background: Colors.transparent,
+          feedbackSheetColor: Colors.transparent,
+          sheetIsDraggable: false,
+          bottomSheetDescriptionStyle: TextStyle(color: Colors.white),
+          bottomSheetTextInputStyle: TextStyle(color: Colors.white),
+          activeFeedbackModeColor: WeightechThemes.weightechBlue,
+        ),
+        child: WeightechApp(startupMode))));
 }
 
 /// A class that defines the widget tree.
 class WeightechApp extends StatelessWidget {
-  WeightechApp() : super(key: GlobalKey());
+  WeightechApp(this.startupTheme) : super(key: GlobalKey());
+  AdaptiveThemeMode? startupTheme;
 
   @override
   Widget build(BuildContext context) {
     // Listen to theme changes and update the Mica effect
 
     return FluentAdaptiveTheme(
-        initial: AdaptiveThemeMode.system,
+        initial: (startupTheme) ?? AdaptiveThemeMode.light,
         light: WeightechThemes.fluentLightTheme,
         dark: WeightechThemes.fluentDarkTheme,
         builder: (theme, darkTheme) {
           // Check if the widget tree is ready
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (AppSettings.useMica ?? false) {
-              if (AppSettings.isDarkMode ?? false) {
+              if (WeightechThemes.isDarkMode) {
                 WeightechThemes.setMicaEffect(AdaptiveThemeMode.dark);
                 WeightechThemes.setCustoms(mode: AdaptiveThemeMode.dark);
-              } else if (!(AppSettings.isDarkMode ?? true)) {
+              } else {
                 WeightechThemes.setMicaEffect(AdaptiveThemeMode.light);
                 WeightechThemes.setCustoms(mode: AdaptiveThemeMode.light);
-              } else {
-                WeightechThemes.setMicaEffect(AdaptiveThemeMode.system);
-                WeightechThemes.setCustoms(mode: AdaptiveThemeMode.system);
               }
             } else {
-              if (AppSettings.isDarkMode ?? false) {
+              if (WeightechThemes.isDarkMode) {
                 WeightechThemes.disableMicaEffect(AdaptiveThemeMode.dark);
                 WeightechThemes.setCustoms(mode: AdaptiveThemeMode.dark);
-              } else if (!(AppSettings.isDarkMode ?? true)) {
+              } else {
                 WeightechThemes.disableMicaEffect(AdaptiveThemeMode.light);
                 WeightechThemes.setCustoms(mode: AdaptiveThemeMode.light);
-              } else {
-                WeightechThemes.setMicaEffect(AdaptiveThemeMode.system);
-                WeightechThemes.setCustoms(mode: AdaptiveThemeMode.system);
               }
             }
           });
 
           return FluentApp(
               //themeMode: WeightechThemes.mode,
+              localizationsDelegates: const [FluentLocalizations.delegate],
               theme: theme,
               darkTheme: darkTheme,
               // darkTheme: WeightechThemes.fluentDarkTheme,

@@ -109,6 +109,29 @@ class ProductManager {
     postCatalogToFirestore();
   }
 
+  List<CatalogItem> getAllItems(ProductCategory? category) {
+    final ProductCategory root = category ?? all!;
+
+    List<CatalogItem> allItems = [];
+
+    void traverseCategories(ProductCategory category) {
+      allItems.add(category);
+
+      for (var item in category.catalogItems) {
+        if (item.runtimeType == ProductCategory) {
+          traverseCategories(item as ProductCategory);
+        }
+        else {
+          allItems.add(item);
+        }
+      }
+    }
+
+    traverseCategories(root);
+
+    return allItems;
+  }
+
   List<ProductCategory> getAllCategories(ProductCategory? category) {
     final ProductCategory root = category ?? all!;
 

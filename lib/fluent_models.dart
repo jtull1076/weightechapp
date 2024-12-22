@@ -626,6 +626,30 @@ class CatalogEditor {
       throw ();
     }
   }
+
+  static List<EItem> getAllItems() {
+    List<EItem> result = [];
+
+    void traverseItems(ECategory category) {
+      for (var item in category.editorItems) {
+        switch (item) {
+          case ECategory _:
+            {
+              result.add(item);
+              traverseItems(item);
+            }
+          case EProduct _:
+            {
+              result.add(item);
+            }
+        }
+      }
+    }
+
+    traverseItems(all);
+
+    return result;
+  }
 }
 
 /// A sealed class representing an item in the catalog, which can be either a category or a product.
@@ -691,6 +715,8 @@ sealed class EItem {
 
     return result;
   }
+
+  
 
   /// Retrieves an item by its name from the catalog hierarchy.
   ///
