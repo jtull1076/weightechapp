@@ -111,6 +111,30 @@ class ProductManager {
     return result;
   }
 
+  static List<CatalogItem> getAllItems({ProductCategory? category}) {
+    final ProductCategory root = category ?? all!;
+
+    List<CatalogItem> allItems = [];
+
+    void traverseCategories(ProductCategory category) {
+      allItems.add(category);
+
+      for (var item in category.catalogItems) {
+        if (item.runtimeType == ProductCategory) {
+          traverseCategories(item as ProductCategory);
+        }
+        else {
+          allItems.add(item);
+        }
+      }
+    }
+
+    traverseCategories(root);
+
+    allItems.remove(all);
+    return allItems;
+  }
+
   static Future<void> postCatalogToFirestore() async {
     Log.logger.t("Posting catalog to Firestore");
     Map<String,dynamic> catalogJson = all!.toJson();

@@ -41,6 +41,7 @@ class WeightechThemes {
     colorScheme: ColorScheme.fromSeed(seedColor: weightechBlue, brightness: Brightness.light),
     dialogTheme: const DialogTheme(
       surfaceTintColor: Colors.white,
+      backgroundColor: Colors.white,
     ),
   );
 

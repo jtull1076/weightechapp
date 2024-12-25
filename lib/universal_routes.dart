@@ -214,6 +214,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   late Animation<double> _fadeAnimation;
   late Animation<double> _dividerWidthAnimation;
   late Timer _timer;
+  final SearchController _searchController = SearchController();
 
   @override
   void initState() {
@@ -245,7 +246,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  void catalogNavigation(BuildContext context, dynamic item){
+  void catalogNavigation(BuildContext context, CatalogItem item){
     if (item is ProductCategory) {
       Log.logger.t('...Rerouting to ${item.name} listing...');
       _timer.cancel();
@@ -359,6 +360,68 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                       SizeTransition(sizeFactor: _dividerWidthAnimation, axis: Axis.horizontal, child: FadeTransition(opacity: _fadeAnimation, child: const Hero(tag: 'divider', child: Divider(color: Color(0xFF224190), height: 2, thickness: 2, indent: 25.0, endIndent: 25.0,)))),
                       const SizedBox(height: 10),
                     ]
+                  ),
+                  Positioned(
+                      top: 20,
+                      right: 20,
+                      child: FadeTransition(
+                        opacity: _fadeAnimation,
+                        child: SearchAnchor(
+                          // isFullScreen: false,
+                          searchController: _searchController,
+                          viewHintText: "Search",
+                          viewBackgroundColor: Color(0xFFEDEDED),
+                          dividerColor: WeightechThemes.weightechBlue,
+                          viewElevation: 20,
+                          builder: (context, controller) {
+                            return IconButton(
+                              icon: const Icon(Icons.search),
+                              onPressed: () => controller.openView(),
+                            );
+                          },
+                          suggestionsBuilder: (context, controller) {
+                            final query = controller.text.toLowerCase();
+                            if (query != '') {
+                              final allItems = ProductManager.getAllItems();
+                              final suggestions = allItems.where((item) {
+                                return item.name.toLowerCase().contains(query);
+                              }).toList();
+
+                              return suggestions.map((item) {
+                                return ListTile(
+                                  minTileHeight: 100,
+                                  leading: item.imageProvider != null ? Image(image: item.imageProvider!,) : null,
+                                  title: Text(item.name),
+                                  onTap: () {
+                                    controller.closeView(null); // Pass the selected item
+                                    catalogNavigation(context, item);
+                                  },
+                                );
+                              });
+                            }
+                            else {
+                              return [];
+                            }
+                          },
+                          viewOnSubmitted: (query) {
+                            final allItems = ProductManager.getAllItems();
+                            CatalogItem? result;
+                            try {
+                              result = allItems.firstWhere(
+                                (item) {
+                                  return item.name.toLowerCase().contains(query.toLowerCase());
+                                },
+                              );
+                            } catch (e) {
+                              // Do nothing
+                            }
+
+                            if (result != null) {
+                              catalogNavigation(context, result);
+                            }
+                          },
+                        )
+                    ),
                   )
                 ]
               ),
@@ -397,6 +460,70 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           ]
         );
       }
+    );
+  }
+}
+
+class ItemSearchDelegate extends SearchDelegate<CatalogItem?> {
+  List<CatalogItem> items = ProductManager.getAllItems();
+
+  @override
+  List<Widget>? buildActions(BuildContext context) {
+    return [
+      IconButton(
+        icon: const Icon(Icons.clear),
+        onPressed: () {
+          query = '';
+        },
+      ),
+    ];
+  }
+
+  @override
+  Widget? buildLeading(BuildContext context) {
+    return IconButton(
+      icon: const Icon(Icons.arrow_back),
+      onPressed: () {
+        close(context, null);
+      },
+    );
+  }
+
+  @override
+  Widget buildResults(BuildContext context) {
+    final results = items.where((item) => item.name.toLowerCase().contains(query.toLowerCase())).toList();
+
+    return ListView.builder(
+      itemCount: results.length,
+      itemBuilder: (context, index) {
+        return ListTile(
+          leading: results[index].imageProvider != null ? Image(image: results[index].imageProvider!) : SizedBox(),
+          title: Text(results[index].name),
+          onTap: () {
+            close(context, results[index]); // Close search with selected result
+          },
+        );
+      },
+    );
+  }
+
+  @override
+  Widget buildSuggestions(BuildContext context) {
+    final suggestions = query.isEmpty
+        ? []
+        : items.where((item) => item.name.toLowerCase().startsWith(query.toLowerCase())).toList();
+
+    return ListView.builder(
+      itemCount: suggestions.length,
+      itemBuilder: (context, index) {
+        return ListTile(
+          title: Text(suggestions[index].name),
+          onTap: () {
+            query = suggestions[index].name;
+            showResults(context); // Show results when suggestion tapped
+          },
+        );
+      },
     );
   }
 }
