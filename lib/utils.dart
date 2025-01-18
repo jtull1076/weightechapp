@@ -100,7 +100,17 @@ class AppSettings {
   static late String storageRef;
 
   /// Indicates if this is the first time the app is launched
-  static bool? isFirstLaunch;
+  static bool? _isFirstLaunch;
+  static bool? get isFirstLaunch => _isFirstLaunch;
+  static set isFirstLaunch(bool? isFirstLaunch) {
+    _isFirstLaunch = isFirstLaunch ?? false;
+    if (isFirstLaunch != null) {
+      prefs.setBool('isFirstLaunch', isFirstLaunch);
+    }
+    else {
+      prefs.remove('isFirstLaunch');
+    }
+  }
 
   AppSettings();
 

@@ -1441,6 +1441,7 @@ class EProduct extends EItem {
     ECategory? parent,
     String? modelNumber,
     String? description,
+    String? price,
     List<Map<String, dynamic>>? brochure,
     List<String>? mediaPaths,
     List<File>? mediaFiles,
@@ -1471,6 +1472,7 @@ class EProduct extends EItem {
     }
     if (modelNumber != null) product.modelNumber = modelNumber;
     if (description != null) product.description = description;
+    if (price != null) product.price = price;
     if (brochure != null) product.brochure = brochure;
     if (mediaPaths != null) this.mediaPaths = List.from(mediaPaths);
     if (mediaFiles != null) {

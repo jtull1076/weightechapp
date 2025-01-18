@@ -454,6 +454,7 @@ class ProductCategory extends CatalogItem {
 class Product extends CatalogItem {
   String? modelNumber;
   List<Map<String, dynamic>>? productMedia;
+  String? price;
   String? description;
   List<Map<String, dynamic>>? brochure;
   static const String buttonRoute = '/product';
@@ -465,6 +466,7 @@ class Product extends CatalogItem {
     String? imageUrl,
     this.productMedia,
     this.modelNumber,
+    this.price,
     this.description,
     this.brochure,
     BuildContext? context,
@@ -532,6 +534,7 @@ class Product extends CatalogItem {
     Map<String, dynamic> json = super.toJson();
     json['modelNumber'] = modelNumber;
     json['description'] = description;
+    json['price'] = price;
     json['brochure'] = brochure;
     json['parentId'] = parentId;
     json['media'] = productMedia;
@@ -543,6 +546,7 @@ class Product extends CatalogItem {
       name: json['name'],
       id: json['id'],
       modelNumber: json['modelNumber'],
+      price: json['price'],
       description: json['description'],
       brochure: List<Map<String, dynamic>>.from(json['brochure']),
       parentId: json['parentId'],

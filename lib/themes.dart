@@ -146,8 +146,7 @@ class WeightechThemes extends ChangeNotifier {
         effect: (useMica ? WindowEffect.mica : WindowEffect.solid));
   }
 
-  static Future<void> setColorMode(
-      BuildContext context, AdaptiveThemeMode colorMode) async {
+  static Future<void> setColorMode(BuildContext context, AdaptiveThemeMode colorMode) async {
     switch (colorMode) {
       case (AdaptiveThemeMode.dark):
         {
@@ -156,8 +155,6 @@ class WeightechThemes extends ChangeNotifier {
       case (AdaptiveThemeMode.light):
         {
           await setLightMode(context);
-          final mode = await AdaptiveTheme.getThemeMode();
-          Log.logger.i('Mode: ${mode}');
         }
       case (AdaptiveThemeMode.system):
         {

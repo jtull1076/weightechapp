@@ -59,6 +59,7 @@ dependencies:
   adaptive_theme_fluent_ui: ^1.3.0
   printing: ^5.13.4
   pdf: ^3.11.1
+  showcaseview: ^4.0.0
 
 dev_dependencies:
   flutter_test:

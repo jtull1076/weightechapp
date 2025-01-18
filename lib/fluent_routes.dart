@@ -14,6 +14,7 @@ import 'package:weightechapp/extra_material_widgets.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:async';
 import 'dart:io';
+import 'dart:math';
 import 'package:simple_rich_text/simple_rich_text.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:path_provider/path_provider.dart';
@@ -37,6 +38,7 @@ import 'package:keymap/keymap.dart';
 import 'package:flutter/services.dart';
 import 'package:adaptive_theme/adaptive_theme.dart';
 import 'package:adaptive_theme_fluent_ui/adaptive_theme_fluent_ui.dart';
+import 'package:showcaseview/showcaseview.dart';
 
 //MARK: OFFLINE PAGE
 
@@ -285,11 +287,13 @@ class _StartupPageState extends State<StartupPage>
                                               Log.logger.t('-------------------------------');
                                               Navigator.of(context).pushReplacement(
                                                   PageRouteBuilder(
-                                                      pageBuilder: (BuildContext
-                                                                  context,
-                                                              _,
-                                                              __) =>
-                                                          const ControlPage()));
+                                                      pageBuilder: (BuildContext context, _, __) =>
+                                                        ShowCaseWidget(
+                                                          disableMovingAnimation: true,
+                                                          builder: (context) => ControlPage()
+                                                        )
+                                                  )
+                                              );
                                             });
                                           }
                                           // else if (status == UpdatStatus.readyToInstall) {
@@ -319,6 +323,27 @@ class ControlPage extends StatefulWidget {
 
 class _ControlPageState extends State<ControlPage>
     with TickerProviderStateMixin, WindowListener {
+
+  final GlobalKey _filenameKey = GlobalKey();
+  final GlobalKey _backupCommandKey = GlobalKey();
+  final GlobalKey _publishCommandKey = GlobalKey();
+  final GlobalKey _restoreCommandKey = GlobalKey();
+  final GlobalKey _editorAreaKey = GlobalKey();
+  final GlobalKey _catalogListKey = GlobalKey();
+  final GlobalKey _newProductCommandKey = GlobalKey();
+  final GlobalKey  _newCategoryCommandKey = GlobalKey();
+  final GlobalKey _saveProductCommandKey = GlobalKey();
+  final GlobalKey _printProductCommandKey = GlobalKey();
+  final GlobalKey _previewProductCommandKey = GlobalKey();
+  final GlobalKey _revertCommandKey = GlobalKey();
+  final GlobalKey _deleteProductCommandKey = GlobalKey();
+  final GlobalKey _productNameKey = GlobalKey();
+  final GlobalKey _productInfoboxKey = GlobalKey();
+  final GlobalKey _descriptionBoxKey = GlobalKey();
+  final GlobalKey _imageAreaKey = GlobalKey();
+  final GlobalKey _brochureBoxKey = GlobalKey();
+
+
   late TextEditingController _filenameController;
 
   late List<CommandBarItem> _secondaryCommands;
@@ -333,6 +358,7 @@ class _ControlPageState extends State<ControlPage>
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _modelNumberController = TextEditingController();
+  final TextEditingController _priceController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
   late List<String> _mediaPaths;
@@ -410,6 +436,13 @@ class _ControlPageState extends State<ControlPage>
         },
       ),
       CommandBarButton(
+        icon: const Icon(FluentIcons.question_20_regular),
+        label: const Text('Help'),
+        onPressed: () async {
+          await showTutorial(context);
+        },
+      ),
+      CommandBarButton(
         icon: const Icon(FluentIcons.bug_20_regular),
         label: const Text('Report Bug'),
         onPressed: () async {
@@ -428,9 +461,13 @@ class _ControlPageState extends State<ControlPage>
 
     toggleEditorItem(_focusItem);
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       //Future.delayed(const Duration(seconds: 5), () =>
       setState(() => _toggleLoading());
+      if (AppSettings.isFirstLaunch ?? true) {
+        await showTutorial(context);
+        AppSettings.isFirstLaunch = false;
+      }
       //);
     });
   }
@@ -441,6 +478,7 @@ class _ControlPageState extends State<ControlPage>
     _nameController.dispose();
     _descriptionController.dispose();
     _modelNumberController.dispose();
+    _priceController.dispose();
     _treeController.dispose();
     windowManager.removeListener(this);
     super.dispose();
@@ -461,6 +499,7 @@ class _ControlPageState extends State<ControlPage>
                       name: _nameController.text,
                       modelNumber: _modelNumberController.text,
                       description: _descriptionController.text,
+                      price: _priceController.text,
                       brochure: mapListToBrochure(_brochure));
                   EProduct newEProduct = EProduct(
                     product: newProduct,
@@ -477,6 +516,7 @@ class _ControlPageState extends State<ControlPage>
                     parent: _selectedCategory,
                     modelNumber: _modelNumberController.text,
                     description: _descriptionController.text,
+                    price: _priceController.text,
                     brochure: mapListToBrochure(_brochure),
                     mediaPaths: List.from(_mediaPaths),
                     mediaFiles: List.from(_mediaFiles),
@@ -556,23 +596,23 @@ class _ControlPageState extends State<ControlPage>
         child: FocusScope(
             autofocus: true,
             child: ScaffoldPage(
-                padding: EdgeInsets.zero,
-                header: SizedBox(
-                  height: 50 + kWindowCaptionHeight,
-                  child: Column(mainAxisSize: MainAxisSize.min, children: [
-                    SizedBox(
-                      height: kWindowCaptionHeight,
-                      child: WindowCaption(
-                        brightness: FluentAdaptiveTheme.of(context).brightness,
-                        backgroundColor: Colors.transparent,
-                        title: Text('WeighTech Inc.'),
-                      ),
-                    ),
-                    Container(
-                        alignment: Alignment.topCenter,
-                        height: 50,
-                        width: MediaQuery.of(context).size.width,
-                        child: CommandBarCard(
+                    padding: EdgeInsets.zero,
+                    header: SizedBox(
+                      height: 50 + kWindowCaptionHeight,
+                      child: Column(mainAxisSize: MainAxisSize.min, children: [
+                        SizedBox(
+                          height: kWindowCaptionHeight,
+                          child: WindowCaption(
+                            brightness: FluentAdaptiveTheme.of(context).brightness,
+                            backgroundColor: Colors.transparent,
+                            title: Text('WeighTech Inc.'),
+                          ),
+                        ),
+                        Container(
+                            alignment: Alignment.topCenter,
+                            height: 50,
+                            width: MediaQuery.of(context).size.width,
+                            child: CommandBarCard(
                             //backgroundColor: FluentTheme.of(context).micaBackgroundColor,
                             borderColor: Colors.transparent,
                             borderRadius: const BorderRadius.all(Radius.zero),
@@ -595,7 +635,18 @@ class _ControlPageState extends State<ControlPage>
                                               : 'assets/w_logo_blue.png',
                                           height: 50),
                                       const SizedBox(width: 10),
-                                      Container(
+                                      Showcase(
+                                        key: _filenameKey,
+                                        tooltipPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
+                                        tooltipBackgroundColor: WeightechThemes.isDarkMode ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
+                                        description: 
+                                        "This box let's you name or rename your current file. This also dictates the name of this catalog version when uploaded to Firebase cloud.\n\nA cloud icon will be shown next to the file name if this version is pulled directly from Firebase (i.e., not saved locally).",
+                                        descTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
+                                        title: "File Name",
+                                        titleTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
+                                        titlePadding: const EdgeInsets.fromLTRB(0,0,0,5),
+                                        child: 
+                                          Container(
                                           alignment: Alignment.center,
                                           decoration: BoxDecoration(
                                             color: Colors.grey.withOpacity(0.8),
@@ -646,6 +697,7 @@ class _ControlPageState extends State<ControlPage>
                                               },
                                             ),
                                           ))),
+                                      ),
                                       const SizedBox(width: 10),
                                       Flexible(
                                         fit: FlexFit.loose,
@@ -809,168 +861,243 @@ class _ControlPageState extends State<ControlPage>
                                                 });
                                               },
                                             ),
-                                            CommandBarButton(
-                                              icon: const Icon(FluentIcons
-                                                  .save_sync_20_regular),
-                                              label: const Text('Backup',
-                                                  style: TextStyle(
-                                                      fontSize: 11,
-                                                      height: 1.1)),
-                                              onPressed: () async {
-                                                FilePickerResult? _ =
-                                                    await FilePicker.platform
-                                                        .saveFile(
-                                                            dialogTitle:
-                                                                'Save Backup As',
-                                                            fileName:
-                                                                '${_filenameController.text}.wtf',
-                                                            allowedExtensions: [
-                                                              'wtf'
-                                                            ],
-                                                            type:
-                                                                FileType.custom)
-                                                        .then((result) async {
-                                                  if (result != null) {
-                                                    if (FileUtils.extension(
-                                                            result) !=
-                                                        '.wtf') {
-                                                      result += '.wtf';
+                                            CommandBarBuilderItem(
+                                                builder: (context, mode, widget) {
+                                                  return Showcase(
+                                                    key: _backupCommandKey,
+                                                    tooltipPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
+                                                    tooltipBackgroundColor: WeightechThemes.isDarkMode ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
+                                                    description: 'Use the Backup command to save a copy of the entire catalog.\n\nCaution: this can create large files.',
+                                                    descTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
+                                                    title: "Backup Command",
+                                                    titleTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
+                                                    titlePadding: const EdgeInsets.fromLTRB(0,0,0,5),
+                                                    child: widget,
+                                                  );
+                                                },
+                                                wrappedItem: CommandBarButton(
+                                                  icon: const Icon(FluentIcons
+                                                      .save_sync_20_regular),
+                                                  label: const Text('Backup',
+                                                      style: TextStyle(
+                                                          fontSize: 11,
+                                                          height: 1.1)),
+                                                  onPressed: () async {
+                                                    FilePickerResult? _ =
+                                                        await FilePicker.platform
+                                                            .saveFile(
+                                                                dialogTitle:
+                                                                    'Save Backup As',
+                                                                fileName:
+                                                                    '${_filenameController.text}.wtf',
+                                                                allowedExtensions: [
+                                                                  'wtf'
+                                                                ],
+                                                                type:
+                                                                    FileType.custom)
+                                                            .then((result) async {
+                                                      if (result != null) {
+                                                        if (FileUtils.extension(
+                                                                result) !=
+                                                            '.wtf') {
+                                                          result += '.wtf';
+                                                        }
+                                                        await handleSaveCatalogLocal(
+                                                            path: result,
+                                                            isBackup: true);
+                                                      } else {
+                                                        Log.logger.t(
+                                                            "-> File save aborted/failed.");
+                                                        return null;
+                                                      }
+                                                      return null;
+                                                    });
+                                                  },
+                                                ),
+                                              ),
+                                            CommandBarSeparator(
+                                              thickness: 0.5,
+                                            ),
+                                            CommandBarBuilderItem(
+                                                builder: (context, mode, widget) {
+                                                  return Showcase(
+                                                    key: _publishCommandKey,
+                                                    tooltipPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
+                                                    tooltipBackgroundColor: WeightechThemes.isDarkMode ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
+                                                    description: 'Use the Publish command to publish this catalog version to Firebase cloud. This version will become the current version used across all tablets.',
+                                                    descTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
+                                                    title: "Publish Command",
+                                                    titleTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
+                                                    titlePadding: const EdgeInsets.fromLTRB(0,0,0,5),
+                                                    child: widget,
+                                                  );
+                                                },
+                                                wrappedItem: CommandBarButton(
+                                                  icon: const Icon(FluentIcons
+                                                      .cloud_arrow_up_20_regular),
+                                                  label: const Text('Publish',
+                                                      style:
+                                                          TextStyle(fontSize: 12)),
+                                                  onPressed: () async {
+                                                    final confirmed =
+                                                        await _showPublishConfirmDialog(
+                                                            context);
+
+                                                    if (confirmed) {
+                                                      StreamController<dynamic>
+                                                          streamController =
+                                                          StreamController<
+                                                              dynamic>();
+                                                      setState(() => _toggleLoading(
+                                                          dynamicStream:
+                                                              streamController
+                                                                  .stream));
+                                                      CatalogEditor.name =
+                                                          _filenameController.text;
+                                                      await CatalogEditor
+                                                          .saveCatalogToCloud(
+                                                              streamController:
+                                                                  streamController);
+                                                      streamController.add(Icon(
+                                                          FluentIcons
+                                                              .checkmark_circle_48_filled,
+                                                          color: WeightechThemes
+                                                              .loadingAnimationColor,
+                                                          size: 30));
+                                                      await Future.delayed(
+                                                              const Duration(
+                                                                  seconds: 2))
+                                                          .then((value) {
+                                                        setState(
+                                                            () => _toggleLoading());
+                                                      });
                                                     }
-                                                    await handleSaveCatalogLocal(
-                                                        path: result,
-                                                        isBackup: true);
-                                                  } else {
-                                                    Log.logger.t(
-                                                        "-> File save aborted/failed.");
-                                                    return null;
-                                                  }
-                                                  return null;
-                                                });
-                                              },
-                                            ),
+                                                  },
+                                                ),
+                                              ),
+                                            CommandBarBuilderItem(
+                                                builder: (context, mode, widget) {
+                                                  return Showcase(
+                                                    key: _restoreCommandKey,
+                                                    tooltipPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
+                                                    tooltipBackgroundColor: WeightechThemes.isDarkMode ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
+                                                    description: 'Use the Restore command to retrieve a previously published version of the catalog. You can only retrieve one of the last three versions.',
+                                                    descTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
+                                                    title: "Restore Command",
+                                                    titleTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
+                                                    titlePadding: const EdgeInsets.fromLTRB(0,0,0,5),
+                                                    child: widget,
+                                                  );
+                                                },
+                                                wrappedItem: CommandBarButton(
+                                                  icon: const Icon(FluentIcons
+                                                      .clock_arrow_download_20_regular),
+                                                  label: const Text('Restore',
+                                                      style:
+                                                          TextStyle(fontSize: 12)),
+                                                  onPressed: () async {
+                                                    final chosenCatalog =
+                                                        await _showRestorationDialog(
+                                                            context);
+                                                    if (chosenCatalog != null) {
+                                                      Log.logger.i(
+                                                          """ Catalog restored to previous version. Version info: 
+                                                Name: ${chosenCatalog['name']}
+                                                Timestamp: ${chosenCatalog['timestamp']}
+                                                """);
+                                                      await ProductManager
+                                                          .createFromMap(
+                                                              chosenCatalog);
+                                                      CatalogEditor
+                                                          .createEditorCatalog(
+                                                              ProductManager.all!);
+                                                      _treeController.rebuild();
+                                                      setState(() {
+                                                        _editorAll =
+                                                            CatalogEditor.all;
+
+                                                        _treeController = TreeController<
+                                                                EItem>(
+                                                            // Provide the root nodes that will be used as a starting point when
+                                                            // traversing your hierarchical data.
+                                                            roots: CatalogEditor
+                                                                .all.editorItems,
+                                                            // Provide a callback for the controller to get the children of a
+                                                            // given node when traversing your hierarchical data. Avoid doing
+                                                            // heavy computations in this method, it should behave like a getter.
+                                                            childrenProvider:
+                                                                (EItem item) => item
+                                                                    .getSubItems(),
+                                                            parentProvider:
+                                                                (EItem item) => item
+                                                                    .getParent());
+
+                                                        _selectedCategory =
+                                                            CatalogEditor.all;
+                                                      });
+                                                    }
+                                                  },
+                                                ),
+                                              ),
                                             CommandBarSeparator(
                                               thickness: 0.5,
                                             ),
-                                            CommandBarButton(
-                                              icon: const Icon(FluentIcons
-                                                  .cloud_arrow_up_20_regular),
-                                              label: const Text('Publish',
-                                                  style:
-                                                      TextStyle(fontSize: 12)),
-                                              onPressed: () async {
-                                                final confirmed =
-                                                    await _showPublishConfirmDialog(
-                                                        context);
-
-                                                if (confirmed) {
-                                                  StreamController<dynamic>
-                                                      streamController =
-                                                      StreamController<
-                                                          dynamic>();
-                                                  setState(() => _toggleLoading(
-                                                      dynamicStream:
-                                                          streamController
-                                                              .stream));
-                                                  CatalogEditor.name =
-                                                      _filenameController.text;
-                                                  await CatalogEditor
-                                                      .saveCatalogToCloud(
-                                                          streamController:
-                                                              streamController);
-                                                  streamController.add(Icon(
-                                                      FluentIcons
-                                                          .checkmark_circle_48_filled,
-                                                      color: WeightechThemes
-                                                          .loadingAnimationColor,
-                                                      size: 30));
-                                                  await Future.delayed(
-                                                          const Duration(
-                                                              seconds: 2))
-                                                      .then((value) {
-                                                    setState(
-                                                        () => _toggleLoading());
-                                                  });
-                                                }
-                                              },
-                                            ),
-                                            CommandBarButton(
-                                              icon: const Icon(FluentIcons
-                                                  .clock_arrow_download_20_regular),
-                                              label: const Text('Restore',
-                                                  style:
-                                                      TextStyle(fontSize: 12)),
-                                              onPressed: () async {
-                                                final chosenCatalog =
-                                                    await _showRestorationDialog(
-                                                        context);
-                                                if (chosenCatalog != null) {
-                                                  Log.logger.i(
-                                                      """ Catalog restored to previous version. Version info: 
-                                            Name: ${chosenCatalog['name']}
-                                            Timestamp: ${chosenCatalog['timestamp']}
-                                            """);
-                                                  await ProductManager
-                                                      .createFromMap(
-                                                          chosenCatalog);
-                                                  CatalogEditor
-                                                      .createEditorCatalog(
-                                                          ProductManager.all!);
-                                                  _treeController.rebuild();
-                                                  setState(() {
-                                                    _editorAll =
-                                                        CatalogEditor.all;
-
-                                                    _treeController = TreeController<
-                                                            EItem>(
-                                                        // Provide the root nodes that will be used as a starting point when
-                                                        // traversing your hierarchical data.
-                                                        roots: CatalogEditor
-                                                            .all.editorItems,
-                                                        // Provide a callback for the controller to get the children of a
-                                                        // given node when traversing your hierarchical data. Avoid doing
-                                                        // heavy computations in this method, it should behave like a getter.
-                                                        childrenProvider:
-                                                            (EItem item) => item
-                                                                .getSubItems(),
-                                                        parentProvider:
-                                                            (EItem item) => item
-                                                                .getParent());
-
-                                                    _selectedCategory =
-                                                        CatalogEditor.all;
-                                                  });
-                                                }
-                                              },
-                                            ),
-                                            CommandBarSeparator(
-                                              thickness: 0.5,
-                                            ),
-                                            CommandBarButton(
-                                              icon: const Icon(FluentIcons
-                                                  .production_20_regular),
-                                              label: const Text('New Product',
-                                                  style:
-                                                      TextStyle(fontSize: 12)),
-                                              onPressed: () {
-                                                final newProduct =
-                                                    EProduct.temp();
-                                                toggleEditorItem(newProduct,
-                                                    newItem: true);
-                                              },
-                                            ),
-                                            CommandBarButton(
-                                              icon: const Icon(FluentIcons
-                                                  .list_bar_20_regular),
-                                              label: const Text('New Category',
-                                                  style:
-                                                      TextStyle(fontSize: 12)),
-                                              onPressed: () {
-                                                final newCategory =
-                                                    ECategory.temp();
-                                                toggleEditorItem(newCategory,
-                                                    newItem: true);
-                                              },
-                                            ),
+                                            CommandBarBuilderItem(
+                                                builder: (context, mode, widget) {
+                                                  return Showcase(
+                                                    key: _newProductCommandKey,
+                                                    tooltipPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
+                                                    tooltipBackgroundColor: WeightechThemes.isDarkMode ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
+                                                    description: "The 'New Product' command creates a new product to add to the catalog.",
+                                                    descTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
+                                                    title: "New Product Command",
+                                                    titleTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
+                                                    titlePadding: const EdgeInsets.fromLTRB(0,0,0,5),
+                                                    child: widget
+                                                  );
+                                                },
+                                                wrappedItem: CommandBarButton(
+                                                  icon: const Icon(FluentIcons
+                                                      .production_20_regular),
+                                                  label: const Text('New Product',
+                                                      style:
+                                                          TextStyle(fontSize: 12)),
+                                                  onPressed: () {
+                                                    final newProduct =
+                                                        EProduct.temp();
+                                                    toggleEditorItem(newProduct,
+                                                        newItem: true);
+                                                  },
+                                                ),
+                                              ),
+                                              CommandBarBuilderItem(
+                                                builder: (context, mode, widget) {
+                                                  return Showcase(
+                                                    key: _newCategoryCommandKey,
+                                                    tooltipPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
+                                                    tooltipBackgroundColor: WeightechThemes.isDarkMode ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
+                                                    description: "Likewise, the 'New Category' command creates a new category to add to the catalog.",
+                                                    descTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
+                                                    title: "New Category Command",
+                                                    titleTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
+                                                    titlePadding: const EdgeInsets.fromLTRB(0,0,0,5),
+                                                    child: widget
+                                                  );
+                                                },
+                                                wrappedItem: CommandBarButton(
+                                                  icon: const Icon(FluentIcons
+                                                      .list_bar_20_regular),
+                                                  label: const Text('New Category',
+                                                      style:
+                                                          TextStyle(fontSize: 12)),
+                                                  onPressed: () {
+                                                    final newCategory =
+                                                        ECategory.temp();
+                                                    toggleEditorItem(newCategory,
+                                                        newItem: true);
+                                                  },
+                                                ),
+                                              ),
                                             if (_focusItem != null) ...[
                                               CommandBarSeparator(
                                                 thickness: 0.5,
@@ -1013,7 +1140,18 @@ class _ControlPageState extends State<ControlPage>
                                                                       .circular(
                                                                           8),
                                                                 )),
-                                                        child: child);
+                                                        child: Showcase(
+                                                          key: _saveProductCommandKey,
+                                                          tooltipPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
+                                                          tooltipBackgroundColor: WeightechThemes.isDarkMode ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
+                                                          description: "The 'Save' command will save this product and/or its changes to the catalog.",
+                                                          descTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
+                                                          title: "Save Command",
+                                                          titleTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
+                                                          titlePadding: const EdgeInsets.fromLTRB(0,0,0,5),
+                                                          child: child
+                                                        )        
+                                                    );
                                                   },
                                                   wrappedItem: CommandBarButton(
                                                       icon: Icon(FluentIcons
@@ -1182,7 +1320,18 @@ class _ControlPageState extends State<ControlPage>
                                                                     .withOpacity(
                                                                         0.1),
                                                           ),
-                                                          child: child);
+                                                          child: Showcase(
+                                                            key: _printProductCommandKey,
+                                                            tooltipPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
+                                                            tooltipBackgroundColor: WeightechThemes.isDarkMode ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
+                                                            description: "The 'Print' command will format the current product and print it to a PDF file.",
+                                                            descTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
+                                                            title: "Print Command",
+                                                            titleTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
+                                                            titlePadding: const EdgeInsets.fromLTRB(0,0,0,5),
+                                                            child: child
+                                                          )
+                                                        );
                                                     },
                                                     wrappedItem:
                                                         CommandBarButton(
@@ -1212,7 +1361,7 @@ class _ControlPageState extends State<ControlPage>
                                                           });
                                                       },
                                                     )),
-                                                CommandBarBuilderItem(
+                                                  CommandBarBuilderItem(
                                                     builder: (context,
                                                         displayMode, child) {
                                                       return Container(
@@ -1238,7 +1387,18 @@ class _ControlPageState extends State<ControlPage>
                                                                     .withOpacity(
                                                                         0.1),
                                                           ),
-                                                          child: child);
+                                                          child: Showcase(
+                                                            key: _previewProductCommandKey,
+                                                            tooltipPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
+                                                            tooltipBackgroundColor: WeightechThemes.isDarkMode ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
+                                                            description: "The 'Preview' command will show a preview of what this product will look like on the Android companion app.",
+                                                            descTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
+                                                            title: "Preview Command",
+                                                            titleTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
+                                                            titlePadding: const EdgeInsets.fromLTRB(0,0,0,5),
+                                                            child: child
+                                                          )
+                                                      );
                                                     },
                                                     wrappedItem:
                                                         CommandBarButton(
@@ -1285,7 +1445,18 @@ class _ControlPageState extends State<ControlPage>
                                                                     .withOpacity(
                                                                         0.1),
                                                           ),
-                                                          child: child);
+                                                          child: Showcase(
+                                                            key: _revertCommandKey,
+                                                            tooltipPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
+                                                            tooltipBackgroundColor: WeightechThemes.isDarkMode ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
+                                                            description: "The 'Revert' command will retrieve the most recently published version of this product.",
+                                                            descTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
+                                                            title: "Revert Command",
+                                                            titleTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
+                                                            titlePadding: const EdgeInsets.fromLTRB(0,0,0,5),
+                                                            child: child
+                                                          )
+                                                      );
                                                     },
                                                     wrappedItem:
                                                         CommandBarButton(
@@ -1384,7 +1555,18 @@ class _ControlPageState extends State<ControlPage>
                                                                       .circular(
                                                                           8),
                                                                 )),
-                                                        child: child);
+                                                        child: Showcase(
+                                                          key: _deleteProductCommandKey,
+                                                          tooltipPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
+                                                          tooltipBackgroundColor: WeightechThemes.isDarkMode ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
+                                                          description: "The 'Delete' command will, obviously, delete this product.\n\nWarning: if you delete a product, the only way to possibly retrieve it is to restore the entire catalog from a previous version.",
+                                                          descTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
+                                                          title: "Delete Command",
+                                                          titleTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
+                                                          titlePadding: const EdgeInsets.fromLTRB(0,0,0,5),
+                                                          child: child
+                                                        )
+                                                    );
                                                   },
                                                   wrappedItem: CommandBarButton(
                                                     icon: const Icon(FluentIcons
@@ -1425,106 +1607,126 @@ class _ControlPageState extends State<ControlPage>
                                         secondaryItems: _secondaryCommands,
                                       ))
                                     ])))),
-                  ]),
-                ),
-                content: IgnorePointer(
-                    ignoring: _ignoringPointer,
-                    child: Stack(children: [
-                      Container(
-                        child: Row(children: [
-                          Flexible(
-                            flex: 1,
-                            child: Container(
-                                decoration: const BoxDecoration(
-                                  color: Colors
-                                      .transparent, // FluentTheme.of(context).micaBackgroundColor,
-                                ),
-                                child: catalogBuilder(item: CatalogEditor.all)),
-                          ),
-                          Flexible(
-                              flex: 3,
-                              child: Container(
-                                  decoration: BoxDecoration(
-                                      color: FluentTheme.of(context)
-                                              .brightness
-                                              .isDark
-                                          ? Color.fromARGB(
-                                              WeightechThemes.windowsDark.alpha,
-                                              WeightechThemes.windowsDark.red +
-                                                  10,
-                                              WeightechThemes
-                                                      .windowsDark.green +
-                                                  10,
-                                              WeightechThemes.windowsDark.blue +
-                                                  10,
-                                            )
-                                          : Colors.white,
-                                      borderRadius: const BorderRadius.only(
-                                        topLeft: Radius.circular(8),
-                                      ),
-                                      border: Border(
-                                        top: BorderSide(
-                                          width: 1,
-                                          color: WeightechThemes.wtGray.darker,
-                                        ),
-                                        left: BorderSide(
-                                          color: WeightechThemes.wtGray.darker,
-                                        ),
-                                      )),
-                                  child: (_focusItem != null)
-                                      ? (_focusItem is ECategory)
-                                          ? categoryEditor(
-                                              category: _focusItem as ECategory)
-                                          : productEditor(
-                                              product: _focusItem as EProduct)
-                                      : const Center(
-                                          child: Text(
-                                              "Select a catalog item on the left side to begin."))))
-                        ]),
-                      ),
-                      if (_loadingSomething)
-                        // child: LoadingAnimationWidget.twistingDots(
-                        //   leftDotColor: WeightechThemes.weightechBlue,
-                        //   rightDotColor: WeightechThemes.weightechGray,
-                        //   size: 40
-                        // ),=
-                        _loadingWidget
-                    ])))));
+                    ]),
+                  ),
+                  content: IgnorePointer(
+                      ignoring: _ignoringPointer,
+                      child: Stack(
+                        children: [
+                          Container(
+                            child: Row(children: [
+                              Flexible(
+                                flex: 1,
+                                child: Container(
+                                    decoration: const BoxDecoration(
+                                      color: Colors
+                                          .transparent, // FluentTheme.of(context).micaBackgroundColor,
+                                    ),
+                                    child: catalogBuilder(item: CatalogEditor.all)),
+                              ),
+                              Flexible(
+                                  flex: 3,
+                                  child: Container(
+                                      decoration: BoxDecoration(
+                                          color: FluentTheme.of(context)
+                                                  .brightness
+                                                  .isDark
+                                              ? Color.fromARGB(
+                                                  WeightechThemes.windowsDark.alpha,
+                                                  WeightechThemes.windowsDark.red +
+                                                      10,
+                                                  WeightechThemes
+                                                          .windowsDark.green +
+                                                      10,
+                                                  WeightechThemes.windowsDark.blue +
+                                                      10,
+                                                )
+                                              : Colors.white,
+                                          borderRadius: const BorderRadius.only(
+                                            topLeft: Radius.circular(8),
+                                          ),
+                                          border: Border(
+                                            top: BorderSide(
+                                              width: 1,
+                                              color: WeightechThemes.wtGray.darker,
+                                            ),
+                                            left: BorderSide(
+                                              color: WeightechThemes.wtGray.darker,
+                                            ),
+                                          )),
+                                      child: (_focusItem != null)
+                                          ? (_focusItem is ECategory)
+                                              ? categoryEditor(
+                                                  category: _focusItem as ECategory)
+                                              : productEditor(
+                                                  product: _focusItem as EProduct)
+                                          : const Center(
+                                              child: Text(
+                                                  "Select a catalog item on the left side to begin."))))
+                              ]),
+                            ),
+                            if (_loadingSomething)
+                              // child: LoadingAnimationWidget.twistingDots(
+                              //   leftDotColor: WeightechThemes.weightechBlue,
+                              //   rightDotColor: WeightechThemes.weightechGray,
+                              //   size: 40
+                              // ),=
+                              _loadingWidget
+                          ]
+                      )
+                    )
+            )
+          )
+    );
   }
 
   Widget catalogBuilder({required ECategory item}) {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(10,10,10,0),
-          child: AutoSuggestBox<EItem>(
-          items: CatalogEditor.getAllItems().map((item) {
-            return AutoSuggestBoxItem<EItem>(
-              value: item,
-              label: item.name,
-              child: Text(item.name),
-            );
-          }).toList(),
-          onSelected: (item) {
-            final query = _treeController.search((EItem node) => node.id == item.value!.id);
-            EItem? matchingItem;
-            query.matches.forEach((match, details) {
-              if (details.isDirectMatch) {
-                matchingItem = match;
-              }
-            });
-            if (matchingItem != null) {
-              _treeController.expandAncestors(matchingItem!);
-              _treeController.rebuild();
-              toggleEditorItem(matchingItem);
-            }
-          }
-        ),
-        ),
-        Expanded(
-          child: buildItemsList(item: item)
-        )
-      ]
+    return Showcase(
+      key: _catalogListKey,  
+      tooltipPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
+      tooltipBackgroundColor: WeightechThemes.isDarkMode ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
+      title: "Catalog",
+      titleTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
+      titlePadding: const EdgeInsets.fromLTRB(0,0,0,5),
+      description: "This area shows the entire product catalog. You can drag & drop to reorder items or move them to new categories.",
+      descTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(10,10,10,0),
+            child: FluentTheme(
+              data: FluentAdaptiveTheme.of(context).theme,
+              child: 
+                AutoSuggestBox<EItem>(
+                  items: CatalogEditor.getAllItems().map((item) {
+                    return AutoSuggestBoxItem<EItem>(
+                      value: item,
+                      label: item.name,
+                      child: Text(item.name),
+                    );
+                  }).toList(),
+                  onSelected: (item) {
+                    final query = _treeController.search((EItem node) => node.id == item.value!.id);
+                    EItem? matchingItem;
+                    query.matches.forEach((match, details) {
+                      if (details.isDirectMatch) {
+                        matchingItem = match;
+                      }
+                    });
+                    if (matchingItem != null) {
+                      _treeController.expandAncestors(matchingItem!);
+                      _treeController.rebuild();
+                      toggleEditorItem(matchingItem);
+                    }
+                  }
+                ),
+            )
+          ),
+          Expanded(
+            child: buildItemsList(item: item)
+          )
+        ]
+      )
     );
   }
 
@@ -1960,7 +2162,16 @@ class _ControlPageState extends State<ControlPage>
   }
 
   Widget productEditor({EProduct? product}) {
-    return Container(
+    return Showcase(
+      key: _editorAreaKey,  
+      tooltipPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
+      tooltipBackgroundColor: WeightechThemes.isDarkMode ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
+      title: "Editor",
+      titleTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
+      titlePadding: const EdgeInsets.fromLTRB(0,0,0,5),
+      description: "In this area, you can edit your products and categories.",
+      descTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
+      child: Container(
         decoration: const BoxDecoration(
             borderRadius: BorderRadius.only(
           topLeft: Radius.circular(8),
@@ -1969,120 +2180,195 @@ class _ControlPageState extends State<ControlPage>
         width: double.infinity,
         child: SingleChildScrollView(
             child: Form(
-                key: _formKey,
-                child: Column(children: [
-                  productNameWidget(),
-                  productInfoWidget(product),
-                  Container(
-                    constraints: const BoxConstraints(minHeight: 360),
-                    child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Flexible(
-                              flex: 1,
-                              child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    // const Padding(
-                                    //   padding: EdgeInsets.only(left: 150, right: 150, bottom: 10),
-                                    //   child:
-                                    //     Text("Product Description", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                                    // ),
-                                    overviewWidget(),
-                                    if (_mediaFiles.isNotEmpty)
-                                      carouselWidget(),
-                                    Flexible(
-                                        fit: FlexFit.loose,
-                                        child: AnimatedContainer(
-                                            duration:
-                                                const Duration(seconds: 1),
-                                            padding: const EdgeInsets.only(
-                                                left: 30, right: 20, top: 10),
-                                            alignment: (_mediaFiles.isNotEmpty)
-                                                ? Alignment.bottomCenter
-                                                : Alignment.topCenter,
-                                            child: imageUploadWidget()))
-                                  ])),
-                          Flexible(
+              key: _formKey,
+              child: Column(children: [
+                productNameWidget(),
+                productInfoWidget(product),
+                Container(
+                  constraints: const BoxConstraints(minHeight: 360),
+                  child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Flexible(
                             flex: 1,
-                            child: Padding(
-                              padding: const EdgeInsets.fromLTRB(0, 0, 30, 10),
-                              child: Container(
-                                  alignment: Alignment.centerLeft,
-                                  child:
-                                      buildBrochureList(brochure: _brochure)),
-                            ),
-                          )
-                        ]),
-                  ),
-                  const SizedBox(height: 20),
-                ]))));
+                            child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  // const Padding(
+                                  //   padding: EdgeInsets.only(left: 150, right: 150, bottom: 10),
+                                  //   child:
+                                  //     Text("Product Description", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                                  // ),
+                                  overviewWidget(),
+                                  Showcase(
+                                    key: _imageAreaKey,  
+                                    tooltipPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
+                                    tooltipBackgroundColor: WeightechThemes.isDarkMode ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
+                                    title: "Media Upload",
+                                    titleTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
+                                    titlePadding: const EdgeInsets.fromLTRB(0,0,0,5),
+                                    description: "You can upload and view product media here.\n\nThe accepted file types are .png, .jpg, and .mp4.",
+                                    descTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        if (_mediaFiles.isNotEmpty)
+                                          carouselWidget(),
+                                        Flexible(
+                                          fit: FlexFit.loose,
+                                          child: AnimatedContainer(
+                                              duration:
+                                                  const Duration(seconds: 1),
+                                              padding: const EdgeInsets.only(
+                                                  left: 30, right: 20, top: 10),
+                                              alignment: (_mediaFiles.isNotEmpty)
+                                                  ? Alignment.bottomCenter
+                                                  : Alignment.topCenter,
+                                              child: imageUploadWidget()
+                                          )
+                                        )
+                                      ]
+                                    )
+                                  )
+                                ]
+                            )
+                        ),
+                        Flexible(
+                          flex: 1,
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(0, 0, 30, 10),
+                            child: Column(
+                              children: [
+                                Showcase(
+                                  key: _brochureBoxKey,  
+                                  tooltipPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
+                                  tooltipBackgroundColor: WeightechThemes.isDarkMode ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
+                                  title: "Product Features",
+                                  titleTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
+                                  titlePadding: const EdgeInsets.fromLTRB(0,0,0,5),
+                                  description: "You can list various product features here, which supports headers and subheaders.",
+                                  descTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
+                                  child: Container(
+                                    alignment: Alignment.centerLeft,
+                                    child:
+                                        buildBrochureList(brochure: _brochure)),
+                                ),
+                                const SizedBox(height: 10),
+                                // TextFormBox(
+                                //   placeholder: "Price",
+                                //   controller: _priceController,
+                                //   minLines: 1,
+                                //   maxLines: 1,
+                                //   style: WeightechThemes.dialogTitleStyle,
+                                // )
+                              ]
+                            )
+                          ),
+                        )
+                      ]),
+                ),
+                const SizedBox(height: 20),
+              ]
+            )
+          )
+        )
+      )
+    );
   }
 
   Widget productNameWidget() {
-    return Container(
-        decoration: const BoxDecoration(
+    return Showcase(
+      key: _productNameKey,  
+      tooltipPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
+      tooltipBackgroundColor: WeightechThemes.isDarkMode ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
+      title: "Product Name",
+      titleTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
+      titlePadding: const EdgeInsets.fromLTRB(0,0,0,5),
+      description: "You can edit the name of this product here.",
+      descTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
+      child:
+        Container(
+          decoration: const BoxDecoration(
             borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(8),
-        )),
-        padding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
-        child: Column(children: [
-          TextFormBox(
-              decoration: const BoxDecoration(
-                  color: WeightechThemes.weightechBlue,
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(8),
-                  )),
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-              controller: _nameController,
-              placeholder: "Product Name *",
-              placeholderStyle: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 32,
-                  fontStyle: FontStyle.italic),
-              validator: (String? value) {
-                return (value == null || value == '' || value == 'All')
-                    ? "Name required (and cannot be 'All')."
-                    : null;
-              }),
-          Container(
-              color: WeightechThemes.weightechGray,
-              height: 5,
-              width: double.infinity)
-        ]));
+              topLeft: Radius.circular(8),
+            )
+          ),
+          padding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
+          child: Column(
+            children: [
+            TextFormBox(
+                decoration: const BoxDecoration(
+                    color: WeightechThemes.weightechBlue,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(8),
+                    )),
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+                controller: _nameController,
+                placeholder: "Product Name *",
+                placeholderStyle: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 32,
+                    fontStyle: FontStyle.italic),
+                validator: (String? value) {
+                  return (value == null || value == '' || value == 'All')
+                      ? "Name required (and cannot be 'All')."
+                      : null;
+                }),
+              Container(
+                color: WeightechThemes.weightechGray,
+                height: 5,
+                width: double.infinity)
+            ]
+          )
+        )
+    );
   }
 
   Widget overviewWidget() {
     return Padding(
-        padding: const EdgeInsets.only(left: 50, right: 50, bottom: 20, top: 2),
+      padding: const EdgeInsets.only(left: 50, right: 50, bottom: 20, top: 2),
+      child: Showcase(
+        key: _descriptionBoxKey,
+        tooltipPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
+        tooltipBackgroundColor: WeightechThemes.isDarkMode ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
+        title: "Description Text Box",
+        titleTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
+        titlePadding: const EdgeInsets.fromLTRB(0,0,0,5),
+        description: "You can enter a description for the product here.\n\nYou can wrap certain words/phrases with special characters, *Bold* or _Underline_, for additional formatting.",
+        descTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
         child: FluentTheme(
-            data: FluentTheme.of(context),
-            child: Tooltip(
-                richMessage: const TextSpan(children: [
-                  TextSpan(text: "*Bold* for "),
-                  TextSpan(
-                      text: "Bold\n",
-                      style: TextStyle(fontWeight: FontWeight.bold)),
-                  TextSpan(text: "_Underline_ for "),
-                  TextSpan(
-                    text: "Underline",
-                    style: TextStyle(
-                      decoration: TextDecoration.underline,
-                    ),
-                  )
-                ]),
-                child: TextFormBox(
-                  placeholder: "Overview",
-                  controller: _descriptionController,
-                  minLines: 4,
-                  maxLines: null,
-                  keyboardType: TextInputType.multiline,
-                ))));
+          data: FluentTheme.of(context),
+          child: Tooltip(
+            richMessage: const TextSpan(children: [
+              TextSpan(text: "*Bold* for "),
+              TextSpan(
+                  text: "Bold\n",
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+              TextSpan(text: "_Underline_ for "),
+              TextSpan(
+                text: "Underline",
+                style: TextStyle(
+                  decoration: TextDecoration.underline,
+                ),
+              )
+            ]),
+            child: TextFormBox(
+              placeholder: "Overview",
+              controller: _descriptionController,
+              minLines: 4,
+              maxLines: null,
+              keyboardType: TextInputType.multiline,
+            )
+          )
+        )
+      )
+    );
   }
 
   Widget imageUploadWidget() {
@@ -2584,63 +2870,77 @@ class _ControlPageState extends State<ControlPage>
     return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 150, vertical: 20),
         child: Mica(
-            elevation: 2,
+          elevation: 2,
+          child: Showcase(
+            key: _productInfoboxKey,  
+            tooltipPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
+            tooltipBackgroundColor: WeightechThemes.isDarkMode ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
+            title: "Product Information",
+            titleTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
+            titlePadding: const EdgeInsets.fromLTRB(0,0,0,5),
+            description: "Here you can adjust the model number and parent category of the product.",
+            descTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
             child: Container(
-                decoration: BoxDecoration(
-                  color: WeightechThemes.infoWidgetColor,
-                  borderRadius: BorderRadius.circular(8),
-                  // boxShadow: [
-                  //   BoxShadow(
-                  //     color: Colors.grey.withOpacity(0.5),
-                  //     spreadRadius: 1,
-                  //     blurRadius: 2,
-                  //     offset: const Offset(0, 2), // changes position of shadow
-                  //   ),
-                  // ],
-                  // border: Border.all(
-                  //   color: const Color(0xFF898988),
-                  //   width: 1,
-                  // )
-                ),
-                padding: const EdgeInsets.all(20),
-                child: Column(children: [
-                  SizedBox(
-                    width: 280,
-                    child: TextFormBox(
-                      controller: _modelNumberController,
-                      placeholder: "Product Model Number",
-                    ),
+              decoration: BoxDecoration(
+                color: WeightechThemes.infoWidgetColor,
+                borderRadius: BorderRadius.circular(8),
+                // boxShadow: [
+                //   BoxShadow(
+                //     color: Colors.grey.withOpacity(0.5),
+                //     spreadRadius: 1,
+                //     blurRadius: 2,
+                //     offset: const Offset(0, 2), // changes position of shadow
+                //   ),
+                // ],
+                // border: Border.all(
+                //   color: const Color(0xFF898988),
+                //   width: 1,
+                // )
+              ),
+              padding: const EdgeInsets.all(20),
+              child: Column(children: [
+                SizedBox(
+                  width: 280,
+                  child: TextFormBox(
+                    controller: _modelNumberController,
+                    placeholder: "Product Model Number",
                   ),
-                  const SizedBox(height: 10),
-                  SizedBox(
-                      width: 280,
-                      child: ComboBox<ECategory>(
-                        placeholder: const Text("Category *"),
-                        value: _selectedCategory,
-                        items: CatalogEditor.all
-                            .getSubCategories()
-                            .map<ComboBoxItem<ECategory>>((ECategory category) {
-                          return ComboBoxItem<ECategory>(
-                            value: category,
-                            child: Text(category.category.name),
-                          );
-                        }).toList(),
-                        onChanged: (newValue) {
-                          setState(() {
-                            _selectedCategory = newValue!;
-                          });
-                        },
-                      )),
-                  const SizedBox(height: 10),
-                  (product != null)
-                      ? SizedBox(
-                          height: 20,
-                          child: Text("Item ID: ${product.id}",
-                              style:
-                                  const TextStyle(fontStyle: FontStyle.italic)),
-                        )
-                      : const SizedBox(height: 20),
-                ]))));
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                    width: 280,
+                    child: ComboBox<ECategory>(
+                      placeholder: const Text("Category *"),
+                      value: _selectedCategory,
+                      items: CatalogEditor.all
+                          .getSubCategories()
+                          .map<ComboBoxItem<ECategory>>((ECategory category) {
+                        return ComboBoxItem<ECategory>(
+                          value: category,
+                          child: Text(category.category.name),
+                        );
+                      }).toList(),
+                      onChanged: (newValue) {
+                        setState(() {
+                          _selectedCategory = newValue!;
+                        });
+                      },
+                    )),
+                const SizedBox(height: 10),
+                (product != null)
+                    ? SizedBox(
+                        height: 20,
+                        child: Text("Item ID: ${product.id}",
+                            style:
+                                const TextStyle(fontStyle: FontStyle.italic)),
+                      )
+                    : const SizedBox(height: 20),
+              ]
+            )
+          )
+        )
+      )
+    );
   }
 
   Widget categoryEditor({ECategory? category}) {
@@ -3014,6 +3314,7 @@ class _ControlPageState extends State<ControlPage>
           _primaryImageIndex = focusItem.primaryImageIndex;
           _nameController.text = focusItem.product.name;
           _modelNumberController.text = focusItem.product.modelNumber ?? '';
+          _priceController.text = focusItem.product.price ?? '';
           updateStreamController.add('Mapping brochure...');
           _brochure = focusItem.product.retrieveBrochureList();
           updateStreamController.add('Loading...');
@@ -3499,175 +3800,194 @@ class _ControlPageState extends State<ControlPage>
                               child: Padding(
                                   padding: const EdgeInsets.only(
                                       left: 28, right: 42, top: 3.5),
-                                  child: ListView.builder(
-                                      shrinkWrap: true,
-                                      padding: const EdgeInsets.only(top: 14),
-                                      physics:
-                                          const NeverScrollableScrollPhysics(),
-                                      itemCount: tempBrochure.length,
-                                      itemBuilder: (context, index) {
-                                        final headerKey =
-                                            tempBrochure[index].keys.first;
-                                        final headerValue = tempBrochure[index]
-                                            [headerKey] as List;
-                                        final headerEntries =
-                                            headerValue.singleWhere(
-                                                (element) =>
-                                                    (element as Map)
-                                                        .keys
-                                                        .first ==
-                                                    "Entries",
-                                                orElse: () => <String,
-                                                    List<String>>{})["Entries"];
-                                        final subheaders =
-                                            List.from(headerValue);
-                                        subheaders.removeWhere((element) =>
-                                            element.keys.first == "Entries");
+                                  child: Column(
+                                    children: [
+                                      ListView.builder(
+                                          shrinkWrap: true,
+                                          padding: const EdgeInsets.only(top: 14),
+                                          physics:
+                                              const NeverScrollableScrollPhysics(),
+                                          itemCount: tempBrochure.length,
+                                          itemBuilder: (context, index) {
+                                            final headerKey =
+                                                tempBrochure[index].keys.first;
+                                            final headerValue = tempBrochure[index]
+                                                [headerKey] as List;
+                                            final headerEntries =
+                                                headerValue.singleWhere(
+                                                    (element) =>
+                                                        (element as Map)
+                                                            .keys
+                                                            .first ==
+                                                        "Entries",
+                                                    orElse: () => <String,
+                                                        List<String>>{})["Entries"];
+                                            final subheaders =
+                                                List.from(headerValue);
+                                            subheaders.removeWhere((element) =>
+                                                element.keys.first == "Entries");
 
-                                        return Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                headerKey,
-                                                style: const TextStyle(
-                                                    color: WeightechThemes
-                                                        .weightechBlue,
-                                                    fontSize: 19.6,
-                                                    fontWeight:
-                                                        FontWeight.bold),
-                                                softWrap: true,
-                                              ),
-                                              if (headerEntries?.isNotEmpty ??
-                                                  false)
-                                                ListView.builder(
-                                                    padding:
-                                                        const EdgeInsets.only(
-                                                            top: 3.5,
-                                                            left: 3.5),
+                                            return Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    headerKey,
+                                                    style: const TextStyle(
+                                                        color: WeightechThemes
+                                                            .weightechBlue,
+                                                        fontSize: 19.6,
+                                                        fontWeight:
+                                                            FontWeight.bold),
+                                                    softWrap: true,
+                                                  ),
+                                                  if (headerEntries?.isNotEmpty ??
+                                                      false)
+                                                    ListView.builder(
+                                                        padding:
+                                                            const EdgeInsets.only(
+                                                                top: 3.5,
+                                                                left: 3.5),
+                                                        shrinkWrap: true,
+                                                        physics:
+                                                            const NeverScrollableScrollPhysics(),
+                                                        itemCount:
+                                                            headerEntries.length,
+                                                        itemBuilder:
+                                                            (context, entryIndex) {
+                                                          final entry =
+                                                              headerEntries[
+                                                                  entryIndex];
+                                                          return Padding(
+                                                              padding:
+                                                                  const EdgeInsets
+                                                                      .only(
+                                                                      top: 3.5),
+                                                              child: Row(
+                                                                  crossAxisAlignment:
+                                                                      CrossAxisAlignment
+                                                                          .start,
+                                                                  children: [
+                                                                    const Text(
+                                                                        "\u2022"),
+                                                                    const SizedBox(
+                                                                        width: 5.6),
+                                                                    Expanded(
+                                                                        child: Text(
+                                                                      entry,
+                                                                      style: const TextStyle(
+                                                                          fontSize:
+                                                                              11.2,
+                                                                          color: Colors
+                                                                              .black),
+                                                                      softWrap:
+                                                                          true,
+                                                                    ))
+                                                                  ]));
+                                                        }),
+                                                  const SizedBox(height: 7),
+                                                  ListView.builder(
                                                     shrinkWrap: true,
                                                     physics:
                                                         const NeverScrollableScrollPhysics(),
-                                                    itemCount:
-                                                        headerEntries.length,
+                                                    itemCount: subheaders.length,
                                                     itemBuilder:
-                                                        (context, entryIndex) {
-                                                      final entry =
-                                                          headerEntries[
-                                                              entryIndex];
-                                                      return Padding(
-                                                          padding:
-                                                              const EdgeInsets
-                                                                  .only(
-                                                                  top: 3.5),
-                                                          child: Row(
-                                                              crossAxisAlignment:
-                                                                  CrossAxisAlignment
-                                                                      .start,
-                                                              children: [
-                                                                const Text(
-                                                                    "\u2022"),
-                                                                const SizedBox(
-                                                                    width: 5.6),
-                                                                Expanded(
-                                                                    child: Text(
-                                                                  entry,
-                                                                  style: const TextStyle(
-                                                                      fontSize:
-                                                                          11.2,
-                                                                      color: Colors
-                                                                          .black),
-                                                                  softWrap:
-                                                                      true,
-                                                                ))
-                                                              ]));
-                                                    }),
-                                              const SizedBox(height: 7),
-                                              ListView.builder(
-                                                shrinkWrap: true,
-                                                physics:
-                                                    const NeverScrollableScrollPhysics(),
-                                                itemCount: subheaders.length,
-                                                itemBuilder:
-                                                    (context, subIndex) {
-                                                  final subheaderKey =
-                                                      subheaders[subIndex]
-                                                          .keys
-                                                          .first;
-                                                  final subheaderValue =
-                                                      subheaders[subIndex]
-                                                              [subheaderKey]
-                                                          as List<dynamic>;
+                                                        (context, subIndex) {
+                                                      final subheaderKey =
+                                                          subheaders[subIndex]
+                                                              .keys
+                                                              .first;
+                                                      final subheaderValue =
+                                                          subheaders[subIndex]
+                                                                  [subheaderKey]
+                                                              as List<dynamic>;
 
-                                                  return Column(
-                                                    crossAxisAlignment:
-                                                        CrossAxisAlignment
-                                                            .start,
-                                                    children: [
-                                                      Padding(
-                                                        padding:
-                                                            const EdgeInsets
-                                                                .only(
-                                                                left: 3.5),
-                                                        child: Text(
-                                                          subheaderKey,
-                                                          style: const TextStyle(
-                                                              color: Color(
-                                                                  0xFF333333),
-                                                              fontSize: 15.4,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .w800),
-                                                          softWrap: true,
-                                                        ),
-                                                      ),
-                                                      ListView.builder(
-                                                          padding:
-                                                              const EdgeInsets
-                                                                  .only(
-                                                                  left: 3.5,
-                                                                  top: 3.5),
-                                                          shrinkWrap: true,
-                                                          physics:
-                                                              const NeverScrollableScrollPhysics(),
-                                                          itemCount:
-                                                              subheaderValue
-                                                                  .length,
-                                                          itemBuilder: (context,
-                                                              entryIndex) {
-                                                            final entry =
-                                                                subheaderValue[
-                                                                    entryIndex];
-                                                            return Row(
-                                                                crossAxisAlignment:
-                                                                    CrossAxisAlignment
-                                                                        .start,
-                                                                children: [
-                                                                  const Text(
-                                                                      "\u2022"),
-                                                                  const SizedBox(
-                                                                      width:
-                                                                          3.5),
-                                                                  Expanded(
-                                                                      child:
-                                                                          Text(
-                                                                    entry,
-                                                                    style: const TextStyle(
-                                                                        fontSize:
-                                                                            11.2),
-                                                                    softWrap:
-                                                                        true,
-                                                                  ))
-                                                                ]);
-                                                          }),
-                                                      const SizedBox(height: 7),
-                                                    ],
-                                                  );
-                                                },
-                                              ),
-                                              const SizedBox(height: 7),
-                                            ]);
-                                      })))
+                                                      return Column(
+                                                        crossAxisAlignment:
+                                                            CrossAxisAlignment
+                                                                .start,
+                                                        children: [
+                                                          Padding(
+                                                            padding:
+                                                                const EdgeInsets
+                                                                    .only(
+                                                                    left: 3.5),
+                                                            child: Text(
+                                                              subheaderKey,
+                                                              style: const TextStyle(
+                                                                  color: Color(
+                                                                      0xFF333333),
+                                                                  fontSize: 15.4,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w800),
+                                                              softWrap: true,
+                                                            ),
+                                                          ),
+                                                          ListView.builder(
+                                                              padding:
+                                                                  const EdgeInsets
+                                                                      .only(
+                                                                      left: 3.5,
+                                                                      top: 3.5),
+                                                              shrinkWrap: true,
+                                                              physics:
+                                                                  const NeverScrollableScrollPhysics(),
+                                                              itemCount:
+                                                                  subheaderValue
+                                                                      .length,
+                                                              itemBuilder: (context,
+                                                                  entryIndex) {
+                                                                final entry =
+                                                                    subheaderValue[
+                                                                        entryIndex];
+                                                                return Row(
+                                                                    crossAxisAlignment:
+                                                                        CrossAxisAlignment
+                                                                            .start,
+                                                                    children: [
+                                                                      const Text(
+                                                                          "\u2022"),
+                                                                      const SizedBox(
+                                                                          width:
+                                                                              3.5),
+                                                                      Expanded(
+                                                                          child:
+                                                                              Text(
+                                                                        entry,
+                                                                        style: const TextStyle(
+                                                                            fontSize:
+                                                                                11.2),
+                                                                        softWrap:
+                                                                            true,
+                                                                      ))
+                                                                    ]);
+                                                              }),
+                                                          const SizedBox(height: 7),
+                                                        ],
+                                                      );
+                                                    },
+                                                  ),
+                                                  const SizedBox(height: 7),
+                                                ]);
+                                          }
+                                      ),
+                                      if (_priceController.text != "")
+                                        Padding(
+                                          padding: const EdgeInsets.fromLTRB(0, 10, 0, 20),
+                                          child: Text(_priceController.text, style: const TextStyle(
+                                            color: WeightechThemes
+                                                .weightechBlue,
+                                            fontSize: 16,
+                                            fontWeight:
+                                                FontWeight.bold),
+                                          ),
+                                        )
+                                    ]
+                                  ) 
+                                )
+                          )
+                        
                         ],
                       ),
                     )),
@@ -3930,8 +4250,10 @@ class _ControlPageState extends State<ControlPage>
                                   setStateful(() => colorMode = value!);
                                   await WeightechThemes.setColorMode(
                                       context, colorMode);
-                                  Log.logger.i(
-                                      "Switching to ${FluentTheme.of(context)}");
+                                  final newTheme = FluentAdaptiveTheme.of(context).theme;
+                                  Log.logger.i("Switching to ${FluentAdaptiveTheme.of(context).theme.brightness.isDark ? "Dark" : "Light"} Mode");
+                                  Log.logger.t(
+                                    "${FluentAdaptiveTheme.of(context).theme}");
                                   setState(() {});
                                 })
                           ],
@@ -3987,8 +4309,14 @@ class _ControlPageState extends State<ControlPage>
         builder: (_) {
           return ContentDialog(
             title: Center(
-                child:
-                    Image.asset('assets/skullanimation_v2.gif', height: 120)),
+              child: Column(
+                children: [
+                  Image.asset('assets/skullanimation_v2.gif', height: 120),
+                  const SizedBox(height: 5),
+                  Text("jeremytull6@gmail.com", style: TextStyle(fontStyle: FontStyle.italic, fontSize: 12))
+                ]
+              )
+            ),
             content: Container(
                 alignment: Alignment.center,
                 height: 150,
@@ -4052,6 +4380,133 @@ class _ControlPageState extends State<ControlPage>
         path: path, streamController: streamController, isBackup: isBackup);
     streamController.close();
     setState(() => _toggleLoading());
+  }
+
+  Future<void> showTutorial(BuildContext context) async {
+    
+    Log.logger.i('Starting Tutorial...');
+    
+    int index = 0;
+    List<String> texts = [
+      "With this application, you can manage the catalog of WeighTech products. This app is intended for use with the companion Android app.",
+      "Let's step through the usage and primary features of this app."
+    ];
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return SizedBox(
+              height: 300,
+              width: 300,
+              child: ContentDialog(
+                title: Column(
+                  children: [
+                    Image.asset(
+                      FluentTheme.of(context)
+                              .brightness
+                              .isDark
+                          ? 'assets/w_logo_gray.png'
+                          : 'assets/w_logo_blue.png',
+                      height: 70),
+                    Text("Welcome to the WeighTech Inc. Sales application!")
+                  ]
+                ),
+                content: Text(texts[index]),
+                actions: [
+                  IconButton(
+                    icon: Icon(FluentIcons.arrow_left_20_regular),
+                    onPressed: () => setState(() => index = max(index-1, 0))
+                  ),
+                  IconButton(
+                    icon: Icon(FluentIcons.arrow_right_20_regular),
+                    onPressed: () {
+                      if (index + 1 >= texts.length) {
+                        Navigator.of(context).pop();
+                      }
+                      else {
+                        setState(() => index+=1);
+                      }
+                    }
+                  ),
+                ]
+              )
+            );
+          }
+        );
+      },
+      barrierDismissible: false
+    );
+    
+    Log.logger.t('...primary actions');
+
+    if (context.mounted) {
+      ShowCaseWidget.of(context).startShowCase([_filenameKey, _backupCommandKey, _publishCommandKey, _restoreCommandKey, _newProductCommandKey, _newCategoryCommandKey]);
+    }
+
+
+    final completer = Completer<void>();
+    Timer.periodic(const Duration(milliseconds: 100), (timer) {
+      if (ShowCaseWidget.of(context).isShowCaseCompleted) {
+        timer.cancel();
+        completer.complete();
+      }
+    });
+
+    await completer.future;
+
+    Log.logger.t('...secondary actions');
+
+    
+    if ((_focusItem == null) || (_addingItem)) {
+      final newProduct = EProduct.temp();
+      toggleEditorItem(newProduct, newItem: true);
+      if (context.mounted) {
+        ShowCaseWidget.of(context).startShowCase([_saveProductCommandKey, _printProductCommandKey, _previewProductCommandKey, _deleteProductCommandKey]);
+      }
+    }
+    else {
+      if (context.mounted) {
+        ShowCaseWidget.of(context).startShowCase([_saveProductCommandKey, _printProductCommandKey, _previewProductCommandKey, _revertCommandKey, _deleteProductCommandKey]);
+      }
+    }
+    final nextCompleter = Completer<void>();
+    Timer.periodic(
+      const Duration(milliseconds: 100), 
+      (timer) {
+      if (ShowCaseWidget.of(context).isShowCaseCompleted) {
+        timer.cancel();
+        nextCompleter.complete();
+      }
+    });
+
+    await nextCompleter.future;
+
+    Log.logger.t('...workspace and editor');
+
+    
+    if (context.mounted) {
+      ShowCaseWidget.of(context).startShowCase([_catalogListKey, _editorAreaKey, _productInfoboxKey, _descriptionBoxKey, _imageAreaKey, _brochureBoxKey]);
+    }
+
+    final lastCompleter = Completer<void>();
+    Timer.periodic(
+      const Duration(milliseconds: 100), 
+      (timer) {
+      if (ShowCaseWidget.of(context).isShowCaseCompleted) {
+        timer.cancel();
+        lastCompleter.complete();
+      }
+    });
+
+    await lastCompleter.future;
+
+    Log.logger.t('...done!');
+
+    ShowCaseWidget.of(context).dismiss();
+
+    //TODO : Figure out why Showcase quits on subsequent tries. Also adjust the order of stuff. 
   }
 
   @override
