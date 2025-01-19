@@ -289,6 +289,7 @@ class _StartupPageState extends State<StartupPage>
                                                   PageRouteBuilder(
                                                       pageBuilder: (BuildContext context, _, __) =>
                                                         ShowCaseWidget(
+                                                          enableAutoScroll: true,
                                                           disableMovingAnimation: true,
                                                           builder: (context) => ControlPage()
                                                         )
@@ -439,6 +440,7 @@ class _ControlPageState extends State<ControlPage>
         icon: const Icon(FluentIcons.question_20_regular),
         label: const Text('Help'),
         onPressed: () async {
+
           await showTutorial(context);
         },
       ),
@@ -638,12 +640,12 @@ class _ControlPageState extends State<ControlPage>
                                       Showcase(
                                         key: _filenameKey,
                                         tooltipPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
-                                        tooltipBackgroundColor: WeightechThemes.isDarkMode ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
+                                        tooltipBackgroundColor: FluentTheme.of(context).brightness.isDark ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
                                         description: 
                                         "This box let's you name or rename your current file. This also dictates the name of this catalog version when uploaded to Firebase cloud.\n\nA cloud icon will be shown next to the file name if this version is pulled directly from Firebase (i.e., not saved locally).",
-                                        descTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
+                                        descTextStyle: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
                                         title: "File Name",
-                                        titleTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
+                                        titleTextStyle: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
                                         titlePadding: const EdgeInsets.fromLTRB(0,0,0,5),
                                         child: 
                                           Container(
@@ -664,11 +666,13 @@ class _ControlPageState extends State<ControlPage>
                                                   Colors.transparent,
                                               highlightColor:
                                                   WeightechThemes.weightechGray,
-                                              decoration: BoxDecoration(
-                                                color: Colors.transparent,
-                                                border: Border.all(
-                                                    color: Colors.transparent,
-                                                    width: 0),
+                                              decoration: WidgetStatePropertyAll<BoxDecoration>(
+                                                BoxDecoration(
+                                                  color: Colors.transparent,
+                                                  border: Border.all(
+                                                      color: Colors.transparent,
+                                                      width: 0),
+                                                )
                                               ),
                                               textAlign: TextAlign.center,
                                               padding: EdgeInsets.zero,
@@ -866,11 +870,11 @@ class _ControlPageState extends State<ControlPage>
                                                   return Showcase(
                                                     key: _backupCommandKey,
                                                     tooltipPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
-                                                    tooltipBackgroundColor: WeightechThemes.isDarkMode ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
+                                                    tooltipBackgroundColor: FluentTheme.of(context).brightness.isDark ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
                                                     description: 'Use the Backup command to save a copy of the entire catalog.\n\nCaution: this can create large files.',
-                                                    descTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
+                                                    descTextStyle: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
                                                     title: "Backup Command",
-                                                    titleTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
+                                                    titleTextStyle: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
                                                     titlePadding: const EdgeInsets.fromLTRB(0,0,0,5),
                                                     child: widget,
                                                   );
@@ -923,11 +927,11 @@ class _ControlPageState extends State<ControlPage>
                                                   return Showcase(
                                                     key: _publishCommandKey,
                                                     tooltipPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
-                                                    tooltipBackgroundColor: WeightechThemes.isDarkMode ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
+                                                    tooltipBackgroundColor: FluentTheme.of(context).brightness.isDark ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
                                                     description: 'Use the Publish command to publish this catalog version to Firebase cloud. This version will become the current version used across all tablets.',
-                                                    descTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
+                                                    descTextStyle: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
                                                     title: "Publish Command",
-                                                    titleTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
+                                                    titleTextStyle: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
                                                     titlePadding: const EdgeInsets.fromLTRB(0,0,0,5),
                                                     child: widget,
                                                   );
@@ -980,11 +984,11 @@ class _ControlPageState extends State<ControlPage>
                                                   return Showcase(
                                                     key: _restoreCommandKey,
                                                     tooltipPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
-                                                    tooltipBackgroundColor: WeightechThemes.isDarkMode ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
+                                                    tooltipBackgroundColor: FluentTheme.of(context).brightness.isDark ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
                                                     description: 'Use the Restore command to retrieve a previously published version of the catalog. You can only retrieve one of the last three versions.',
-                                                    descTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
+                                                    descTextStyle: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
                                                     title: "Restore Command",
-                                                    titleTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
+                                                    titleTextStyle: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
                                                     titlePadding: const EdgeInsets.fromLTRB(0,0,0,5),
                                                     child: widget,
                                                   );
@@ -1047,11 +1051,11 @@ class _ControlPageState extends State<ControlPage>
                                                   return Showcase(
                                                     key: _newProductCommandKey,
                                                     tooltipPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
-                                                    tooltipBackgroundColor: WeightechThemes.isDarkMode ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
+                                                    tooltipBackgroundColor: FluentTheme.of(context).brightness.isDark ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
                                                     description: "The 'New Product' command creates a new product to add to the catalog.",
-                                                    descTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
+                                                    descTextStyle: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
                                                     title: "New Product Command",
-                                                    titleTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
+                                                    titleTextStyle: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
                                                     titlePadding: const EdgeInsets.fromLTRB(0,0,0,5),
                                                     child: widget
                                                   );
@@ -1075,11 +1079,11 @@ class _ControlPageState extends State<ControlPage>
                                                   return Showcase(
                                                     key: _newCategoryCommandKey,
                                                     tooltipPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
-                                                    tooltipBackgroundColor: WeightechThemes.isDarkMode ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
+                                                    tooltipBackgroundColor: FluentTheme.of(context).brightness.isDark ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
                                                     description: "Likewise, the 'New Category' command creates a new category to add to the catalog.",
-                                                    descTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
+                                                    descTextStyle: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
                                                     title: "New Category Command",
-                                                    titleTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
+                                                    titleTextStyle: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
                                                     titlePadding: const EdgeInsets.fromLTRB(0,0,0,5),
                                                     child: widget
                                                   );
@@ -1143,11 +1147,11 @@ class _ControlPageState extends State<ControlPage>
                                                         child: Showcase(
                                                           key: _saveProductCommandKey,
                                                           tooltipPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
-                                                          tooltipBackgroundColor: WeightechThemes.isDarkMode ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
+                                                          tooltipBackgroundColor: FluentTheme.of(context).brightness.isDark ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
                                                           description: "The 'Save' command will save this product and/or its changes to the catalog.",
-                                                          descTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
+                                                          descTextStyle: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
                                                           title: "Save Command",
-                                                          titleTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
+                                                          titleTextStyle: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
                                                           titlePadding: const EdgeInsets.fromLTRB(0,0,0,5),
                                                           child: child
                                                         )        
@@ -1323,11 +1327,11 @@ class _ControlPageState extends State<ControlPage>
                                                           child: Showcase(
                                                             key: _printProductCommandKey,
                                                             tooltipPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
-                                                            tooltipBackgroundColor: WeightechThemes.isDarkMode ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
+                                                            tooltipBackgroundColor: FluentTheme.of(context).brightness.isDark ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
                                                             description: "The 'Print' command will format the current product and print it to a PDF file.",
-                                                            descTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
+                                                            descTextStyle: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
                                                             title: "Print Command",
-                                                            titleTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
+                                                            titleTextStyle: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
                                                             titlePadding: const EdgeInsets.fromLTRB(0,0,0,5),
                                                             child: child
                                                           )
@@ -1390,11 +1394,11 @@ class _ControlPageState extends State<ControlPage>
                                                           child: Showcase(
                                                             key: _previewProductCommandKey,
                                                             tooltipPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
-                                                            tooltipBackgroundColor: WeightechThemes.isDarkMode ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
+                                                            tooltipBackgroundColor: FluentTheme.of(context).brightness.isDark ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
                                                             description: "The 'Preview' command will show a preview of what this product will look like on the Android companion app.",
-                                                            descTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
+                                                            descTextStyle: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
                                                             title: "Preview Command",
-                                                            titleTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
+                                                            titleTextStyle: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
                                                             titlePadding: const EdgeInsets.fromLTRB(0,0,0,5),
                                                             child: child
                                                           )
@@ -1448,11 +1452,11 @@ class _ControlPageState extends State<ControlPage>
                                                           child: Showcase(
                                                             key: _revertCommandKey,
                                                             tooltipPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
-                                                            tooltipBackgroundColor: WeightechThemes.isDarkMode ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
+                                                            tooltipBackgroundColor: FluentTheme.of(context).brightness.isDark ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
                                                             description: "The 'Revert' command will retrieve the most recently published version of this product.",
-                                                            descTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
+                                                            descTextStyle: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
                                                             title: "Revert Command",
-                                                            titleTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
+                                                            titleTextStyle: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
                                                             titlePadding: const EdgeInsets.fromLTRB(0,0,0,5),
                                                             child: child
                                                           )
@@ -1558,11 +1562,11 @@ class _ControlPageState extends State<ControlPage>
                                                         child: Showcase(
                                                           key: _deleteProductCommandKey,
                                                           tooltipPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
-                                                          tooltipBackgroundColor: WeightechThemes.isDarkMode ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
+                                                          tooltipBackgroundColor: FluentTheme.of(context).brightness.isDark ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
                                                           description: "The 'Delete' command will, obviously, delete this product.\n\nWarning: if you delete a product, the only way to possibly retrieve it is to restore the entire catalog from a previous version.",
-                                                          descTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
+                                                          descTextStyle: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
                                                           title: "Delete Command",
-                                                          titleTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
+                                                          titleTextStyle: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
                                                           titlePadding: const EdgeInsets.fromLTRB(0,0,0,5),
                                                           child: child
                                                         )
@@ -1684,12 +1688,12 @@ class _ControlPageState extends State<ControlPage>
     return Showcase(
       key: _catalogListKey,  
       tooltipPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
-      tooltipBackgroundColor: WeightechThemes.isDarkMode ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
+      tooltipBackgroundColor: FluentTheme.of(context).brightness.isDark ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
       title: "Catalog",
-      titleTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
+      titleTextStyle: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
       titlePadding: const EdgeInsets.fromLTRB(0,0,0,5),
       description: "This area shows the entire product catalog. You can drag & drop to reorder items or move them to new categories.",
-      descTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
+      descTextStyle: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
       child: Column(
         children: [
           Padding(
@@ -1698,6 +1702,11 @@ class _ControlPageState extends State<ControlPage>
               data: FluentAdaptiveTheme.of(context).theme,
               child: 
                 AutoSuggestBox<EItem>(
+                  decoration: WidgetStatePropertyAll<BoxDecoration>(
+                    BoxDecoration(
+                      border: Border.all(color: WeightechThemes.weightechGray),
+                    )
+                  ),
                   items: CatalogEditor.getAllItems().map((item) {
                     return AutoSuggestBoxItem<EItem>(
                       value: item,
@@ -2165,12 +2174,12 @@ class _ControlPageState extends State<ControlPage>
     return Showcase(
       key: _editorAreaKey,  
       tooltipPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
-      tooltipBackgroundColor: WeightechThemes.isDarkMode ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
+      tooltipBackgroundColor: FluentTheme.of(context).brightness.isDark ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
       title: "Editor",
-      titleTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
+      titleTextStyle: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
       titlePadding: const EdgeInsets.fromLTRB(0,0,0,5),
       description: "In this area, you can edit your products and categories.",
-      descTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
+      descTextStyle: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
       child: Container(
         decoration: const BoxDecoration(
             borderRadius: BorderRadius.only(
@@ -2204,12 +2213,12 @@ class _ControlPageState extends State<ControlPage>
                                   Showcase(
                                     key: _imageAreaKey,  
                                     tooltipPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
-                                    tooltipBackgroundColor: WeightechThemes.isDarkMode ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
+                                    tooltipBackgroundColor: FluentTheme.of(context).brightness.isDark ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
                                     title: "Media Upload",
-                                    titleTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
+                                    titleTextStyle: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
                                     titlePadding: const EdgeInsets.fromLTRB(0,0,0,5),
                                     description: "You can upload and view product media here.\n\nThe accepted file types are .png, .jpg, and .mp4.",
-                                    descTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
+                                    descTextStyle: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
                                     child: Column(
                                       mainAxisSize: MainAxisSize.min,
                                       mainAxisAlignment: MainAxisAlignment.center,
@@ -2244,12 +2253,12 @@ class _ControlPageState extends State<ControlPage>
                                 Showcase(
                                   key: _brochureBoxKey,  
                                   tooltipPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
-                                  tooltipBackgroundColor: WeightechThemes.isDarkMode ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
+                                  tooltipBackgroundColor: FluentTheme.of(context).brightness.isDark ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
                                   title: "Product Features",
-                                  titleTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
+                                  titleTextStyle: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
                                   titlePadding: const EdgeInsets.fromLTRB(0,0,0,5),
                                   description: "You can list various product features here, which supports headers and subheaders.",
-                                  descTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
+                                  descTextStyle: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
                                   child: Container(
                                     alignment: Alignment.centerLeft,
                                     child:
@@ -2282,12 +2291,12 @@ class _ControlPageState extends State<ControlPage>
     return Showcase(
       key: _productNameKey,  
       tooltipPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
-      tooltipBackgroundColor: WeightechThemes.isDarkMode ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
+      tooltipBackgroundColor: FluentTheme.of(context).brightness.isDark ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
       title: "Product Name",
-      titleTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
+      titleTextStyle: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
       titlePadding: const EdgeInsets.fromLTRB(0,0,0,5),
       description: "You can edit the name of this product here.",
-      descTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
+      descTextStyle: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
       child:
         Container(
           decoration: const BoxDecoration(
@@ -2299,11 +2308,14 @@ class _ControlPageState extends State<ControlPage>
           child: Column(
             children: [
             TextFormBox(
-                decoration: const BoxDecoration(
+                decoration: const WidgetStatePropertyAll<BoxDecoration>(
+                  BoxDecoration(
                     color: WeightechThemes.weightechBlue,
                     borderRadius: BorderRadius.only(
                       topLeft: Radius.circular(8),
-                    )),
+                    )
+                  )
+                ),
                 style: const TextStyle(
                     color: Colors.white,
                     fontSize: 32,
@@ -2336,12 +2348,12 @@ class _ControlPageState extends State<ControlPage>
       child: Showcase(
         key: _descriptionBoxKey,
         tooltipPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
-        tooltipBackgroundColor: WeightechThemes.isDarkMode ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
+        tooltipBackgroundColor: FluentTheme.of(context).brightness.isDark ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
         title: "Description Text Box",
-        titleTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
+        titleTextStyle: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
         titlePadding: const EdgeInsets.fromLTRB(0,0,0,5),
         description: "You can enter a description for the product here.\n\nYou can wrap certain words/phrases with special characters, *Bold* or _Underline_, for additional formatting.",
-        descTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
+        descTextStyle: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
         child: FluentTheme(
           data: FluentTheme.of(context),
           child: Tooltip(
@@ -2411,51 +2423,290 @@ class _ControlPageState extends State<ControlPage>
         borderRadius: BorderRadius.circular(8),
         elevation: 2,
         child: AnimatedContainer(
-            duration: const Duration(milliseconds: 250),
-            width: 400,
-            height: 250,
-            padding: const EdgeInsets.only(top: 1),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                  color: _fileDragging
-                      ? WeightechThemes.fileDropColor
-                      : WeightechThemes.weightechGray),
-            ),
-            child: _mediaPaths.isEmpty
-                ? Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                        const Icon(FluentIcons.image_20_regular, size: 70),
-                        const Text("Drag and drop file here",
-                            style: TextStyle(fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 10),
-                        const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
+          duration: const Duration(milliseconds: 250),
+          width: 400,
+          height: 250,
+          padding: const EdgeInsets.only(top: 1),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            border: 
+              _fileDragging ? 
+              Border.all(
+                color: WeightechThemes.fileDropColor
+                  // _fileDragging
+                  //   ? WeightechThemes.fileDropColor
+                    // : WeightechThemes.weightechGray
+              ) : null
+          ),
+          child: _mediaPaths.isEmpty
+              ? Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(FluentIcons.image_20_regular, size: 70),
+                    const Text("Drag and drop file here",
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 10),
+                    const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Expanded(
+                              child: Divider(
+                                  style: DividerThemeData(
+                                      decoration: BoxDecoration(
+                                          color: Colors.black),
+                                      thickness: 1,
+                                      horizontalMargin:
+                                          EdgeInsets.symmetric(
+                                              horizontal: 35)))),
+                          Text("or"),
+                          Expanded(
+                              child: Divider(
+                                  style: DividerThemeData(
+                                      decoration: BoxDecoration(
+                                          color: Colors.black),
+                                      thickness: 1,
+                                      horizontalMargin:
+                                          EdgeInsets.symmetric(
+                                              horizontal: 35))))
+                        ]),
+                    const SizedBox(height: 10),
+                    OutlinedButton(
+                        onPressed: () async {
+                          FilePickerResult? _ = await FilePicker.platform
+                              .pickFiles(
+                                  allowMultiple: true,
+                                  type: FileType.media,
+                                  allowedExtensions: [
+                                'png',
+                                'jpg',
+                                'mp4'
+                              ]).then((result) {
+                            if (result != null) {
+                              List<String> paths = [];
+
+                              for (var path in result.paths) {
+                                if (_mediaPaths.contains(path)) {
+                                  Log.logger
+                                      .t("Image already assigned to item.");
+                                  continue;
+                                }
+                                String extension =
+                                    path!.substring(path.length - 4);
+                                if (extension == ".jpg" ||
+                                    extension == ".png") {
+                                  Log.logger
+                                      .t("Image added to paths: $path");
+                                  paths.add(path);
+                                } else if (path
+                                        .substring(path.length - 5) ==
+                                    ".jpeg") {
+                                  Log.logger
+                                      .t("Image added to paths: $path");
+                                  paths.add(path);
+                                } else if (extension == ".mp4") {
+                                  Log.logger
+                                      .t("-> Video added to paths: $path");
+                                  paths.add(path);
+                                } else {
+                                  Log.logger.t(
+                                      "Invalid file type: File type $extension not supported.");
+                                }
+                              }
+
+                              setState(() {
+                                _mediaPaths.addAll(paths);
+                                for (var path in paths) {
+                                  _mediaFiles.add(File(path));
+                                }
+                              });
+                            } else {
+                              Log.logger
+                                  .t("-> File upload aborted/failed.");
+                            }
+                            return null;
+                          });
+                        },
+                        child: const Text("Browse Files")),
+                    const SizedBox(height: 10),
+                    const Text("File must be .jpg, .png, or .mp4",
+                        style: TextStyle(
+                            fontSize: 12.0, fontStyle: FontStyle.italic))
+                  ]
+                )
+              : ReorderableListView.builder(
+                  padding: const EdgeInsets.all(15),
+                  shrinkWrap: true,
+                  physics: const BouncingScrollPhysics(),
+                  buildDefaultDragHandles: false,
+                  itemCount: _mediaPaths.length,
+                  itemBuilder: (context, index) {
+                    bool isFromCloud = false;
+                    bool isDownloading = false;
+
+                    final image = _mediaFiles[index];
+                    String imageText = '';
+                    if (isURL(_mediaPaths[index])) {
+                      final ref = FirebaseUtils.storage
+                          .refFromURL(_mediaPaths[index]);
+                      imageText = ref.name;
+                      isFromCloud = true;
+                    } else {
+                      imageText = image.uri.pathSegments.last;
+                    }
+
+                    return ReorderableDragStartListener(
+                      key: Key('$index'),
+                      index: index,
+                      child: ListTile(
+                          tileColor: WidgetStatePropertyAll<Color>(
+                              FluentTheme.of(context).brightness.isDark
+                                  ? WeightechThemes.wtGray.darker
+                                  : WeightechThemes.wtGray.light),
+                          leading: Text('${index + 1}.'),
+                          title: Text(imageText,
+                              style: const TextStyle(fontSize: 14)),
+                          trailing: Row(
                             children: [
-                              Expanded(
+                              (isFromCloud)
+                                  ? StatefulBuilder(
+                                      builder: (context, setState) {
+                                      return IconButton(
+                                          icon: isDownloading
+                                              ? LoadingAnimationWidget
+                                                  .bouncingBall(
+                                                      color: WeightechThemes
+                                                          .loadingAnimationColor,
+                                                      size: 15)
+                                              : const Icon(FluentIcons
+                                                  .cloud_arrow_down_20_regular),
+                                          onPressed: () async {
+                                            setState(
+                                                () => isDownloading = true);
+                                            _mediaFiles[index]
+                                                .setLastModified(
+                                                    DateTime.now());
+                                            await FileSaver.instance.saveFile(
+                                                name: imageText,
+                                                file: _mediaFiles[index]);
+                                            await getDownloadsDirectory()
+                                                .then((dir) async {
+                                              if (dir != null) {
+                                                launchUrl(dir.uri);
+                                              }
+                                            });
+                                            setState(
+                                                () => isDownloading = false);
+                                          });
+                                    })
+                                  : SmallIconButton(
+                                      child: IconButton(
+                                          icon: const Icon(
+                                              FluentIcons.desktop_20_regular),
+                                          onPressed: () async {
+                                            try {
+                                              final dir = FileUtils.dirname(
+                                                  _mediaPaths[index]);
+                                              final uri = Uri.parse(dir);
+                                              launchUrl(uri);
+                                            } on PlatformException {
+                                              final downloadDir =
+                                                  await getDownloadsDirectory();
+                                              final newFile = File(
+                                                  '${downloadDir!.path}/${FileUtils.filenameWithExtension(_mediaPaths[index])}');
+                                              final bytes = _mediaFiles[index]
+                                                  .readAsBytesSync();
+                                              newFile.writeAsBytes(bytes);
+                                            } catch (e) {
+                                              throw ();
+                                            }
+                                          }),
+                                    ),
+                              const SizedBox(width: 10),
+                              if (!imageText.endsWith('.mp4'))
+                                Row(children: [
+                                  IconButton(
+                                      style: ButtonStyle(
+                                          backgroundColor: (index ==
+                                                  _primaryImageIndex)
+                                              ? const WidgetStatePropertyAll<
+                                                      Color>(
+                                                  WeightechThemes
+                                                      .weightechGray)
+                                              : null),
+                                      icon: Icon(
+                                        (index == _primaryImageIndex)
+                                            ? FluentIcons.star_20_filled
+                                            : FluentIcons.star_20_regular,
+                                        color: (index == _primaryImageIndex)
+                                            ? Colors.yellow
+                                            : null,
+                                      ),
+                                      onPressed: () => setState(
+                                          () => _primaryImageIndex = index)),
+                                  const SizedBox(width: 10),
+                                ]),
+                              IconButton(
+                                  icon: const Icon(
+                                      FluentIcons.dismiss_20_regular),
+                                  onPressed: () => setState(() {
+                                        _mediaPaths.removeAt(index);
+                                        _mediaFiles.removeAt(index);
+                                      }))
+                            ],
+                          )),
+                    );
+                  },
+                  onReorder: (oldIndex, newIndex) {
+                    // These two lines are workarounds for ReorderableListView problems
+                    if (newIndex > _mediaPaths.length)
+                      newIndex = _mediaPaths.length;
+                    if (oldIndex < newIndex) newIndex--;
+
+                    String primaryImage = _mediaPaths[_primaryImageIndex];
+
+                    String pathToMove = _mediaPaths.removeAt(oldIndex);
+                    File fileToMove = _mediaFiles.removeAt(oldIndex);
+                    _mediaPaths.insert(newIndex, pathToMove);
+                    _mediaFiles.insert(newIndex, fileToMove);
+
+                    _primaryImageIndex = _mediaPaths.indexOf(primaryImage);
+
+                    setState(() {});
+                  },
+                  footer: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text("Drag and drop",
+                            style: TextStyle(fontWeight: FontWeight.bold)),
+                        const SizedBox(width: 20),
+                        const Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Flexible(
+                                  fit: FlexFit.loose,
                                   child: Divider(
+                                      direction: Axis.vertical,
                                       style: DividerThemeData(
-                                          decoration: BoxDecoration(
-                                              color: Colors.black),
                                           thickness: 1,
                                           horizontalMargin:
                                               EdgeInsets.symmetric(
-                                                  horizontal: 35)))),
+                                                  vertical: 15)))),
                               Text("or"),
-                              Expanded(
+                              Flexible(
+                                  fit: FlexFit.loose,
                                   child: Divider(
+                                      direction: Axis.vertical,
                                       style: DividerThemeData(
-                                          decoration: BoxDecoration(
-                                              color: Colors.black),
                                           thickness: 1,
                                           horizontalMargin:
                                               EdgeInsets.symmetric(
-                                                  horizontal: 35))))
+                                                  vertical: 15))))
                             ]),
-                        const SizedBox(height: 10),
+                        const SizedBox(width: 20),
                         OutlinedButton(
                             onPressed: () async {
+                              Log.logger.t("...Image upload encountered...");
                               FilePickerResult? _ = await FilePicker.platform
                                   .pickFiles(
                                       allowMultiple: true,
@@ -2470,30 +2721,30 @@ class _ControlPageState extends State<ControlPage>
 
                                   for (var path in result.paths) {
                                     if (_mediaPaths.contains(path)) {
-                                      Log.logger
-                                          .t("Image already assigned to item.");
+                                      Log.logger.t(
+                                          "-> Image already assigned to item.");
                                       continue;
                                     }
                                     String extension =
                                         path!.substring(path.length - 4);
                                     if (extension == ".jpg" ||
                                         extension == ".png") {
-                                      Log.logger
-                                          .t("Image added to paths: $path");
+                                      Log.logger.t(
+                                          "-> Image added to paths: $path");
                                       paths.add(path);
                                     } else if (path
                                             .substring(path.length - 5) ==
                                         ".jpeg") {
-                                      Log.logger
-                                          .t("Image added to paths: $path");
+                                      Log.logger.t(
+                                          "-> Image added to paths: $path");
                                       paths.add(path);
                                     } else if (extension == ".mp4") {
-                                      Log.logger
-                                          .t("-> Video added to paths: $path");
+                                      Log.logger.t(
+                                          "-> Video added to paths: $path");
                                       paths.add(path);
                                     } else {
                                       Log.logger.t(
-                                          "Invalid file type: File type $extension not supported.");
+                                          "-> Invalid file type: File type $extension not supported.");
                                     }
                                   }
 
@@ -2511,242 +2762,8 @@ class _ControlPageState extends State<ControlPage>
                               });
                             },
                             child: const Text("Browse Files")),
-                        const SizedBox(height: 10),
-                        const Text("File must be .jpg, .png, or .mp4",
-                            style: TextStyle(
-                                fontSize: 12.0, fontStyle: FontStyle.italic))
-                      ])
-                : ReorderableListView.builder(
-                    padding: const EdgeInsets.all(15),
-                    shrinkWrap: true,
-                    physics: const BouncingScrollPhysics(),
-                    buildDefaultDragHandles: false,
-                    itemCount: _mediaPaths.length,
-                    itemBuilder: (context, index) {
-                      bool isFromCloud = false;
-                      bool isDownloading = false;
-
-                      final image = _mediaFiles[index];
-                      String imageText = '';
-                      if (isURL(_mediaPaths[index])) {
-                        final ref = FirebaseUtils.storage
-                            .refFromURL(_mediaPaths[index]);
-                        imageText = ref.name;
-                        isFromCloud = true;
-                      } else {
-                        imageText = image.uri.pathSegments.last;
-                      }
-
-                      return ReorderableDragStartListener(
-                        key: Key('$index'),
-                        index: index,
-                        child: ListTile(
-                            tileColor: WidgetStatePropertyAll<Color>(
-                                WeightechThemes.isDarkMode
-                                    ? WeightechThemes.wtGray.darker
-                                    : WeightechThemes.wtGray.light),
-                            leading: Text('${index + 1}.'),
-                            title: Text(imageText,
-                                style: const TextStyle(fontSize: 14)),
-                            trailing: Row(
-                              children: [
-                                (isFromCloud)
-                                    ? StatefulBuilder(
-                                        builder: (context, setState) {
-                                        return IconButton(
-                                            icon: isDownloading
-                                                ? LoadingAnimationWidget
-                                                    .bouncingBall(
-                                                        color: WeightechThemes
-                                                            .loadingAnimationColor,
-                                                        size: 15)
-                                                : const Icon(FluentIcons
-                                                    .cloud_arrow_down_20_regular),
-                                            onPressed: () async {
-                                              setState(
-                                                  () => isDownloading = true);
-                                              _mediaFiles[index]
-                                                  .setLastModified(
-                                                      DateTime.now());
-                                              await FileSaver.instance.saveFile(
-                                                  name: imageText,
-                                                  file: _mediaFiles[index]);
-                                              await getDownloadsDirectory()
-                                                  .then((dir) async {
-                                                if (dir != null) {
-                                                  launchUrl(dir.uri);
-                                                }
-                                              });
-                                              setState(
-                                                  () => isDownloading = false);
-                                            });
-                                      })
-                                    : SmallIconButton(
-                                        child: IconButton(
-                                            icon: const Icon(
-                                                FluentIcons.desktop_20_regular),
-                                            onPressed: () async {
-                                              try {
-                                                final dir = FileUtils.dirname(
-                                                    _mediaPaths[index]);
-                                                final uri = Uri.parse(dir);
-                                                launchUrl(uri);
-                                              } on PlatformException {
-                                                final downloadDir =
-                                                    await getDownloadsDirectory();
-                                                final newFile = File(
-                                                    '${downloadDir!.path}/${FileUtils.filenameWithExtension(_mediaPaths[index])}');
-                                                final bytes = _mediaFiles[index]
-                                                    .readAsBytesSync();
-                                                newFile.writeAsBytes(bytes);
-                                              } catch (e) {
-                                                throw ();
-                                              }
-                                            }),
-                                      ),
-                                const SizedBox(width: 10),
-                                if (!imageText.endsWith('.mp4'))
-                                  Row(children: [
-                                    IconButton(
-                                        style: ButtonStyle(
-                                            backgroundColor: (index ==
-                                                    _primaryImageIndex)
-                                                ? const WidgetStatePropertyAll<
-                                                        Color>(
-                                                    WeightechThemes
-                                                        .weightechGray)
-                                                : null),
-                                        icon: Icon(
-                                          (index == _primaryImageIndex)
-                                              ? FluentIcons.star_20_filled
-                                              : FluentIcons.star_20_regular,
-                                          color: (index == _primaryImageIndex)
-                                              ? Colors.yellow
-                                              : null,
-                                        ),
-                                        onPressed: () => setState(
-                                            () => _primaryImageIndex = index)),
-                                    const SizedBox(width: 10),
-                                  ]),
-                                IconButton(
-                                    icon: const Icon(
-                                        FluentIcons.dismiss_20_regular),
-                                    onPressed: () => setState(() {
-                                          _mediaPaths.removeAt(index);
-                                          _mediaFiles.removeAt(index);
-                                        }))
-                              ],
-                            )),
-                      );
-                    },
-                    onReorder: (oldIndex, newIndex) {
-                      // These two lines are workarounds for ReorderableListView problems
-                      if (newIndex > _mediaPaths.length)
-                        newIndex = _mediaPaths.length;
-                      if (oldIndex < newIndex) newIndex--;
-
-                      String primaryImage = _mediaPaths[_primaryImageIndex];
-
-                      String pathToMove = _mediaPaths.removeAt(oldIndex);
-                      File fileToMove = _mediaFiles.removeAt(oldIndex);
-                      _mediaPaths.insert(newIndex, pathToMove);
-                      _mediaFiles.insert(newIndex, fileToMove);
-
-                      _primaryImageIndex = _mediaPaths.indexOf(primaryImage);
-
-                      setState(() {});
-                    },
-                    footer: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text("Drag and drop",
-                              style: TextStyle(fontWeight: FontWeight.bold)),
-                          const SizedBox(width: 20),
-                          const Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Flexible(
-                                    fit: FlexFit.loose,
-                                    child: Divider(
-                                        direction: Axis.vertical,
-                                        style: DividerThemeData(
-                                            thickness: 1,
-                                            horizontalMargin:
-                                                EdgeInsets.symmetric(
-                                                    vertical: 15)))),
-                                Text("or"),
-                                Flexible(
-                                    fit: FlexFit.loose,
-                                    child: Divider(
-                                        direction: Axis.vertical,
-                                        style: DividerThemeData(
-                                            thickness: 1,
-                                            horizontalMargin:
-                                                EdgeInsets.symmetric(
-                                                    vertical: 15))))
-                              ]),
-                          const SizedBox(width: 20),
-                          OutlinedButton(
-                              onPressed: () async {
-                                Log.logger.t("...Image upload encountered...");
-                                FilePickerResult? _ = await FilePicker.platform
-                                    .pickFiles(
-                                        allowMultiple: true,
-                                        type: FileType.media,
-                                        allowedExtensions: [
-                                      'png',
-                                      'jpg',
-                                      'mp4'
-                                    ]).then((result) {
-                                  if (result != null) {
-                                    List<String> paths = [];
-
-                                    for (var path in result.paths) {
-                                      if (_mediaPaths.contains(path)) {
-                                        Log.logger.t(
-                                            "-> Image already assigned to item.");
-                                        continue;
-                                      }
-                                      String extension =
-                                          path!.substring(path.length - 4);
-                                      if (extension == ".jpg" ||
-                                          extension == ".png") {
-                                        Log.logger.t(
-                                            "-> Image added to paths: $path");
-                                        paths.add(path);
-                                      } else if (path
-                                              .substring(path.length - 5) ==
-                                          ".jpeg") {
-                                        Log.logger.t(
-                                            "-> Image added to paths: $path");
-                                        paths.add(path);
-                                      } else if (extension == ".mp4") {
-                                        Log.logger.t(
-                                            "-> Video added to paths: $path");
-                                        paths.add(path);
-                                      } else {
-                                        Log.logger.t(
-                                            "-> Invalid file type: File type $extension not supported.");
-                                      }
-                                    }
-
-                                    setState(() {
-                                      _mediaPaths.addAll(paths);
-                                      for (var path in paths) {
-                                        _mediaFiles.add(File(path));
-                                      }
-                                    });
-                                  } else {
-                                    Log.logger
-                                        .t("-> File upload aborted/failed.");
-                                  }
-                                  return null;
-                                });
-                              },
-                              child: const Text("Browse Files")),
-                        ]),
-                  )),
+                      ]),
+                )),
       ),
     );
   }
@@ -2870,19 +2887,21 @@ class _ControlPageState extends State<ControlPage>
     return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 150, vertical: 20),
         child: Mica(
+          borderRadius: BorderRadius.all(Radius.circular(8)),
           elevation: 2,
           child: Showcase(
             key: _productInfoboxKey,  
             tooltipPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
-            tooltipBackgroundColor: WeightechThemes.isDarkMode ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
+            tooltipBackgroundColor: FluentTheme.of(context).brightness.isDark ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
             title: "Product Information",
-            titleTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
+            titleTextStyle: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
             titlePadding: const EdgeInsets.fromLTRB(0,0,0,5),
             description: "Here you can adjust the model number and parent category of the product.",
-            descTextStyle: TextStyle(color: WeightechThemes.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
+            descTextStyle: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
             child: Container(
               decoration: BoxDecoration(
-                color: WeightechThemes.infoWidgetColor,
+                // color: FluentTheme.of(context).brightness.isDark ? WeightechThemes.wtGray.darkest : WeightechThemes.wtGray.lightest,
+                border: Border.all(color: FluentTheme.of(context).brightness.isDark ? Colors.black : WeightechThemes.weightechGray),
                 borderRadius: BorderRadius.circular(8),
                 // boxShadow: [
                 //   BoxShadow(
@@ -4392,7 +4411,7 @@ class _ControlPageState extends State<ControlPage>
       "Let's step through the usage and primary features of this app."
     ];
 
-    await showDialog(
+    bool? skip = await showDialog<bool?>(
       context: context,
       builder: (context) {
         return StatefulBuilder(
@@ -4416,6 +4435,10 @@ class _ControlPageState extends State<ControlPage>
                 content: Text(texts[index]),
                 actions: [
                   IconButton(
+                    icon: Icon(FluentIcons.dismiss_20_regular),
+                    onPressed: () {Navigator.of(context).pop(true);}
+                  ),
+                  IconButton(
                     icon: Icon(FluentIcons.arrow_left_20_regular),
                     onPressed: () => setState(() => index = max(index-1, 0))
                   ),
@@ -4423,7 +4446,7 @@ class _ControlPageState extends State<ControlPage>
                     icon: Icon(FluentIcons.arrow_right_20_regular),
                     onPressed: () {
                       if (index + 1 >= texts.length) {
-                        Navigator.of(context).pop();
+                        Navigator.of(context).pop(false);
                       }
                       else {
                         setState(() => index+=1);
@@ -4438,6 +4461,11 @@ class _ControlPageState extends State<ControlPage>
       },
       barrierDismissible: false
     );
+
+    if (skip ?? false) {
+      Log.logger.t('...tutorial skipped!');
+      return;
+    }
     
     Log.logger.t('...primary actions');
 
