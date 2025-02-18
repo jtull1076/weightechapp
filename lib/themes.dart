@@ -1,15 +1,17 @@
 import 'dart:ui';
 import 'package:flutter/material.dart' as material;
 import 'package:fluent_ui/fluent_ui.dart' as fluent;
+import 'package:flutter/scheduler.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_acrylic/flutter_acrylic.dart';
+import 'package:provider/provider.dart';
 import 'package:weightechapp/utils.dart';
 import 'package:adaptive_theme_fluent_ui/adaptive_theme_fluent_ui.dart';
 import 'package:adaptive_theme/adaptive_theme.dart';
 import 'package:window_manager/window_manager.dart';
 
-class WeightechThemes extends ChangeNotifier {
+class WeightechTheme extends ChangeNotifier {
   static late AdaptiveThemeMode? startupTheme;
   static late fluent.FluentThemeData currentTheme;
   static late fluent.ThemeMode themeMode;
@@ -44,26 +46,42 @@ class WeightechThemes extends ChangeNotifier {
     'lighter': Color(0xffe9e9eB),
     'lightest': Color(0xfff4f4f9),
   });
-  WeightechThemes({required AdaptiveThemeMode startupMode}) {
-    _initializeTheme(startupMode);
-  }
+  WeightechTheme();
 
-  void _initializeTheme(AdaptiveThemeMode startupMode) {
+  Future<void> initializeTheme() async {
     // Default to light theme if AppSettings.isDarkMode is null
-    isDarkMode = startupMode.isDark;
-    final isDark = startupMode.isDark;
-    themeMode = startupMode == AdaptiveThemeMode.system
-        ? fluent.ThemeMode.system
-        : (isDarkMode ? fluent.ThemeMode.dark : fluent.ThemeMode.light);
+
+    if (AppSettings.isDarkMode != null) {
+      if (AppSettings.isDarkMode!) {
+        themeMode = fluent.ThemeMode.dark;
+      }
+      else {
+        themeMode = fluent.ThemeMode.light;
+      }
+    }
+    else {
+      themeMode = fluent.ThemeMode.system;
+    }
+
+
+    if (themeMode == fluent.ThemeMode.system) {
+      var brightness = SchedulerBinding.instance.platformDispatcher.platformBrightness;
+      isDarkMode = brightness == Brightness.dark;
+      var dark = isDarkMode;
+      debugPrint(dark.toString());
+    }
+    else {
+      isDarkMode = themeMode == fluent.ThemeMode.dark;
+    }
 
     currentTheme = isDarkMode ? fluentDarkTheme : fluentLightTheme;
 
-    _applyThemeSettings();
+    _applyThemeCustoms();
     
   }
 
   // Set properties dynamically based on theme
-  void _applyThemeSettings() {
+  void _applyThemeCustoms() {
     infoWidgetColor = isDarkMode ? wtGray.darkest : wtGray.lightest;
     loadingAnimationColor = isDarkMode ? weightechOrange : weightechBlue;
     fileDropColor = isDarkMode ? weightechOrange : weightechBlue;
@@ -72,16 +90,34 @@ class WeightechThemes extends ChangeNotifier {
       fontSize: 18,
     );
 
+    if (AppSettings.useMica ?? false) {
+      if (WeightechTheme.isDarkMode) {
+        WeightechTheme.setMicaEffect(fluent.ThemeMode.dark);
+        WeightechTheme.setCustoms(mode: fluent.ThemeMode.dark);
+      } else {
+        WeightechTheme.setMicaEffect(fluent.ThemeMode.light);
+        WeightechTheme.setCustoms(mode: fluent.ThemeMode.light);
+      }
+    } else {
+      if (WeightechTheme.isDarkMode) {
+        WeightechTheme.disableMicaEffect(fluent.ThemeMode.dark);
+        WeightechTheme.setCustoms(mode: fluent.ThemeMode.dark);
+      } else {
+        WeightechTheme.disableMicaEffect(fluent.ThemeMode.light);
+        WeightechTheme.setCustoms(mode: fluent.ThemeMode.light);
+      }
+    }
+
     notifyListeners();
   }
 
-  static Future<void> setCustoms({AdaptiveThemeMode? mode}) async {
-    if (mode == AdaptiveThemeMode.light) {
+  static Future<void> setCustoms({fluent.ThemeMode? mode}) async {
+    if (mode == fluent.ThemeMode.light) {
       infoWidgetColor = wtGray.lightest;
       loadingAnimationColor = wtBlue.normal;
       fileDropColor = weightechBlue;
       dialogTitleStyle = const TextStyle(color: weightechBlue, fontSize: 18);
-    } else if (mode == AdaptiveThemeMode.dark) {
+    } else if (mode == fluent.ThemeMode.dark) {
       infoWidgetColor = wtGray.darkest;
       loadingAnimationColor = weightechOrange;
       fileDropColor = weightechOrange;
@@ -102,11 +138,12 @@ class WeightechThemes extends ChangeNotifier {
   }
 
   // Function to set the Mica effect based on the current theme mode
-  static Future<void> setMicaEffect(AdaptiveThemeMode mode) async {
+  static Future<void> setMicaEffect(fluent.ThemeMode mode) async {
     AppSettings.useMica = true;
-    if (mode == AdaptiveThemeMode.light) {
+    var dark = isDarkMode;
+    if (mode == fluent.ThemeMode.light) {
       await Window.setEffect(effect: WindowEffect.mica, dark: false);
-    } else if (mode == AdaptiveThemeMode.dark) {
+    } else if (mode == fluent.ThemeMode.dark) {
       await Window.setEffect(effect: WindowEffect.mica, dark: true);
     } else {
       await Window.setEffect(effect: WindowEffect.mica, dark: isDarkMode);
@@ -114,11 +151,11 @@ class WeightechThemes extends ChangeNotifier {
   }
 
   // Function to set the Mica effect based on the current theme mode
-  static Future<void> disableMicaEffect(AdaptiveThemeMode mode) async {
+  static Future<void> disableMicaEffect(fluent.ThemeMode mode) async {
     AppSettings.useMica = false;
-    if (mode == AdaptiveThemeMode.light) {
+    if (mode == fluent.ThemeMode.light) {
       await Window.setEffect(effect: WindowEffect.solid, color: windowsLight);
-    } else if (mode == AdaptiveThemeMode.dark) {
+    } else if (mode == fluent.ThemeMode.dark) {
       await Window.setEffect(effect: WindowEffect.solid, color: windowsDark);
     } else {
       await Window.setEffect(
@@ -143,45 +180,52 @@ class WeightechThemes extends ChangeNotifier {
 
   static Future<void> setMica(useMica) async {
     await setWindowEffect(
-        effect: (useMica ? WindowEffect.mica : WindowEffect.solid));
+      effect: (useMica ? WindowEffect.mica : WindowEffect.solid)
+    );
   }
 
-  static Future<void> setColorMode(BuildContext context, AdaptiveThemeMode colorMode) async {
+  static Future<void> setColorMode(BuildContext context, fluent.ThemeMode colorMode) async {
     switch (colorMode) {
-      case (AdaptiveThemeMode.dark):
+      case (fluent.ThemeMode.dark):
         {
           await setDarkMode(context);
         }
-      case (AdaptiveThemeMode.light):
+      case (fluent.ThemeMode.light):
         {
           await setLightMode(context);
         }
-      case (AdaptiveThemeMode.system):
+      case (fluent.ThemeMode.system):
         {
           await setSystemMode(context);
         }
     }
+    
+    
   }
 
   static Future<void> setDarkMode(BuildContext context) async {
     isDarkMode = true;
     themeMode = fluent.ThemeMode.dark;
     AppSettings.isDarkMode = true;
-    FluentAdaptiveTheme.of(context).setDark();
+    // FluentAdaptiveTheme.of(context).setDark();
+    // FluentAdaptiveTheme.of(context).persist();
   }
 
   static Future<void> setLightMode(BuildContext context) async {
     isDarkMode = false;
     AppSettings.isDarkMode = false;
     themeMode = fluent.ThemeMode.light;
-    FluentAdaptiveTheme.of(context).setLight();
+    // FluentAdaptiveTheme.of(context).setLight();
+    // FluentAdaptiveTheme.of(context).persist();
   }
 
   static Future<void> setSystemMode(BuildContext context) async {
-    FluentAdaptiveTheme.of(context).setSystem();
+    // FluentAdaptiveTheme.of(context).setSystem();
+    // FluentAdaptiveTheme.of(context).persist();
     themeMode = fluent.ThemeMode.system;
-    isDarkMode = FluentAdaptiveTheme.of(context).brightness!.isDark;
+    // isDarkMode = FluentAdaptiveTheme.of(context).brightness!.isDark;
     AppSettings.isDarkMode = null;
+    isDarkMode;
   }
 
   static final material.ThemeData materialLightTheme = material.ThemeData(
@@ -217,7 +261,7 @@ class WeightechThemes extends ChangeNotifier {
               : windowsLight,
           dialogTheme: fluent.ContentDialogThemeData(
             titleStyle: const TextStyle(
-                color: WeightechThemes.weightechBlue, fontSize: 18),
+                color: WeightechTheme.weightechBlue, fontSize: 18),
             decoration: BoxDecoration(
               color: fluent.Colors.white,
               borderRadius: BorderRadius.circular(12),
@@ -260,7 +304,7 @@ class WeightechThemes extends ChangeNotifier {
             ),
             filledButtonStyle: fluent.ButtonStyle(
               backgroundColor: fluent.WidgetStatePropertyAll<Color>(
-                  WeightechThemes.weightechBlue),
+                  WeightechTheme.weightechBlue),
               foregroundColor:
                   fluent.WidgetStatePropertyAll<Color>(fluent.Colors.white),
               textStyle: WidgetStatePropertyAll<TextStyle>(TextStyle(
@@ -317,7 +361,7 @@ class WeightechThemes extends ChangeNotifier {
               : windowsDark,
           dialogTheme: fluent.ContentDialogThemeData(
             titleStyle: const TextStyle(
-                color: WeightechThemes.weightechGray, fontSize: 18),
+                color: WeightechTheme.weightechGray, fontSize: 18),
             decoration: BoxDecoration(
               color: windowsDark,
               borderRadius: BorderRadius.circular(12),
@@ -360,7 +404,7 @@ class WeightechThemes extends ChangeNotifier {
             ),
             filledButtonStyle: fluent.ButtonStyle(
               backgroundColor: fluent.WidgetStatePropertyAll<Color>(
-                  WeightechThemes.weightechOrange),
+                  WeightechTheme.weightechOrange),
               foregroundColor:
                   fluent.WidgetStatePropertyAll<Color>(fluent.Colors.white),
               textStyle: WidgetStatePropertyAll<TextStyle>(TextStyle(

@@ -111,9 +111,9 @@ class BrochureHeader implements BrochureItem {
           controller: _controller,
           onChanged: (String newText) => text = newText,
           style: TextStyle(
-              color: WeightechThemes.isDarkMode
-                  ? WeightechThemes.weightechOrange
-                  : WeightechThemes.weightechBlue,
+              color: WeightechTheme.isDarkMode
+                  ? WeightechTheme.weightechOrange
+                  : WeightechTheme.weightechBlue,
               fontSize: 20,
               fontWeight: FontWeight.w700),
         ),
@@ -150,9 +150,9 @@ class BrochureSubheader implements BrochureItem {
                 controller: _controller,
                 style: TextStyle(
                     fontSize: 16,
-                    color: WeightechThemes.isDarkMode
-                        ? WeightechThemes.wtGray.lighter
-                        : WeightechThemes.wtGray.darker,
+                    color: WeightechTheme.isDarkMode
+                        ? WeightechTheme.wtGray.lighter
+                        : WeightechTheme.wtGray.darker,
                     fontWeight: FontWeight.w700)),
             leading: leading,
             trailing: trailing));

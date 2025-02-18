@@ -54,8 +54,8 @@ class _CustomFeedbackFormState extends State<CustomFeedbackForm> {
             height: 1,
             width: double.infinity,
             color: FluentTheme.of(context).brightness.isDark
-                ? WeightechThemes.weightechGray
-                : WeightechThemes.weightechBlue,
+                ? WeightechTheme.weightechGray
+                : WeightechTheme.weightechBlue,
           ),
           Expanded(
             child: Stack(

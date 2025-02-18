@@ -1,3 +1,5 @@
+import 'package:adaptive_theme/adaptive_theme.dart';
+import 'package:adaptive_theme_fluent_ui/adaptive_theme_fluent_ui.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:logger/logger.dart';
@@ -122,7 +124,7 @@ class AppSettings {
     prefs = await SharedPreferences.getInstance();
     storageRef = prefs.getString('storageRef') ?? 'newDevImages';
     isDarkMode = prefs.getBool('isDarkMode');
-    final mode = isDarkMode;
+    // final mode = isDarkMode;
     useMica = prefs.getBool('useMica') ?? false;
     isFirstLaunch = prefs.getBool('isFirstLaunch') ?? true;
   }

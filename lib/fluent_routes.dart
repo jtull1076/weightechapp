@@ -106,7 +106,7 @@ class _OfflinePageState extends State<OfflinePage>
           Padding(
               padding: const EdgeInsets.all(20),
               child: LoadingAnimationWidget.twoRotatingArc(
-                  color: WeightechThemes.weightechBlue, size: 100))
+                  color: WeightechTheme.weightechBlue, size: 100))
         ]),
         const Text("Waiting for Internet connection"),
       ]))
@@ -201,6 +201,7 @@ class _StartupPageState extends State<StartupPage>
 
   @override
   Widget build(BuildContext context) {
+
     return ScaffoldPage(
         content: Center(
             child: StreamBuilder(
@@ -220,12 +221,12 @@ class _StartupPageState extends State<StartupPage>
                                 Text(AppInfo.packageInfo.version),
                                 const SizedBox(height: 5),
                                 const ProgressBar(
-                                    activeColor: WeightechThemes.weightechBlue),
+                                    activeColor: WeightechTheme.weightechBlue),
                                 const SizedBox(height: 10),
                                 Text(snapshot.data!)
                               ])
                             : const ProgressBar(
-                                activeColor: WeightechThemes.weightechBlue)
+                                activeColor: WeightechTheme.weightechBlue)
                         : (snapshot.connectionState == ConnectionState.done)
                             ? Stack(children: [
                                 Center(
@@ -281,10 +282,13 @@ class _StartupPageState extends State<StartupPage>
                                           if (status == UpdatStatus.upToDate ||
                                               status == UpdatStatus.error ||
                                               status == UpdatStatus.dismissed) {
+                                                
+                                            
                                             WidgetsBinding.instance
                                                 .addPostFrameCallback(
                                                     (timeStamp) {
                                               Log.logger.t('-------------------------------');
+                                              debugPrint("Startup Fluent Theme: ${FluentTheme.of(context).brightness}");
                                               Navigator.of(context).pushReplacement(
                                                   PageRouteBuilder(
                                                       pageBuilder: (BuildContext context, _, __) =>
@@ -594,6 +598,9 @@ class _ControlPageState extends State<ControlPage>
               });
             }
           },
+          const SingleActivator(LogicalKeyboardKey.escape): () async {
+            FocusScope.of(context).unfocus();
+          },
         },
         child: FocusScope(
             autofocus: true,
@@ -605,7 +612,7 @@ class _ControlPageState extends State<ControlPage>
                         SizedBox(
                           height: kWindowCaptionHeight,
                           child: WindowCaption(
-                            brightness: FluentAdaptiveTheme.of(context).brightness,
+                            brightness: FluentTheme.of(context).brightness,
                             backgroundColor: Colors.transparent,
                             title: Text('WeighTech Inc.'),
                           ),
@@ -640,7 +647,7 @@ class _ControlPageState extends State<ControlPage>
                                       Showcase(
                                         key: _filenameKey,
                                         tooltipPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
-                                        tooltipBackgroundColor: FluentTheme.of(context).brightness.isDark ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
+                                        tooltipBackgroundColor: FluentTheme.of(context).brightness.isDark ? WeightechTheme.windowsDark : WeightechTheme.windowsLight,
                                         description: 
                                         "This box let's you name or rename your current file. This also dictates the name of this catalog version when uploaded to Firebase cloud.\n\nA cloud icon will be shown next to the file name if this version is pulled directly from Firebase (i.e., not saved locally).",
                                         descTextStyle: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
@@ -665,7 +672,7 @@ class _ControlPageState extends State<ControlPage>
                                               unfocusedColor:
                                                   Colors.transparent,
                                               highlightColor:
-                                                  WeightechThemes.weightechGray,
+                                                  WeightechTheme.weightechGray,
                                               decoration: WidgetStatePropertyAll<BoxDecoration>(
                                                 BoxDecoration(
                                                   color: Colors.transparent,
@@ -814,7 +821,7 @@ class _ControlPageState extends State<ControlPage>
                                                               streamController.add(const Icon(
                                                                   FluentIcons
                                                                       .checkmark_circle_48_filled,
-                                                                  color: WeightechThemes
+                                                                  color: WeightechTheme
                                                                       .weightechBlue,
                                                                   size: 30));
                                                               await Future.delayed(
@@ -870,7 +877,7 @@ class _ControlPageState extends State<ControlPage>
                                                   return Showcase(
                                                     key: _backupCommandKey,
                                                     tooltipPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
-                                                    tooltipBackgroundColor: FluentTheme.of(context).brightness.isDark ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
+                                                    tooltipBackgroundColor: FluentTheme.of(context).brightness.isDark ? WeightechTheme.windowsDark : WeightechTheme.windowsLight,
                                                     description: 'Use the Backup command to save a copy of the entire catalog.\n\nCaution: this can create large files.',
                                                     descTextStyle: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
                                                     title: "Backup Command",
@@ -927,7 +934,7 @@ class _ControlPageState extends State<ControlPage>
                                                   return Showcase(
                                                     key: _publishCommandKey,
                                                     tooltipPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
-                                                    tooltipBackgroundColor: FluentTheme.of(context).brightness.isDark ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
+                                                    tooltipBackgroundColor: FluentTheme.of(context).brightness.isDark ? WeightechTheme.windowsDark : WeightechTheme.windowsLight,
                                                     description: 'Use the Publish command to publish this catalog version to Firebase cloud. This version will become the current version used across all tablets.',
                                                     descTextStyle: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
                                                     title: "Publish Command",
@@ -965,7 +972,7 @@ class _ControlPageState extends State<ControlPage>
                                                       streamController.add(Icon(
                                                           FluentIcons
                                                               .checkmark_circle_48_filled,
-                                                          color: WeightechThemes
+                                                          color: WeightechTheme
                                                               .loadingAnimationColor,
                                                           size: 30));
                                                       await Future.delayed(
@@ -984,7 +991,7 @@ class _ControlPageState extends State<ControlPage>
                                                   return Showcase(
                                                     key: _restoreCommandKey,
                                                     tooltipPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
-                                                    tooltipBackgroundColor: FluentTheme.of(context).brightness.isDark ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
+                                                    tooltipBackgroundColor: FluentTheme.of(context).brightness.isDark ? WeightechTheme.windowsDark : WeightechTheme.windowsLight,
                                                     description: 'Use the Restore command to retrieve a previously published version of the catalog. You can only retrieve one of the last three versions.',
                                                     descTextStyle: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
                                                     title: "Restore Command",
@@ -1051,7 +1058,7 @@ class _ControlPageState extends State<ControlPage>
                                                   return Showcase(
                                                     key: _newProductCommandKey,
                                                     tooltipPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
-                                                    tooltipBackgroundColor: FluentTheme.of(context).brightness.isDark ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
+                                                    tooltipBackgroundColor: FluentTheme.of(context).brightness.isDark ? WeightechTheme.windowsDark : WeightechTheme.windowsLight,
                                                     description: "The 'New Product' command creates a new product to add to the catalog.",
                                                     descTextStyle: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
                                                     title: "New Product Command",
@@ -1079,7 +1086,7 @@ class _ControlPageState extends State<ControlPage>
                                                   return Showcase(
                                                     key: _newCategoryCommandKey,
                                                     tooltipPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
-                                                    tooltipBackgroundColor: FluentTheme.of(context).brightness.isDark ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
+                                                    tooltipBackgroundColor: FluentTheme.of(context).brightness.isDark ? WeightechTheme.windowsDark : WeightechTheme.windowsLight,
                                                     description: "Likewise, the 'New Category' command creates a new category to add to the catalog.",
                                                     descTextStyle: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
                                                     title: "New Category Command",
@@ -1147,7 +1154,7 @@ class _ControlPageState extends State<ControlPage>
                                                         child: Showcase(
                                                           key: _saveProductCommandKey,
                                                           tooltipPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
-                                                          tooltipBackgroundColor: FluentTheme.of(context).brightness.isDark ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
+                                                          tooltipBackgroundColor: FluentTheme.of(context).brightness.isDark ? WeightechTheme.windowsDark : WeightechTheme.windowsLight,
                                                           description: "The 'Save' command will save this product and/or its changes to the catalog.",
                                                           descTextStyle: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
                                                           title: "Save Command",
@@ -1327,7 +1334,7 @@ class _ControlPageState extends State<ControlPage>
                                                           child: Showcase(
                                                             key: _printProductCommandKey,
                                                             tooltipPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
-                                                            tooltipBackgroundColor: FluentTheme.of(context).brightness.isDark ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
+                                                            tooltipBackgroundColor: FluentTheme.of(context).brightness.isDark ? WeightechTheme.windowsDark : WeightechTheme.windowsLight,
                                                             description: "The 'Print' command will format the current product and print it to a PDF file.",
                                                             descTextStyle: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
                                                             title: "Print Command",
@@ -1394,7 +1401,7 @@ class _ControlPageState extends State<ControlPage>
                                                           child: Showcase(
                                                             key: _previewProductCommandKey,
                                                             tooltipPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
-                                                            tooltipBackgroundColor: FluentTheme.of(context).brightness.isDark ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
+                                                            tooltipBackgroundColor: FluentTheme.of(context).brightness.isDark ? WeightechTheme.windowsDark : WeightechTheme.windowsLight,
                                                             description: "The 'Preview' command will show a preview of what this product will look like on the Android companion app.",
                                                             descTextStyle: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
                                                             title: "Preview Command",
@@ -1452,7 +1459,7 @@ class _ControlPageState extends State<ControlPage>
                                                           child: Showcase(
                                                             key: _revertCommandKey,
                                                             tooltipPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
-                                                            tooltipBackgroundColor: FluentTheme.of(context).brightness.isDark ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
+                                                            tooltipBackgroundColor: FluentTheme.of(context).brightness.isDark ? WeightechTheme.windowsDark : WeightechTheme.windowsLight,
                                                             description: "The 'Revert' command will retrieve the most recently published version of this product.",
                                                             descTextStyle: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
                                                             title: "Revert Command",
@@ -1562,7 +1569,7 @@ class _ControlPageState extends State<ControlPage>
                                                         child: Showcase(
                                                           key: _deleteProductCommandKey,
                                                           tooltipPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
-                                                          tooltipBackgroundColor: FluentTheme.of(context).brightness.isDark ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
+                                                          tooltipBackgroundColor: FluentTheme.of(context).brightness.isDark ? WeightechTheme.windowsDark : WeightechTheme.windowsLight,
                                                           description: "The 'Delete' command will, obviously, delete this product.\n\nWarning: if you delete a product, the only way to possibly retrieve it is to restore the entire catalog from a previous version.",
                                                           descTextStyle: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black, fontWeight: FontWeight.normal, fontSize: 14),
                                                           title: "Delete Command",
@@ -1636,13 +1643,13 @@ class _ControlPageState extends State<ControlPage>
                                                   .brightness
                                                   .isDark
                                               ? Color.fromARGB(
-                                                  WeightechThemes.windowsDark.alpha,
-                                                  WeightechThemes.windowsDark.red +
+                                                  WeightechTheme.windowsDark.alpha,
+                                                  WeightechTheme.windowsDark.red +
                                                       10,
-                                                  WeightechThemes
+                                                  WeightechTheme
                                                           .windowsDark.green +
                                                       10,
-                                                  WeightechThemes.windowsDark.blue +
+                                                  WeightechTheme.windowsDark.blue +
                                                       10,
                                                 )
                                               : Colors.white,
@@ -1652,10 +1659,10 @@ class _ControlPageState extends State<ControlPage>
                                           border: Border(
                                             top: BorderSide(
                                               width: 1,
-                                              color: WeightechThemes.wtGray.darker,
+                                              color: WeightechTheme.wtGray.darker,
                                             ),
                                             left: BorderSide(
-                                              color: WeightechThemes.wtGray.darker,
+                                              color: WeightechTheme.wtGray.darker,
                                             ),
                                           )),
                                       child: (_focusItem != null)
@@ -1688,7 +1695,7 @@ class _ControlPageState extends State<ControlPage>
     return Showcase(
       key: _catalogListKey,  
       tooltipPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
-      tooltipBackgroundColor: FluentTheme.of(context).brightness.isDark ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
+      tooltipBackgroundColor: FluentTheme.of(context).brightness.isDark ? WeightechTheme.windowsDark : WeightechTheme.windowsLight,
       title: "Catalog",
       titleTextStyle: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
       titlePadding: const EdgeInsets.fromLTRB(0,0,0,5),
@@ -1699,12 +1706,12 @@ class _ControlPageState extends State<ControlPage>
           Padding(
             padding: const EdgeInsets.fromLTRB(10,10,10,0),
             child: FluentTheme(
-              data: FluentAdaptiveTheme.of(context).theme,
-              child: 
-                AutoSuggestBox<EItem>(
+              data: FluentTheme.of(context),
+              child: DisableAcrylic(
+                child: AutoSuggestBox<EItem>(
                   decoration: WidgetStatePropertyAll<BoxDecoration>(
                     BoxDecoration(
-                      border: Border.all(color: WeightechThemes.weightechGray),
+                      border: Border.all(color: WeightechTheme.weightechGray),
                     )
                   ),
                   items: CatalogEditor.getAllItems().map((item) {
@@ -1729,6 +1736,7 @@ class _ControlPageState extends State<ControlPage>
                     }
                   }
                 ),
+              )
             )
           ),
           Expanded(
@@ -2174,7 +2182,7 @@ class _ControlPageState extends State<ControlPage>
     return Showcase(
       key: _editorAreaKey,  
       tooltipPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
-      tooltipBackgroundColor: FluentTheme.of(context).brightness.isDark ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
+      tooltipBackgroundColor: FluentTheme.of(context).brightness.isDark ? WeightechTheme.windowsDark : WeightechTheme.windowsLight,
       title: "Editor",
       titleTextStyle: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
       titlePadding: const EdgeInsets.fromLTRB(0,0,0,5),
@@ -2213,7 +2221,7 @@ class _ControlPageState extends State<ControlPage>
                                   Showcase(
                                     key: _imageAreaKey,  
                                     tooltipPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
-                                    tooltipBackgroundColor: FluentTheme.of(context).brightness.isDark ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
+                                    tooltipBackgroundColor: FluentTheme.of(context).brightness.isDark ? WeightechTheme.windowsDark : WeightechTheme.windowsLight,
                                     title: "Media Upload",
                                     titleTextStyle: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
                                     titlePadding: const EdgeInsets.fromLTRB(0,0,0,5),
@@ -2253,7 +2261,7 @@ class _ControlPageState extends State<ControlPage>
                                 Showcase(
                                   key: _brochureBoxKey,  
                                   tooltipPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
-                                  tooltipBackgroundColor: FluentTheme.of(context).brightness.isDark ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
+                                  tooltipBackgroundColor: FluentTheme.of(context).brightness.isDark ? WeightechTheme.windowsDark : WeightechTheme.windowsLight,
                                   title: "Product Features",
                                   titleTextStyle: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
                                   titlePadding: const EdgeInsets.fromLTRB(0,0,0,5),
@@ -2291,7 +2299,7 @@ class _ControlPageState extends State<ControlPage>
     return Showcase(
       key: _productNameKey,  
       tooltipPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
-      tooltipBackgroundColor: FluentTheme.of(context).brightness.isDark ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
+      tooltipBackgroundColor: FluentTheme.of(context).brightness.isDark ? WeightechTheme.windowsDark : WeightechTheme.windowsLight,
       title: "Product Name",
       titleTextStyle: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
       titlePadding: const EdgeInsets.fromLTRB(0,0,0,5),
@@ -2310,7 +2318,7 @@ class _ControlPageState extends State<ControlPage>
             TextFormBox(
                 decoration: const WidgetStatePropertyAll<BoxDecoration>(
                   BoxDecoration(
-                    color: WeightechThemes.weightechBlue,
+                    color: WeightechTheme.weightechBlue,
                     borderRadius: BorderRadius.only(
                       topLeft: Radius.circular(8),
                     )
@@ -2333,7 +2341,7 @@ class _ControlPageState extends State<ControlPage>
                       : null;
                 }),
               Container(
-                color: WeightechThemes.weightechGray,
+                color: WeightechTheme.weightechGray,
                 height: 5,
                 width: double.infinity)
             ]
@@ -2348,7 +2356,7 @@ class _ControlPageState extends State<ControlPage>
       child: Showcase(
         key: _descriptionBoxKey,
         tooltipPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
-        tooltipBackgroundColor: FluentTheme.of(context).brightness.isDark ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
+        tooltipBackgroundColor: FluentTheme.of(context).brightness.isDark ? WeightechTheme.windowsDark : WeightechTheme.windowsLight,
         title: "Description Text Box",
         titleTextStyle: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
         titlePadding: const EdgeInsets.fromLTRB(0,0,0,5),
@@ -2432,7 +2440,7 @@ class _ControlPageState extends State<ControlPage>
             border: 
               _fileDragging ? 
               Border.all(
-                color: WeightechThemes.fileDropColor
+                color: WeightechTheme.fileDropColor
                   // _fileDragging
                   //   ? WeightechThemes.fileDropColor
                     // : WeightechThemes.weightechGray
@@ -2560,8 +2568,8 @@ class _ControlPageState extends State<ControlPage>
                       child: ListTile(
                           tileColor: WidgetStatePropertyAll<Color>(
                               FluentTheme.of(context).brightness.isDark
-                                  ? WeightechThemes.wtGray.darker
-                                  : WeightechThemes.wtGray.light),
+                                  ? WeightechTheme.wtGray.darker
+                                  : WeightechTheme.wtGray.light),
                           leading: Text('${index + 1}.'),
                           title: Text(imageText,
                               style: const TextStyle(fontSize: 14)),
@@ -2574,7 +2582,7 @@ class _ControlPageState extends State<ControlPage>
                                           icon: isDownloading
                                               ? LoadingAnimationWidget
                                                   .bouncingBall(
-                                                      color: WeightechThemes
+                                                      color: WeightechTheme
                                                           .loadingAnimationColor,
                                                       size: 15)
                                               : const Icon(FluentIcons
@@ -2630,7 +2638,7 @@ class _ControlPageState extends State<ControlPage>
                                                   _primaryImageIndex)
                                               ? const WidgetStatePropertyAll<
                                                       Color>(
-                                                  WeightechThemes
+                                                  WeightechTheme
                                                       .weightechGray)
                                               : null),
                                       icon: Icon(
@@ -2855,7 +2863,7 @@ class _ControlPageState extends State<ControlPage>
                             }
                           } else {
                             return LoadingAnimationWidget.newtonCradle(
-                                color: WeightechThemes.weightechBlue, size: 50);
+                                color: WeightechTheme.weightechBlue, size: 50);
                           }
                         }));
                   }
@@ -2873,8 +2881,8 @@ class _ControlPageState extends State<ControlPage>
                     decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: (FluentTheme.of(context).brightness.isDark
-                                ? WeightechThemes.weightechGray
-                                : WeightechThemes.weightechBlue)
+                                ? WeightechTheme.weightechGray
+                                : WeightechTheme.weightechBlue)
                             .withOpacity(current == entry.key ? 1 : 0.3)),
                   );
                 }).toList(),
@@ -2892,7 +2900,7 @@ class _ControlPageState extends State<ControlPage>
           child: Showcase(
             key: _productInfoboxKey,  
             tooltipPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
-            tooltipBackgroundColor: FluentTheme.of(context).brightness.isDark ? WeightechThemes.windowsDark : WeightechThemes.windowsLight,
+            tooltipBackgroundColor: FluentTheme.of(context).brightness.isDark ? WeightechTheme.windowsDark : WeightechTheme.windowsLight,
             title: "Product Information",
             titleTextStyle: TextStyle(color: FluentTheme.of(context).brightness.isDark ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
             titlePadding: const EdgeInsets.fromLTRB(0,0,0,5),
@@ -2901,7 +2909,7 @@ class _ControlPageState extends State<ControlPage>
             child: Container(
               decoration: BoxDecoration(
                 // color: FluentTheme.of(context).brightness.isDark ? WeightechThemes.wtGray.darkest : WeightechThemes.wtGray.lightest,
-                border: Border.all(color: FluentTheme.of(context).brightness.isDark ? Colors.black : WeightechThemes.weightechGray),
+                border: Border.all(color: FluentTheme.of(context).brightness.isDark ? Colors.black : WeightechTheme.weightechGray),
                 borderRadius: BorderRadius.circular(8),
                 // boxShadow: [
                 //   BoxShadow(
@@ -2984,7 +2992,7 @@ class _ControlPageState extends State<ControlPage>
         width: 400,
         child: material.Card(
           color: FluentTheme.of(context).brightness.isDark
-              ? WeightechThemes.windowsDark
+              ? WeightechTheme.windowsDark
               : Colors.white,
           surfaceTintColor: Colors.white,
           elevation: 4,
@@ -3041,7 +3049,7 @@ class _ControlPageState extends State<ControlPage>
                                                     FluentIcons
                                                         .dismiss_20_regular,
                                                     size: 40,
-                                                    color: WeightechThemes
+                                                    color: WeightechTheme
                                                         .weightechGray)
                                                 : const SizedBox())));
                               })
@@ -3093,10 +3101,10 @@ class _ControlPageState extends State<ControlPage>
                                   decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(20),
                                     border: Border.all(
-                                        color: WeightechThemes.weightechGray),
+                                        color: WeightechTheme.weightechGray),
                                     color: _fileDragging
-                                        ? WeightechThemes.fileDropColor
-                                        : WeightechThemes.wtGray.lighter,
+                                        ? WeightechTheme.fileDropColor
+                                        : WeightechTheme.wtGray.lighter,
                                   ),
                                   padding: const EdgeInsets.all(20),
                                   alignment: Alignment.center,
@@ -3230,7 +3238,7 @@ class _ControlPageState extends State<ControlPage>
         padding: const EdgeInsets.fromLTRB(150, 20, 150, 0),
         child: Container(
             decoration: BoxDecoration(
-              color: WeightechThemes.infoWidgetColor,
+              color: WeightechTheme.infoWidgetColor,
               borderRadius: BorderRadius.circular(8),
               boxShadow: [
                 BoxShadow(
@@ -3400,7 +3408,7 @@ class _ControlPageState extends State<ControlPage>
                             heightFactor: 1,
                             child: ProgressBar(
                               activeColor:
-                                  WeightechThemes.loadingAnimationColor,
+                                  WeightechTheme.loadingAnimationColor,
                             )));
                   } else if (snapshot.data is EItem) {
                     final item = snapshot.data;
@@ -3455,7 +3463,7 @@ class _ControlPageState extends State<ControlPage>
                             child: showProgressBar
                                 ? ProgressBar(
                                     activeColor:
-                                        WeightechThemes.loadingAnimationColor,
+                                        WeightechTheme.loadingAnimationColor,
                                   )
                                 : const SizedBox()));
                   } else if (snapshot.data is Widget) {
@@ -3483,7 +3491,7 @@ class _ControlPageState extends State<ControlPage>
                             heightFactor: 1,
                             child: ProgressBar(
                               activeColor:
-                                  WeightechThemes.loadingAnimationColor,
+                                  WeightechTheme.loadingAnimationColor,
                             )));
                   }
                 } else {
@@ -3496,7 +3504,7 @@ class _ControlPageState extends State<ControlPage>
                       content: Center(
                           heightFactor: 1,
                           child: ProgressBar(
-                            activeColor: WeightechThemes.loadingAnimationColor,
+                            activeColor: WeightechTheme.loadingAnimationColor,
                           )));
                 }
               })
@@ -3509,7 +3517,7 @@ class _ControlPageState extends State<ControlPage>
               content: Center(
                   heightFactor: 1,
                   child: ProgressBar(
-                    activeColor: WeightechThemes.loadingAnimationColor,
+                    activeColor: WeightechTheme.loadingAnimationColor,
                   )));
     }
   }
@@ -3658,9 +3666,9 @@ class _ControlPageState extends State<ControlPage>
                     Container(
                         alignment: Alignment.topCenter,
                         decoration: BoxDecoration(
-                            color: WeightechThemes.weightechBlue,
+                            color: WeightechTheme.weightechBlue,
                             border: Border.all(
-                                color: WeightechThemes.weightechBlue)),
+                                color: WeightechTheme.weightechBlue)),
                         width: double.infinity,
                         child: Padding(
                             padding: const EdgeInsets.all(1.4),
@@ -3673,7 +3681,7 @@ class _ControlPageState extends State<ControlPage>
                                   color: Colors.white),
                             ))),
                     Container(
-                        color: WeightechThemes.weightechGray,
+                        color: WeightechTheme.weightechGray,
                         height: 4,
                         width: double.infinity),
                     Expanded(
@@ -3780,7 +3788,7 @@ class _ControlPageState extends State<ControlPage>
                                                 } else {
                                                   return LoadingAnimationWidget
                                                       .newtonCradle(
-                                                          color: WeightechThemes
+                                                          color: WeightechTheme
                                                               .weightechBlue,
                                                           size: 50);
                                                 }
@@ -3802,7 +3810,7 @@ class _ControlPageState extends State<ControlPage>
                                                 vertical: 5.6, horizontal: 2.8),
                                             decoration: BoxDecoration(
                                                 shape: BoxShape.circle,
-                                                color: (WeightechThemes
+                                                color: (WeightechTheme
                                                         .weightechBlue)
                                                     .withOpacity(
                                                         (current ?? 0) ==
@@ -3853,7 +3861,7 @@ class _ControlPageState extends State<ControlPage>
                                                   Text(
                                                     headerKey,
                                                     style: const TextStyle(
-                                                        color: WeightechThemes
+                                                        color: WeightechTheme
                                                             .weightechBlue,
                                                         fontSize: 19.6,
                                                         fontWeight:
@@ -3995,7 +4003,7 @@ class _ControlPageState extends State<ControlPage>
                                         Padding(
                                           padding: const EdgeInsets.fromLTRB(0, 10, 0, 20),
                                           child: Text(_priceController.text, style: const TextStyle(
-                                            color: WeightechThemes
+                                            color: WeightechTheme
                                                 .weightechBlue,
                                             fontSize: 16,
                                             fontWeight:
@@ -4227,8 +4235,9 @@ class _ControlPageState extends State<ControlPage>
   }
 
   Future<void> _showSettingsDialog(BuildContext context) async {
-    AdaptiveThemeMode colorMode = FluentAdaptiveTheme.of(context).mode;
+    ThemeMode colorMode = WeightechTheme.themeMode;
     bool? micaMode = AppSettings.useMica;
+    bool changed = false;
 
     await showDialog(
         context: context,
@@ -4253,27 +4262,26 @@ class _ControlPageState extends State<ControlPage>
                                 value: colorMode,
                                 items: const [
                                   ComboBoxItem(
-                                    value: AdaptiveThemeMode.system,
+                                    value: ThemeMode.system,
                                     child: Text("System"),
                                   ),
                                   ComboBoxItem(
-                                    value: AdaptiveThemeMode.light,
+                                    value: ThemeMode.light,
                                     child: Text("Light"),
                                   ),
                                   ComboBoxItem(
-                                    value: AdaptiveThemeMode.dark,
+                                    value: ThemeMode.dark,
                                     child: Text("Dark"),
                                   ),
                                 ],
                                 onChanged: (value) async {
+                                  if (colorMode != value) {
+                                    changed = true;
+                                  }
                                   setStateful(() => colorMode = value!);
-                                  await WeightechThemes.setColorMode(
-                                      context, colorMode);
-                                  final newTheme = FluentAdaptiveTheme.of(context).theme;
-                                  Log.logger.i("Switching to ${FluentAdaptiveTheme.of(context).theme.brightness.isDark ? "Dark" : "Light"} Mode");
-                                  Log.logger.t(
-                                    "${FluentAdaptiveTheme.of(context).theme}");
-                                  setState(() {});
+                                  // Log.logger.i("Switching to ${FluentAdaptiveTheme.of(context).theme.brightness.isDark ? "Dark" : "Light"} Mode");
+                                  // Log.logger.t(
+                                  //   "${FluentAdaptiveTheme.of(context).theme}");
                                 })
                           ],
                         ),
@@ -4296,26 +4304,36 @@ class _ControlPageState extends State<ControlPage>
                                   ),
                                 ],
                                 onChanged: (value) async {
-                                  setStateful(() => micaMode = value);
-                                  if (value != null) {
-                                    AppSettings.useMica = value;
-                                    if (value) {
-                                      await WeightechThemes.setMicaEffect(
-                                          FluentAdaptiveTheme.of(context).mode);
-                                    } else {
-                                      await WeightechThemes.disableMicaEffect(
-                                          FluentAdaptiveTheme.of(context).mode);
-                                    }
+                                  if (value != micaMode) {
+                                    changed = true;
                                   }
-                                  setState(() {});
+                                  setStateful(() => micaMode = value);
                                 })
                           ],
-                        )
-                      ])),
+                        ),
+                        Spacer(),
+                        Text("Theme changes require restart to take effect.", style: TextStyle(fontStyle: FontStyle.italic))
+                      ]
+                    )
+                ),
               actions: <Widget>[
                 Button(
-                    child: const Text("Close"),
-                    onPressed: () => Navigator.of(context).pop())
+                  onPressed: changed
+                    ? () async {
+                      await WeightechTheme.setColorMode(
+                          context, colorMode);
+                      // final newTheme = FluentAdaptiveTheme.of(context).theme;
+                      AppSettings.saveSettings();
+                      if (micaMode != null) {
+                        AppSettings.useMica = micaMode;
+                      }
+                    }
+                    : null,
+                  child: const Text("Apply"),
+                ),
+                Button(
+                  child: const Text("Close"),
+                  onPressed: () => Navigator.of(context).pop())
               ],
             );
           });

@@ -1529,9 +1529,9 @@ class Printer {
       pw.Container(
           alignment: pw.Alignment.topCenter,
           decoration: pw.BoxDecoration(
-              color: PdfColor.fromInt(WeightechThemes.weightechBlue.value),
+              color: PdfColor.fromInt(WeightechTheme.weightechBlue.value),
               border: pw.Border.all(
-                  color: PdfColor.fromInt(WeightechThemes.weightechBlue.value)
+                  color: PdfColor.fromInt(WeightechTheme.weightechBlue.value)
               ),
           ),
           width: double.infinity,
@@ -1549,7 +1549,7 @@ class Printer {
           )
       ),
       pw.Container(
-          color: PdfColor.fromInt(WeightechThemes.weightechGray.value),
+          color: PdfColor.fromInt(WeightechTheme.weightechGray.value),
           height: 4,
           width: double.infinity),
       pw.SizedBox(height: 20),
@@ -1611,7 +1611,7 @@ class Printer {
                                   headerKey,
                                   style: pw.TextStyle(
                                       font: fontBold,
-                                      color: PdfColor.fromInt(WeightechThemes.weightechBlue.value),
+                                      color: PdfColor.fromInt(WeightechTheme.weightechBlue.value),
                                       fontSize: 19.6,
                                       fontWeight: pw.FontWeight.bold),
                                   softWrap: true,

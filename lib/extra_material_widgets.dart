@@ -172,7 +172,7 @@ class FullScreenPageState extends State<FullScreenPage> {
                       padding: const EdgeInsets.only(left: 30, top: 30),
                       child: IconButton(
                         icon: const Icon(Icons.arrow_back),
-                        color: WeightechThemes.weightechBlue,
+                        color: WeightechTheme.weightechBlue,
                         iconSize: 30,
                         onPressed: () {
                           setState(() {

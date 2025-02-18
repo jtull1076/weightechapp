@@ -46,7 +46,7 @@ class IdlePage extends StatelessWidget {
                     const Text('MANAGER',
                         style: TextStyle(
                             fontSize: 30,
-                            color: WeightechThemes.weightechBlue)),
+                            color: WeightechTheme.weightechBlue)),
                     const Text('Press anywhere to begin.',
                         style: TextStyle(
                             fontSize: 18.0, fontStyle: FontStyle.normal))
@@ -292,7 +292,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                           child: const Hero(
                               tag: 'divider',
                               child: Divider(
-                                color: WeightechThemes.weightechBlue,
+                                color: WeightechTheme.weightechBlue,
                                 height: 2,
                                 thickness: 2,
                                 indent: 25.0,
@@ -402,7 +402,7 @@ class _ProductPageState extends State<ProductPage>
                   child: IconButton(
                     icon: const Icon(Icons.arrow_back),
                     iconSize: 30,
-                    color: WeightechThemes.weightechBlue,
+                    color: WeightechTheme.weightechBlue,
                     onPressed: () => Navigator.pop(context),
                   ))),
         ]),
@@ -411,7 +411,7 @@ class _ProductPageState extends State<ProductPage>
         Padding(
             padding: const EdgeInsets.only(left: 25.0, right: 25.0),
             child:
-                Container(color: WeightechThemes.weightechBlue, height: 2.0)),
+                Container(color: WeightechTheme.weightechBlue, height: 2.0)),
         Padding(
             padding: const EdgeInsets.only(left: 25.0, right: 25.0),
             child: widget.animateDivider
@@ -421,9 +421,9 @@ class _ProductPageState extends State<ProductPage>
                     child: Container(
                         alignment: Alignment.topCenter,
                         decoration: BoxDecoration(
-                            color: WeightechThemes.weightechBlue,
+                            color: WeightechTheme.weightechBlue,
                             border: Border.all(
-                                color: WeightechThemes.weightechBlue)),
+                                color: WeightechTheme.weightechBlue)),
                         width: double.infinity,
                         child: Padding(
                             padding: const EdgeInsets.all(2.0),
@@ -438,9 +438,9 @@ class _ProductPageState extends State<ProductPage>
                 : Container(
                     alignment: Alignment.topCenter,
                     decoration: BoxDecoration(
-                        color: WeightechThemes.weightechBlue,
+                        color: WeightechTheme.weightechBlue,
                         border:
-                            Border.all(color: WeightechThemes.weightechBlue)),
+                            Border.all(color: WeightechTheme.weightechBlue)),
                     width: double.infinity,
                     child: Padding(
                         padding: const EdgeInsets.all(2.0),
@@ -546,7 +546,7 @@ class _ProductPageState extends State<ProductPage>
                                 }
                               } else {
                                 return LoadingAnimationWidget.newtonCradle(
-                                    color: WeightechThemes.weightechBlue,
+                                    color: WeightechTheme.weightechBlue,
                                     size: 50);
                               }
                             }));
@@ -568,8 +568,8 @@ class _ProductPageState extends State<ProductPage>
                               shape: BoxShape.circle,
                               color: (Theme.of(context).brightness ==
                                           Brightness.dark
-                                      ? WeightechThemes.weightechGray
-                                      : WeightechThemes.weightechBlue)
+                                      ? WeightechTheme.weightechGray
+                                      : WeightechTheme.weightechBlue)
                                   .withOpacity(
                                       _current == entry.key ? 1 : 0.3)),
                         );
@@ -605,7 +605,7 @@ class _ProductPageState extends State<ProductPage>
                             Text(
                               headerKey,
                               style: const TextStyle(
-                                  color: WeightechThemes.weightechBlue,
+                                  color: WeightechTheme.weightechBlue,
                                   fontSize: 28.0,
                                   fontWeight: FontWeight.bold),
                               softWrap: true,
@@ -781,7 +781,7 @@ class _ProductPageState extends State<ProductPage>
                                   }
                                 } else {
                                   return LoadingAnimationWidget.newtonCradle(
-                                      color: WeightechThemes.weightechBlue,
+                                      color: WeightechTheme.weightechBlue,
                                       size: 80);
                                 }
                               }));
@@ -803,8 +803,8 @@ class _ProductPageState extends State<ProductPage>
                                 shape: BoxShape.circle,
                                 color: (Theme.of(context).brightness ==
                                             Brightness.dark
-                                        ? WeightechThemes.weightechGray
-                                        : WeightechThemes.weightechBlue)
+                                        ? WeightechTheme.weightechGray
+                                        : WeightechTheme.weightechBlue)
                                     .withOpacity(
                                         _current == entry.key ? 1 : 0.3)),
                           );
@@ -844,7 +844,7 @@ class _ProductPageState extends State<ProductPage>
                                 Text(
                                   headerKey,
                                   style: const TextStyle(
-                                      color: WeightechThemes.weightechBlue,
+                                      color: WeightechTheme.weightechBlue,
                                       fontSize: 28.0,
                                       fontWeight: FontWeight.bold),
                                   softWrap: true,
@@ -1136,7 +1136,7 @@ class _ListingPageState extends State<ListingPage>
                               child: IconButton(
                                   icon: const Icon(Icons.arrow_back),
                                   iconSize: 30,
-                                  color: WeightechThemes.weightechBlue,
+                                  color: WeightechTheme.weightechBlue,
                                   onPressed: () {
                                     Navigator.of(context).pop();
                                   }))),
@@ -1146,7 +1146,7 @@ class _ListingPageState extends State<ListingPage>
                     Padding(
                         padding: const EdgeInsets.only(left: 25.0, right: 25.0),
                         child: Container(
-                            color: WeightechThemes.weightechBlue, height: 2.0)),
+                            color: WeightechTheme.weightechBlue, height: 2.0)),
                     Padding(
                         padding: const EdgeInsets.only(left: 25.0, right: 25.0),
                         child: widget.animateDivider
@@ -1156,10 +1156,10 @@ class _ListingPageState extends State<ListingPage>
                                 child: Container(
                                     alignment: Alignment.topCenter,
                                     decoration: BoxDecoration(
-                                        color: WeightechThemes.weightechBlue,
+                                        color: WeightechTheme.weightechBlue,
                                         border: Border.all(
                                             color:
-                                                WeightechThemes.weightechBlue)),
+                                                WeightechTheme.weightechBlue)),
                                     width: double.infinity,
                                     child: Padding(
                                         padding: const EdgeInsets.all(2.0),
@@ -1174,9 +1174,9 @@ class _ListingPageState extends State<ListingPage>
                             : Container(
                                 alignment: Alignment.topCenter,
                                 decoration: BoxDecoration(
-                                    color: WeightechThemes.weightechBlue,
+                                    color: WeightechTheme.weightechBlue,
                                     border: Border.all(
-                                        color: WeightechThemes.weightechBlue)),
+                                        color: WeightechTheme.weightechBlue)),
                                 width: double.infinity,
                                 child: Padding(
                                     padding: const EdgeInsets.all(2.0),
